@@ -1,58 +1,87 @@
 # ai-delegation-readiness
 
-高リスクな定型業務を AI エージェントに委任するための **4 層前提条件**と
-**監査ログ設計テンプレート**の参照実装。味の素グループ(AFS)の経理 AI エージェント
-事例(2026 年 4 月発表)から再現可能な骨格を抽出し、自社で同種の委任を検討する
-組織が「対象業務が委任に耐えるか」を診断できるチェックリストとして整える。
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-このリポジトリは**ドキュメント中心**の参照実装で、コード実装言語は持たない。
-読み物として 4 層フレームを点検し、監査ログ JSON サンプルをそのまま雛形として
-持ち帰ることを想定する。
+> 🇯🇵 日本語版は [README.ja.md](README.ja.md)
 
-## 想定読者
+A reference implementation of the **4-layer prerequisites** for delegating
+high-risk routine business judgments to AI agents, plus a **minimum audit log
+schema** template. The framework is distilled from a real-world case study:
+Ajinomoto Group's accounting AI agent for expense claim approvals, which went
+into production in February 2026.
 
-- 経理・承認・コンプライアンス業務を AI エージェントに委任しようとしている実装エンジニア
-- 業務設計者・経理 / 管理部門のリーダー
-- 自社の AI 統制設計(④統制・追跡層)に欠けがないかを点検したい運用担当
+This is a **documentation-only reference implementation** — no source code
+beyond Markdown and a JSON sample. The goal is to give your organization a
+diagnostic checklist for "does this business judgment hold up to AI delegation?"
+that you can take home and adapt.
 
-## 主要成果物
+> **Note on internal documentation language**: The documents under `docs/` and
+> code comments are written in Japanese, reflecting the author's primary working
+> language. This English README is the entry point; the Japanese version
+> ([README.ja.md](README.ja.md)) is the canonical text.
 
-| ファイル | 内容 |
+## Who this is for
+
+- Implementation engineers who plan to delegate accounting, approval, or
+  compliance workflows to AI agents
+- Business designers and accounting / management leads making the delegation
+  decision
+- Operations teams auditing their own AI governance design (the 4th layer:
+  control and traceability)
+
+## Main artifacts
+
+| File | Contents |
 |---|---|
-| [docs/01_four_layer_framework.md](docs/01_four_layer_framework.md) | 4 層フレーム(業務標準化 / 判断構造化 / 委任範囲 / 統制・追跡)+ 効果測定 のチェックリスト |
-| [docs/02_audit_log_schema.md](docs/02_audit_log_schema.md) | 監査ログ最小スキーマ(Who/When/What/Why/Result)と J-SOX 観点 |
-| [docs/03_delegation_matrix.md](docs/03_delegation_matrix.md) | 委任線引きマトリクス(検証可能性 × 正解定義可能性) |
-| [examples/audit-log-sample.json](examples/audit-log-sample.json) | ダミー経費承認 1 件の監査ログ JSON サンプル |
+| [docs/01_four_layer_framework.md](docs/01_four_layer_framework.md) | The 4-layer framework (standardization / structuring / scope / control) + efficacy measurement, with checklists |
+| [docs/02_audit_log_schema.md](docs/02_audit_log_schema.md) | Minimum audit log schema (Who/When/What/Why/Result), two-tier (article-aligned baseline + J-SOX-grade design extensions), with a JSON Schema-style pseudo-definition |
+| [docs/03_delegation_matrix.md](docs/03_delegation_matrix.md) | Delegation matrix on verifiability × answer-definability, with 3 scoring questions per axis |
+| [examples/audit-log-sample.json](examples/audit-log-sample.json) | A dummy expense-claim audit log entry (illustrating the `escalated` decision path) |
 
-## 自社運用での適用例(参考)
+## Self-application example (for reference)
 
-- [docs/04_agent_loop_audit_gap.md](docs/04_agent_loop_audit_gap.md) — リポ作者の自社運用基盤
-  `agent-loop` の DB スキーマを④統制層の観点で点検した結果。**他社が真似するためのテンプレ部は
-  01〜03 で完結**しているので、04 は適用例として参照のみで構わない。
+- [docs/04_agent_loop_audit_gap.md](docs/04_agent_loop_audit_gap.md) — A
+  walkthrough of how the author audited their own automation platform
+  (`agent-loop`) against the 4th layer's requirements, including concrete
+  `ALTER TABLE` proposals. **The portable parts of this repo are 01–03 +
+  examples** — document 04 is included only as a worked example.
 
-## 使い方
+## How to use
 
-1. `docs/01_four_layer_framework.md` のチェックリストを対象業務に当てて、4 層 + 効果測定が
-   揃っているかを確認する
-2. ③ 委任範囲層で迷ったら `docs/03_delegation_matrix.md` の 2 軸採点に落として判定する
-3. ④ 統制・追跡層の監査ログ設計は `docs/02_audit_log_schema.md` の最小スキーマと
-   `examples/audit-log-sample.json` を雛形にする
-4. 自社の既存ログ基盤が④統制層を満たしているかは、`docs/04_agent_loop_audit_gap.md`
-   の点検方法(SQL スキーマ × 5 観点マッピング)を参考に同様の点検をする
+1. Apply the checklist in `docs/01_four_layer_framework.md` to your target
+   business process to confirm that all 4 layers + efficacy measurement are
+   in place
+2. When stuck on layer ③ (delegation scope), score the decision against the
+   2-axis matrix in `docs/03_delegation_matrix.md`
+3. Use the minimum schema in `docs/02_audit_log_schema.md` and the JSON
+   sample in `examples/audit-log-sample.json` as a template for your audit log
+4. To check whether your existing logging infrastructure satisfies the 4th
+   layer, follow the audit method (SQL schema × 5-point mapping) demonstrated
+   in `docs/04_agent_loop_audit_gap.md`
 
-## 適用範囲と限界
+## Scope and limitations
 
-- 本リポは**最小スコープの参照実装**であり、改ざん耐性・保存期間・原証憑参照・規定
-  バージョン固定の運用は `docs/02` で「拡張点」として方向だけ示し、実装は提供しない
-- 味の素事例の④統制層は公開情報が薄く、本リポでは **【観測事実】**(事例から確認できた範囲)と
-  **【設計提案】**(本リポでの一般化・補完)を各 doc でラベル分けして示す
-- 「76%」削減率の定義は記事に明示されておらず、本リポは効果測定の数値を保証しない
+- This is a **minimum-scope reference implementation**. Tamper resistance,
+  retention periods, source-document references, and rule version pinning
+  are noted as "extensions" in `docs/02`, with direction only — no
+  implementation is provided
+- Public information on the Ajinomoto case is thin for the 4th layer (control
+  and traceability). Each document explicitly labels **【観測事実】**
+  (observed facts from the case) versus **【設計提案】** (design proposals
+  from this repository)
+- The "76% workload reduction" figure cited in news coverage is not defined in
+  the source. This repository does not warrant efficacy numbers — it only
+  preserves the **observability viewpoint**
 
-## 関連事例(参考リンク)
+## Related references
 
-- [味の素フィナンシャル・ソリューションズ、ファーストアカウンティング 共同開発の経理 AI エージェント本番稼働](https://www.fastaccounting.jp/news/20260424/15929/)
-- [工数「76%」削減 味の素グループが経理 AI エージェントで先陣を切れたワケ(ITmedia)](https://www.itmedia.co.jp/business/articles/2606/19/news033.html)
+- [Ajinomoto Financial Solutions × First Accounting: accounting AI agent in production (official announcement)](https://www.fastaccounting.jp/news/20260424/15929/)
+- [Ajinomoto Group's accounting AI agent cuts workload by "76%" (ITmedia, in Japanese)](https://www.itmedia.co.jp/business/articles/2606/19/news033.html)
 
-## ライセンス
+## License
 
 [MIT](LICENSE)
+
+## Security
+
+See [SECURITY.md](SECURITY.md) for reporting vulnerabilities.
