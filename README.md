@@ -1,5 +1,7 @@
 # ai-delegation-readiness
 
+![eyecatch](docs/assets/eyecatch.png)
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 > 🇯🇵 日本語版は [README.ja.md](README.ja.md)
