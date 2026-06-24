@@ -1,0 +1,63 @@
+{
+  "who": {
+    "agent": {
+      "id": "accounting-agent",
+      "version": "v1.3.0"
+    },
+    "human_delegator": {
+      "id": "user:keiri-bucho-001",
+      "role": "経理部長"
+    }
+  },
+  "when": "2026-06-24T10:15:00+09:00",
+  "what": {
+    "object_type": "expense_claim",
+    "object_id": "EXP-2026-06-12345",
+    "attributes": {
+      "amount_jpy": 12500,
+      "submitted_by": "user:emp-2231",
+      "submitted_at": "2026-06-23T18:42:00+09:00",
+      "purpose": "取引先 A 社との打ち合わせに伴う夕食",
+      "account_candidate": "会議費"
+    }
+  },
+  "why": {
+    "rule_refs": [
+      {
+        "id": "https://internal.example.com/policies/expense",
+        "version": "2026-04-01",
+        "section": "§3.2 会議費の判定基準"
+      },
+      {
+        "id": "https://internal.example.com/policies/invoice",
+        "version": "2026-01-01",
+        "section": "§2 適格請求書の要件"
+      }
+    ],
+    "checked_items": [
+      {
+        "item": "領収書必須項目の充足",
+        "outcome": "pass",
+        "note": "発行日・宛名・但し書き・金額・発行者がすべて記載"
+      },
+      {
+        "item": "インボイス制度準拠",
+        "outcome": "pass",
+        "note": "登録番号 T1234567890123 が国税庁適格請求書発行事業者公表サイトで有効"
+      },
+      {
+        "item": "税務上の交際費該当性",
+        "outcome": "uncertain",
+        "note": "1 人あたり 6,250 円。社内規程 §3.2 の『会議費(1 人あたり 5,000 円超は交際費に該当する可能性)』に該当する可能性があり、グレーゾーン"
+      }
+    ]
+  },
+  "result": {
+    "decision": "escalated",
+    "escalated_to": {
+      "id": "user:keiri-tantou-005",
+      "role": "経理担当"
+    },
+    "rationale": "交際費該当性が 1 人あたり金額のグレーゾーンに該当。社内規程 §3.2 の解釈に経理担当の判断が必要なため、人間最終承認に委ねる。"
+  }
+}
