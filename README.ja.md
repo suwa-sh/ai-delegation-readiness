@@ -6,58 +6,143 @@
 
 > 🇬🇧 English version: [README.md](README.md)
 
-高リスクな定型業務を AI エージェントに委任するための **4 層前提条件**と
-**監査ログ設計テンプレート**の参照実装。味の素グループ(AFS)の経理 AI エージェント
-事例(2026 年 4 月発表)から再現可能な骨格を抽出し、自社で同種の委任を検討する
-組織が「対象業務が委任に耐えるか」を診断できるチェックリストとして整える。
+高リスクな定型業務を AI エージェントに委任して良いかを **診断するツールと
+拡張可能なフレームワーク**。本番稼働中の実例(味の素グループの経理 AI
+エージェント、2026 年 2 月本番稼働)から骨格を抽出している。
 
-このリポジトリは**ドキュメント中心**の参照実装で、コード実装言語は持たない。
-読み物として 4 層フレームを点検し、監査ログ JSON サンプルをそのまま雛形として
-持ち帰ることを想定する。
+clone すると 3 つが手に入る:
 
-## 想定読者
+1. **CLI 診断ツール** — `bin/aidr check-readiness` / `score-delegation` /
+   `validate-audit-log`(1 分で動く)
+2. **機械可読のフレームワーク**(`definitions/*.yaml` / `schemas/*.json`) — AI
+   エージェントが system prompt に載せたり、CI パイプラインから直接叩ける
+3. **オーバーレイの拡張点** — 各社の独自規定や厳格化した閾値を
+   **フォークせず追加できる**
 
-- 経理・承認・コンプライアンス業務を AI エージェントに委任しようとしている実装エンジニア
-- 業務設計者・経理 / 管理部門のリーダー
-- 自社の AI 統制設計(④統制・追跡層)に欠けがないかを点検したい運用担当
+## Quick start(3 分で動かす)
 
-## 主要成果物
+```bash
+git clone https://github.com/suwa-sh/ai-delegation-readiness.git
+cd ai-delegation-readiness
+pip install -r requirements.txt
 
-| ファイル | 内容 |
+# 1. 4 層 + 効果測定 フレームで業務を採点
+bin/aidr check-readiness examples/business/sample-expense-approval.yaml
+
+# 2. 委任マトリクスで 5 判定を採点
+bin/aidr score-delegation examples/judgments/sample-judgments.yaml
+
+# 3. 監査ログを J-SOX グレードの extended スキーマで検証
+bin/aidr validate-audit-log examples/audit-log-sample.json --level extended
+
+# 4. オーバーレイのマージ規則違反を検証
+bin/aidr check-overlay examples/overlays/sample-company/extra-rules.yaml
+
+# 5. ロード中の定義(土台 + オーバーレイ)を表示
+bin/aidr list-definitions
+```
+
+各コマンドは決定的な終了コードを返す(0 = ok、1 = partial / yellow、
+2 = block / red、3 = overlay error)ので CI で診断結果に応じてゲートできる。
+
+## Who this is for
+
+| あなたが... | まず読むもの |
 |---|---|
-| [docs/01_four_layer_framework.md](docs/01_four_layer_framework.md) | 4 層フレーム(業務標準化 / 判断構造化 / 委任範囲 / 統制・追跡)+ 効果測定 のチェックリスト |
-| [docs/02_audit_log_schema.md](docs/02_audit_log_schema.md) | 監査ログ最小スキーマ(Who/When/What/Why/Result)と J-SOX 観点 |
-| [docs/03_delegation_matrix.md](docs/03_delegation_matrix.md) | 委任線引きマトリクス(検証可能性 × 正解定義可能性) |
-| [examples/audit-log-sample.json](examples/audit-log-sample.json) | ダミー経費承認 1 件の監査ログ JSON サンプル |
+| **業務側の意思決定者**(経理部長 / CFO / コンプラ責任者)で AI 化を検討中 | [`docs/01_four_layer_framework.md`](docs/01_four_layer_framework.md) — `bin/aidr check-readiness` で業務を採点 |
+| **実装エンジニア**で高リスク承認業務向け AI エージェントを設計中 | [`schemas/audit-log.schema.json`](schemas/audit-log.schema.json) + [`docs/02_audit_log_schema.md`](docs/02_audit_log_schema.md) — スキーマをロガーに組み込む |
+| **運用担当**で既存 AI 基盤のログを点検したい | [`docs/04_agent_loop_audit_gap.md`](docs/04_agent_loop_audit_gap.md) — 5 ステップ手法を自社 SQL スキーマに当てる |
+| **コンサル / 提案者** | `docs/` 全部 + オーバーレイ拡張モデル — clone してプライベートにフォーク、顧客固有の採点を提示 |
 
-## 自社運用での適用例(参考)
+## What's in this repo
 
-- [docs/04_agent_loop_audit_gap.md](docs/04_agent_loop_audit_gap.md) — リポ作者の自社運用基盤
-  `agent-loop` の DB スキーマを④統制層の観点で点検した結果。**他社が真似するためのテンプレ部は
-  01〜03 で完結**しているので、04 は適用例として参照のみで構わない。
+```
+ai-delegation-readiness/
+├── definitions/                 # 機械可読の正本フレームワーク(YAML)
+│   ├── four-layer.yaml          #   4 層 + 効果測定 + extension_points
+│   └── delegation-matrix.yaml   #   2 軸 + 領域マップ + extension_points
+├── schemas/
+│   └── audit-log.schema.json    # JSON Schema with $defs: minimum (A) / extended (B)
+├── src/adr/                     # Python 診断ツール(pip 不要)
+├── bin/aidr                     # CLI エントリポイント(単一コマンド、5 サブコマンド)
+├── examples/
+│   ├── business/                # check-readiness のサンプル入力
+│   ├── judgments/               # score-delegation のサンプル入力
+│   ├── audit-log-sample.json    # サンプル監査ログ(extended 有効)
+│   ├── overlays/                # オーバーレイサンプル(Acme Corp)
+│   └── skills/                  # Claude Code skill サンプル 2 種
+└── docs/
+    ├── 01_four_layer_framework.md
+    ├── 02_audit_log_schema.md
+    ├── 03_delegation_matrix.md
+    └── 04_agent_loop_audit_gap.md
+```
 
-## 使い方
+## How to extend(フレームワークの意図)
 
-1. `docs/01_four_layer_framework.md` のチェックリストを対象業務に当てて、4 層 + 効果測定が
-   揃っているかを確認する
-2. ③ 委任範囲層で迷ったら `docs/03_delegation_matrix.md` の 2 軸採点に落として判定する
-3. ④ 統制・追跡層の監査ログ設計は `docs/02_audit_log_schema.md` の最小スキーマと
-   `examples/audit-log-sample.json` を雛形にする
-4. 自社の既存ログ基盤が④統制層を満たしているかは、`docs/04_agent_loop_audit_gap.md`
-   の点検方法(SQL スキーマ × 5 観点マッピング)を参考に同様の点検をする
+各社の独自ルールは **オーバーレイで追加**する(正本ファイルをフォークしない)。
+雛形は [`examples/overlays/sample-company/extra-rules.yaml`](examples/overlays/sample-company/extra-rules.yaml):
 
-## 適用範囲と限界
+```yaml
+version: 1
+extends: four-layer-delegation-readiness
 
-- 本リポは**最小スコープの参照実装**であり、改ざん耐性・保存期間・原証憑参照・規定
-  バージョン固定の運用は `docs/02` で「拡張点」として方向だけ示し、実装は提供しない
-- 味の素事例の④統制層は公開情報が薄く、本リポでは **【観測事実】**(事例から確認できた範囲)と
-  **【設計提案】**(本リポでの一般化・補完)を各 doc でラベル分けして示す
-- 「76%」削減率の定義は記事に明示されておらず、本リポは効果測定の数値を保証しない
+layers:
+  - id: L4
+    add_questions:
+      - id: ACME_L4Q6
+        text: 監査ログは tamper-evident store に保存されているか
+        weight: 1.0
+    strengthen_thresholds:
+      revise: 0.8       # 元 0.6 → 強化のみ可
+```
 
-## 関連事例(参考リンク)
+そして `--overlay` 付きで診断:
 
-- [味の素フィナンシャル・ソリューションズ、ファーストアカウンティング 共同開発の経理 AI エージェント本番稼働](https://www.fastaccounting.jp/news/20260424/15929/)
-- [工数「76%」削減 味の素グループが経理 AI エージェントで先陣を切れたワケ(ITmedia)](https://www.itmedia.co.jp/business/articles/2606/19/news033.html)
+```bash
+bin/aidr check-readiness mybiz.yaml --overlay /path/to/our-rules.yaml
+```
+
+**フレームワーク再利用の 3 経路**:
+
+- **AI エージェント**: `definitions/four-layer.yaml` や
+  `schemas/audit-log.schema.json` を system prompt や tool context にロード。
+  [`examples/skills/`](examples/skills/) に Claude Code skill のラッパー 2 種を用意
+- **CI パイプライン**: 出力ログ 1 件ごとに `bin/aidr validate-audit-log` を呼び、
+  exit code でゲート
+- **社内フォーク**: 自社固有のオーバーレイをプライベートリポで管理し
+  `--overlay` で適用。本リポはクリーンな upstream として pull できる
+
+## The framework's invariants
+
+正本フレームワーク(`definitions/*.yaml` / `schemas/*.json`)は **全社で
+一貫**を保つ。オーバーレイで可能なのは:
+
+- **`add`**: 配列要素の追加(既存要素は read-only)
+- **`strengthen`**: 数値閾値の **強化方向のみ**(緩和は不可)
+
+削除・置換・緩和は merge violation として `aidr check-overlay` が機械的に検出する。
+これによりフォークせず安全に拡張できる。
+
+## Background
+
+本フレームワークは **味の素フィナンシャル・ソリューションズ(AFS)× ファースト
+アカウンティング** の経理 AI エージェント(2026 年 2 月本番稼働)から抽出した。
+公表されている検証では、ドメイン特化エージェント = **93.3%**、汎用 LLM 単体 =
+**53.3%** という 40 ポイント差(領収書必須項目 / インボイス制度準拠 / 税務上の
+交際費判定の 3 タスク)。
+
+差を生んだのはモデルの賢さではなく、**業務ロジックを LLM の周りで構造化**した
+ことだと示している。下層の標準化・構造化がモデル選定より重要なのはこのため。
+
+**正直な留保**: 広く引用される「工数 76% 削減」見出しは **記事に分母・基準値・
+スコープが明示されていない**。本リポは効果数値を保証せず、観測の観点だけ保持する
+(`docs/01` の効果測定軸を参照)。
+
+### 出典
+
+- [ファーストアカウンティング公式プレスリリース (2026-04-24)](https://www.fastaccounting.jp/news/20260424/15929/)
+- [ITmedia「工数 76% 削減」(2026-06-19)](https://www.itmedia.co.jp/business/articles/2606/19/news033.html)
 
 ## ライセンス
 
