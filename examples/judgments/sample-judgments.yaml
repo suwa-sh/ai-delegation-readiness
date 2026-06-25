@@ -1,0 +1,27 @@
+# Sample input for `aidr score-delegation`.
+#
+# A short list of business judgments scored against the delegation matrix.
+# Each entry needs the per-question answers for both axes:
+#   verifiability:        V1, V2, V3
+#   answer_definability:  A1, A2, A3
+
+judgments:
+  - id: receipt_mandatory_items_check
+    description: Verify that a receipt has all statutory items (date, payee, amount, issuer)
+    answers: { V1: yes, V2: yes, V3: yes, A1: yes, A2: yes, A3: yes }
+
+  - id: invoice_scheme_compliance
+    description: Check that a receipt meets the invoice scheme (適格請求書) requirements
+    answers: { V1: yes, V2: yes, V3: yes, A1: yes, A2: yes, A3: yes }
+
+  - id: entertainment_expense_judgment
+    description: Decide whether an expense falls under the tax category of entertainment expenses
+    answers: { V1: yes, V2: yes, V3: no,  A1: yes, A2: yes, A3: no }
+
+  - id: new_hire_decision
+    description: Make a final hiring decision after an interview
+    answers: { V1: no,  V2: no,  V3: no,  A1: no,  A2: no,  A3: no  }
+
+  - id: discriminatory_language_detection
+    description: Decide whether an internal document contains discriminatory expressions
+    answers: { V1: yes, V2: yes, V3: no,  A1: no,  A2: no,  A3: yes }

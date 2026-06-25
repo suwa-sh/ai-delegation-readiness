@@ -1,0 +1,33 @@
+# Sample overlay: how a fictional company "Acme Corp" extends the base
+# four-layer-delegation-readiness framework.
+#
+# Merge rules (enforced by `aidr check-overlay`):
+#   add_questions          : append new questions (existing ones are read-only)
+#   strengthen_thresholds  : raise thresholds (lowering is rejected)
+#
+# Anything else (delete, replace, weaken) fails validation.
+
+version: 1
+extends: four-layer-delegation-readiness
+
+layers:
+  # Acme Corp requires legal review of the rule book within 12 months on top
+  # of the base L1 questions.
+  - id: L1
+    add_questions:
+      - id: ACME_L1Q5
+        text: Has legal approved the rule book within the last 12 months?
+        weight: 1.0
+
+  # Acme Corp's internal audit team insists that the L4 control layer must
+  # also link rationale to a tamper-evident store (not just a structured log).
+  - id: L4
+    add_questions:
+      - id: ACME_L4Q6
+        text: Is the audit log stored in a tamper-evident store (WORM, hash chain, or signed)?
+        weight: 1.0
+    # Strengthen: refuse to call L4 "revise" unless at least 80% of questions pass.
+    # Base value was 0.6; raising it to 0.8 is allowed because it is stricter.
+    strengthen_thresholds:
+      pass: 1.0
+      revise: 0.8
