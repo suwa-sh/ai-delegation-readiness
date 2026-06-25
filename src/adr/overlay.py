@@ -162,6 +162,7 @@ def _apply_add(
             )
             continue
         existing.append(deepcopy(item))
+        existing_ids.add(item["id"])  # 同一 overlay 内の重複検出のため追跡を続ける
 
 
 def _apply_strengthen(
@@ -357,8 +358,57 @@ def apply_overlay(base: dict, overlay: dict) -> MergeResult:
             violations=violations,
         )
 
+    if "efficacy_axis" in overlay:
+        if "efficacy_axis" not in base:
+            violations.append(
+                MergeViolation(
+                    path="efficacy_axis",
+                    kind="unsupported_op",
+                    message="base definition does not have efficacy_axis",
+                )
+            )
+        else:
+            ov = overlay["efficacy_axis"]
+            if not isinstance(ov, dict):
+                violations.append(
+                    MergeViolation(
+                        path="efficacy_axis",
+                        kind="invalid_overlay",
+                        message="efficacy_axis overlay must be a mapping",
+                    )
+                )
+            else:
+                for key, value in ov.items():
+                    if key == "add_questions":
+                        _apply_add(
+                            merged["efficacy_axis"],
+                            "questions",
+                            value,
+                            path="efficacy_axis.questions",
+                            violations=violations,
+                        )
+                    elif key == "strengthen_thresholds":
+                        _apply_strengthen(
+                            merged["efficacy_axis"],
+                            "verdict_thresholds",
+                            value,
+                            path="efficacy_axis.verdict_thresholds",
+                            violations=violations,
+                        )
+                    else:
+                        violations.append(
+                            MergeViolation(
+                                path=f"efficacy_axis.{key}",
+                                kind="unsupported_op",
+                                message=(
+                                    f"efficacy_axis overlay key '{key}' is not supported; "
+                                    "only add_questions and strengthen_thresholds are allowed"
+                                ),
+                            )
+                        )
+
     for key in overlay:
-        if key in {"version", "extends", "layers", "axes", "add_examples"}:
+        if key in {"version", "extends", "layers", "axes", "add_examples", "efficacy_axis"}:
             continue
         violations.append(
             MergeViolation(

@@ -157,7 +157,7 @@
       ]
     }
   },
-  "oneOf": [
+  "anyOf": [
     { "$ref": "#/$defs/audit_log_minimum" },
     { "$ref": "#/$defs/audit_log_extended" }
   ]

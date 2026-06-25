@@ -1,0 +1,57 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ai-delegation-readiness"
+version = "0.1.0"
+description = "Diagnostic tool and extensible framework for deciding whether a high-risk routine business judgment is ready to be delegated to an AI agent."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+authors = [{ name = "Shinichi Suwa" }]
+keywords = [
+    "ai-agent",
+    "governance",
+    "audit-log",
+    "j-sox",
+    "delegation",
+    "reference-implementation",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Quality Assurance",
+]
+dependencies = [
+    "PyYAML>=6.0,<7.0",
+    # [format-nongpl] extra brings in rfc3339-validator etc so that
+    # "format": "date-time" actually validates (critical for audit log time).
+    "jsonschema[format-nongpl]>=4.21,<5.0",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=8.0,<9.0"]
+
+[project.scripts]
+aidr = "adr.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/suwa-sh/ai-delegation-readiness"
+Issues = "https://github.com/suwa-sh/ai-delegation-readiness/issues"
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

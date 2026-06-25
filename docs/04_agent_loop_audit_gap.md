@@ -35,10 +35,12 @@
 
 ### 観測の前提
 
-- 観測事実 = `agent-loop` リポの SQL スキーマ
-  ([`tools/agent-loop/sql/init.sql`](https://github.com/suwa-sh/pkm/blob/main/tools/agent-loop/sql/init.sql))の列定義
-- 設計提案 = 本書での改修案(コードは触らず、別 issue 化する想定)
-- 対象は **承認・判定を伴う業務エージェント**(marketer / bookkeeper など)
+**【観測事実】** `agent-loop` リポの SQL スキーマ
+([`tools/agent-loop/sql/init.sql`](https://github.com/suwa-sh/pkm/blob/main/tools/agent-loop/sql/init.sql))
+の列定義。対象は **承認・判定を伴う業務エージェント**(marketer / bookkeeper など)。
+
+**【設計提案】** 本書での改修案(コードは触らず、別 issue 化する想定)。
+他の docs と同じく観測事実と設計提案を本文中で明示的にラベル分けする。
 
 agent-loop は記録の責務を 5 テーブルに分けている: `agent_runs` / `agent_costs` /
 `agent_outcomes` / `dialogue_logs` / `execution_logs`。

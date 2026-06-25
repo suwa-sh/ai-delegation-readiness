@@ -92,11 +92,18 @@ def _cmd_check_overlay(args: argparse.Namespace) -> int:
 
 
 def _cmd_list_definitions(args: argparse.Namespace) -> int:
-    summaries = []
-    if args.target in {"four-layer", "all"}:
-        summaries.append(_list.summarize_four_layer(overlay_paths=args.overlay))
-    if args.target in {"matrix", "all"}:
-        summaries.append(_list.summarize_matrix(overlay_paths=args.overlay))
+    try:
+        summaries = []
+        if args.target in {"four-layer", "all"}:
+            summaries.append(_list.summarize_four_layer(overlay_paths=args.overlay))
+        if args.target in {"matrix", "all"}:
+            summaries.append(_list.summarize_matrix(overlay_paths=args.overlay))
+    except _check_readiness.OverlayError as e:
+        sys.stderr.write(f"[ERROR] {e}\n")
+        return 3
+    except FileNotFoundError as e:
+        sys.stderr.write(f"[ERROR] {e}\n")
+        return 3
     if args.format == "json":
         import json
         print(json.dumps([json_loads(s) for s in summaries], indent=2, ensure_ascii=False))

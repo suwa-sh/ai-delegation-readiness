@@ -33,6 +33,7 @@ class DefinitionSummary:
     overlays_applied: list[str]
     layers: list[LayerSummary] = field(default_factory=list)
     axes: list[LayerSummary] = field(default_factory=list)
+    efficacy: LayerSummary | None = None
 
 
 def summarize_four_layer(
@@ -128,6 +129,24 @@ def _summarize(
                     strengthened_thresholds=strengthened,
                 )
             )
+        # efficacy_axis も同じ枠で要約する(overlay で add/strengthen 可能)
+        base_efficacy = base.get("efficacy_axis", {})
+        merged_efficacy = merged.get("efficacy_axis")
+        if merged_efficacy:
+            summary.efficacy = LayerSummary(
+                id="efficacy",
+                name=merged_efficacy.get("name_ja") or merged_efficacy.get("name", "efficacy"),
+                question_count=len(merged_efficacy.get("questions", [])),
+                thresholds=merged_efficacy.get("verdict_thresholds", {}),
+                added_question_ids=_added_ids(
+                    base_efficacy.get("questions", []),
+                    merged_efficacy.get("questions", []),
+                ),
+                strengthened_thresholds=_strengthened_thresholds(
+                    base_efficacy.get("verdict_thresholds", {}),
+                    merged_efficacy.get("verdict_thresholds", {}),
+                ),
+            )
     return summary
 
 
@@ -177,6 +196,17 @@ def render_text(summary: DefinitionSummary) -> str:
                 lines.append(f"    +added: {', '.join(a.added_question_ids)}")
             if a.strengthened_thresholds:
                 lines.append(f"    !strengthened: {a.strengthened_thresholds}")
+    if summary.efficacy:
+        e = summary.efficacy
+        lines.append("")
+        lines.append("efficacy_axis:")
+        lines.append(
+            f"  {e.id} {e.name}: {e.question_count} questions, thresholds={e.thresholds}"
+        )
+        if e.added_question_ids:
+            lines.append(f"    +added: {', '.join(e.added_question_ids)}")
+        if e.strengthened_thresholds:
+            lines.append(f"    !strengthened: {e.strengthened_thresholds}")
     return "\n".join(lines)
 
 
@@ -208,6 +238,18 @@ def render_json(summary: DefinitionSummary) -> str:
                 }
                 for a in summary.axes
             ],
+            "efficacy_axis": (
+                {
+                    "id": summary.efficacy.id,
+                    "name": summary.efficacy.name,
+                    "question_count": summary.efficacy.question_count,
+                    "thresholds": summary.efficacy.thresholds,
+                    "added_question_ids": summary.efficacy.added_question_ids,
+                    "strengthened_thresholds": summary.efficacy.strengthened_thresholds,
+                }
+                if summary.efficacy
+                else None
+            ),
         },
         indent=2,
         ensure_ascii=False,

@@ -34,9 +34,21 @@ doc は説明としてリンクし直す。
 - **`add`**: 配列要素(`questions` / `examples` 等)の追加。**既存要素の上書き・削除は不可**
 - **`strengthen`**: 数値閾値の **強化方向のみ**(緩和は不可)
 
-これは `definitions/*.yaml` の `extension_points` 宣言と `src/adr/overlay.py` の
-マージエンジンで機械的に保証される。違反は `aidr check-overlay <path>` で
-即検出される。**変更を加えるときは必ず `check-overlay` を回す**。
+違反は `aidr check-overlay <path>` で即検出される。**変更を加えるときは必ず
+`check-overlay` を回す**。
+
+### `extension_points` 宣言と overlay.py のハードコードを揃える
+
+`definitions/*.yaml` の `extension_points` ブロックは **読み手と AI エージェント向けの
+self-documenting**(「ここは拡張可」の宣言)で、現状は `src/adr/overlay.py` の
+マージロジックと**手動で対応を取っている**。`extension_points` をランタイムで参照して
+マージ規則を自動派生する設計は将来の課題(`src/adr/overlay.py` 内のハードコード分岐を
+宣言から導出する)。
+
+**これがあるため**: `definitions/*.yaml` の `extension_points` を追加・変更したら、
+**必ず `src/adr/overlay.py` の対応する分岐も追従**する。追従漏れがあると、
+宣言は「拡張可」と言うのに実装は拒否するという挙動になる。pytest の
+`tests/test_overlay.py` がこの対応関係を検証している。
 
 ## doc の段階的開示テンプレ
 

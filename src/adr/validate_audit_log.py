@@ -42,7 +42,14 @@ def _build_validator(schema_path: Path, level: str) -> Draft202012Validator:
     resource = Resource.from_contents(schema, default_specification=DRAFT202012)
     registry: Registry = Registry().with_resource(schema_id, resource)
     sub_schema = {"$ref": f"{schema_id}#/$defs/{level}"}
-    return Draft202012Validator(sub_schema, registry=registry)
+    # format_checker を渡さないと "format": "date-time" 等は no-op になり、
+    # "when": "not-a-date" のような無効値が通ってしまう。監査ログの時刻保証として
+    # 致命的なので必ず有効化する。
+    return Draft202012Validator(
+        sub_schema,
+        registry=registry,
+        format_checker=Draft202012Validator.FORMAT_CHECKER,
+    )
 
 
 def validate(

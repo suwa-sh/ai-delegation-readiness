@@ -10,10 +10,14 @@ Input YAML structure::
       E1: yes
       ...
 
-The CLI loads the definition (with overlays applied), scores each layer
-and the efficacy axis, and reports PASS / REVISE / BLOCK per layer.
-A higher layer is short-circuited as BLOCKED when a lower layer is not
-PASS, because the framework only makes sense layered.
+The CLI loads the definition (with overlays applied), scores every layer
+and the efficacy axis independently, and reports PASS / REVISE / BLOCK
+per layer. The first non-PASS layer is also surfaced as ``blocked_from``
+in the result so the user knows where to fix first: the framework only
+makes sense layered, so investing in a higher layer before the lower
+one is fixed is wasted effort. Scoring is *not* short-circuited — the
+report intentionally shows the state of every layer so the user can see
+the full picture and the first gate at the same time.
 """
 
 from __future__ import annotations
