@@ -1,0 +1,169 @@
+version: 1
+name: four-layer-delegation-readiness
+description: |
+  4 layer prerequisites for delegating high-risk routine business judgments
+  to AI agents, derived from the Ajinomoto AFS accounting AI agent case.
+  Lower layers must hold before upper layers can succeed.
+
+# 拡張ポイント宣言: 各社のオーバーレイで何ができるかを self-documenting に
+# - add:         配列要素の追加のみ可。既存要素の上書き・削除は不可。
+# - strengthen:  閾値を厳しい方向にのみ変更可(緩和は不可)。
+extension_points:
+  - path: layers[].questions
+    allow: add
+  - path: layers[].verdict_thresholds
+    allow: strengthen
+  - path: efficacy_axis.questions
+    allow: add
+  - path: efficacy_axis.verdict_thresholds
+    allow: strengthen
+
+# 各層は積み上げ。下層の合否が pass でなければ上層の点検に進む意味はない。
+layers:
+  - id: L1
+    name: business_standardization
+    name_ja: 業務標準化層
+    purpose: |
+      The foundation. The judgment criteria must be documented; exceptions
+      must be explicit procedures; the rule book must have a version history.
+    questions:
+      - id: L1Q1
+        text: Are the judgment criteria documented and free from tacit knowledge?
+        weight: 1.0
+      - id: L1Q2
+        text: Are exceptions explicitly defined as procedures (not implicit)?
+        weight: 1.0
+      - id: L1Q3
+        text: Is the rule book versioned (revision date, reason, history)?
+        weight: 1.0
+      - id: L1Q4
+        text: Is the SOP written at a granularity that a third party can reproduce?
+        weight: 1.0
+    verdict_thresholds:
+      pass: 1.0       # all Yes
+      revise: 0.5     # majority Yes
+      # below revise => block
+    case_evidence:
+      - text: Ajinomoto Group operates as accounting BPO with continuous standardization
+        confidence: observed_fact
+        source: https://www.itmedia.co.jp/business/articles/2606/19/news033.html
+      - text: AFS consolidates the group's domestic financial accounting as a shared services company
+        confidence: observed_fact
+        source: https://www.fastaccounting.jp/news/20260424/15929/
+
+  - id: L2
+    name: judgment_structuring
+    name_ja: 判断構造化層
+    purpose: |
+      Map each rule clause to a triple of (which input, which condition,
+      which decision). This layer is what created the 40-point gap between
+      a domain-specialized agent (93.3%) and a vanilla LLM (53.3%).
+    questions:
+      - id: L2Q1
+        text: Can each rule clause be mapped to (which input, which condition, which decision)?
+        weight: 1.0
+      - id: L2Q2
+        text: Is there a clear line between deterministic processing, LLM inference, and human escalation?
+        weight: 1.0
+      - id: L2Q3
+        text: Is a regression test in place to detect accuracy degradation when the logic changes?
+        weight: 1.0
+    verdict_thresholds:
+      pass: 1.0
+      revise: 0.66
+    case_evidence:
+      - text: Domain-specialized agent achieved 93.3% versus 53.3% for vanilla LLM on 3 published tasks
+        confidence: observed_fact
+        source: https://www.itmedia.co.jp/business/articles/2606/19/news033.html
+
+  - id: L3
+    name: delegation_scope
+    name_ja: 委任範囲層
+    purpose: |
+      Restrict delegation to judgments where the answer can be defined and
+      the verdict can be verified afterwards. Use the delegation matrix
+      (verifiability x answer-definability) for the per-judgment scoring.
+    questions:
+      - id: L3Q1
+        text: Can a third party score the same input the same way?
+        weight: 1.0
+      - id: L3Q2
+        text: Can the rationale link to a specific clause (or SOP step) of the rule book?
+        weight: 1.0
+      - id: L3Q3
+        text: Are out-of-scope domains (ethical, novel-policy) excluded from delegation?
+        weight: 1.0
+      - id: L3Q4
+        text: Can the verdict be reproduced later from the audit log?
+        weight: 1.0
+    verdict_thresholds:
+      pass: 1.0
+      revise: 0.75
+    case_evidence:
+      - text: The 3 published tasks are all verifiable against documented rules (receipt items, invoice compliance, entertainment expense)
+        confidence: observed_fact
+        source: https://www.fastaccounting.jp/news/20260424/15929/
+
+  - id: L4
+    name: control_and_traceability
+    name_ja: 統制・追跡層
+    purpose: |
+      Design the human-in-the-loop control point, the audit log, and the
+      correction flow. Most of the source case's L4 details are not public,
+      so this layer is largely design proposal.
+    questions:
+      - id: L4Q1
+        text: Are decision and execution separated so segregation of duties is maintained?
+        weight: 1.0
+      - id: L4Q2
+        text: Can the rationale be retrieved from logs (referenced rule + checked items)?
+        weight: 1.0
+      - id: L4Q3
+        text: Does the audit log record Who/When/What/Why/Result as a structured schema?
+        weight: 1.0
+      - id: L4Q4
+        text: Is the rule version pinned in the log so past verdicts can be re-verified after a rule change?
+        weight: 1.0
+      - id: L4Q5
+        text: Is the correction flow for false approvals designed and logged?
+        weight: 1.0
+    verdict_thresholds:
+      pass: 1.0
+      revise: 0.6
+    case_evidence:
+      - text: Public information on L4 controls (correction flow, final-human placement, audit log design) is sparse; design proposal dominates
+        confidence: gap_in_source
+        source: https://www.itmedia.co.jp/business/articles/2606/19/news033.html
+
+# 効果測定: 4 層と並列の独立観点。導入効果の数値を「何を分母にした削減率か」
+# まで説明できる必要がある。
+efficacy_axis:
+  name: efficacy_measurement
+  name_ja: 効果測定
+  purpose: |
+    Even if the 4 layers hold, the efficacy figures must be defensible
+    (denominator, baseline, period). The cited "76% reduction" in coverage
+    of the Ajinomoto case is not defined in the source article.
+  questions:
+    - id: E1
+      text: Can you describe the denominator, baseline, and time period of the reduction figure?
+      weight: 1.0
+    - id: E2
+      text: Are expected and actual figures separated (vendor estimate vs in-house measurement)?
+      weight: 1.0
+    - id: E3
+      text: Is the figure scoped to all-of-process or part-of-process (and is that scope stated)?
+      weight: 1.0
+    - id: E4
+      text: Are AI-caused false approvals and rejections tracked separately from efficiency?
+      weight: 1.0
+  verdict_thresholds:
+    pass: 1.0
+    revise: 0.75
+  case_evidence:
+    - text: 10,000 approvals/month at ~5 min each, ~10,000 hours/year reduction projected
+      confidence: observed_fact
+      source: https://www.itmedia.co.jp/business/articles/2606/19/news033.html
+    - text: The "76% reduction" headline does not define its denominator in the source article
+      confidence: gap_in_source
+      source: https://www.itmedia.co.jp/business/articles/2606/19/news033.html

@@ -1,0 +1,150 @@
+version: 1
+name: delegation-matrix
+description: |
+  Two-axis matrix for deciding what to delegate to AI agents and what to
+  keep with humans. Each axis is scored via 3 observable questions; the
+  majority-yes determines high or low (binary), and the (axis, axis) pair
+  maps to one of three regions: green (delegate OK), yellow (LLM assists),
+  red (human only).
+
+# 拡張ポイント: 各社のオーバーレイで採点質問と具体例を追加できる。
+# 閾値は強化のみ可(緩和すると委任 OK 領域が広がるため、品質低下リスク)。
+extension_points:
+  - path: axes[].questions
+    allow: add
+  - path: axes[].threshold
+    allow: strengthen
+  - path: examples
+    allow: add
+
+# 2 軸の定義。
+axes:
+  - id: verifiability
+    name_ja: 検証可能性
+    description: |
+      Whether the correctness of a verdict can be checked afterwards
+      by mechanical means. Subjectivity and norm-dependence lower it.
+    questions:
+      - id: V1
+        text: Can a third party score the same input the same way?
+      - id: V2
+        text: Does the verdict need only the input data and the rule document (no individual experience)?
+      - id: V3
+        text: Can the verdict be expressed as a re-runnable test?
+    threshold: 2          # >=2 Yes => high; otherwise low
+
+  - id: answer_definability
+    name_ja: 正解定義可能性
+    description: |
+      Whether a single correct answer can be defined for the judgment.
+      Determined by how much the verdict is fixed by written rules vs
+      individual context.
+    questions:
+      - id: A1
+        text: Can the rationale link to a specific clause of the rule book (or SOP step number)?
+      - id: A2
+        text: Is the validity of the verdict determined by rules rather than case-specific context?
+      - id: A3
+        text: Can the rationale be documented without relying on tacit veteran knowledge?
+    threshold: 2
+
+# 領域マップ: 2 軸の (high|low) の組み合わせから 3 領域へ。
+regions:
+  - id: green
+    name: delegate_ok
+    name_ja: 委任 OK
+    when:
+      - { verifiability: high, answer_definability: high }
+    action: |
+      AI makes the final decision. Record the result as a discrete enum
+      (approved/rejected/escalated) per the audit log schema. Uncertain
+      cases should funnel into 'escalated' rather than a default 'approved'.
+
+  - id: yellow
+    name: llm_assists
+    name_ja: LLM 推論補助
+    when:
+      - { verifiability: high, answer_definability: low }
+      - { verifiability: low, answer_definability: high }
+    action: |
+      LLM drafts a candidate; a human makes the final decision. Record the
+      human decider as 'Who' in the audit log; record the LLM contribution
+      as 'Why' (as supporting evidence, not as authority).
+
+  - id: red
+    name: human_only
+    name_ja: 人間に残す
+    when:
+      - { verifiability: low, answer_definability: low }
+    action: |
+      Humans decide. The LLM may be used for reference only, never as the
+      decision authority. Record any LLM use in 'Why' for transparency.
+
+# 採点済みの具体例(分類は本マトリクスへの当てはめ = 設計提案)。
+# 観測事実として記事から取れるのは「ベンダーが委任対象として選定した」事実のみ。
+examples:
+  - judgment: Receipt mandatory items check
+    case: Ajinomoto
+    verifiability_yes: [V1, V2, V3]
+    answer_definability_yes: [A1, A2, A3]
+    region: green
+    rationale: Statutory items are mechanically verifiable against rule references
+    confidence: design_proposal_with_observed_evidence
+
+  - judgment: Invoice scheme compliance check
+    case: Ajinomoto
+    verifiability_yes: [V1, V2, V3]
+    answer_definability_yes: [A1, A2, A3]
+    region: green
+    rationale: Registration number + statutory requirements yield a unique answer
+
+  - judgment: Tax entertainment-expense determination
+    case: Ajinomoto
+    verifiability_yes: [V1, V2]
+    answer_definability_yes: [A1, A2]
+    region: green
+    rationale: Mechanizable via amount/headcount thresholds; gray cases escalate
+    note: Boundary high (2/3) on both axes; expect a higher escalation rate
+
+  - judgment: Coding delegation (mechanical refactor)
+    verifiability_yes: [V1, V2, V3]
+    answer_definability_yes: [A1, A2]
+    region: green
+    rationale: Tests verify; conventions are documented
+    confidence: design_proposal
+
+  - judgment: Coding delegation (new architecture design)
+    verifiability_yes: [V1]
+    answer_definability_yes: [A1]
+    region: red
+    rationale: '"Good design" has no unique correct answer; context-dependent'
+    confidence: design_proposal
+
+  - judgment: Ethical judgment (e.g. discriminatory expression detection)
+    verifiability_yes: [V1, V2]
+    answer_definability_yes: [A3]
+    region: yellow
+    rationale: LLM surfaces candidates; humans apply contextual final judgment
+    confidence: design_proposal
+
+  - judgment: New policy formulation
+    verifiability_yes: []
+    answer_definability_yes: []
+    region: red
+    rationale: No pre-existing correct answer; the act defines the rule
+    confidence: design_proposal
+
+  - judgment: Hiring interview decision
+    verifiability_yes: []
+    answer_definability_yes: []
+    region: red
+    rationale: Fairness/anti-discrimination concerns require final human decision
+    confidence: design_proposal
+
+  - judgment: Expense account code suggestion (human approves)
+    verifiability_yes: [V1, V2]
+    answer_definability_yes: [A1, A2]
+    region: yellow
+    rationale: Mechanically green; downgraded to yellow by operational policy (final human decision)
+    confidence: design_proposal
+    note: Region demotion (green->yellow) is a policy choice, not a matrix verdict

@@ -1,0 +1,164 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/suwa-sh/ai-delegation-readiness/schemas/audit-log.schema.json",
+  "title": "AI Delegation Audit Log",
+  "description": "Audit log schema for AI agent business judgments. Two levels: minimum (article-aligned baseline) and extended (J-SOX-grade design additions).",
+  "$defs": {
+    "human_principal": {
+      "type": "object",
+      "required": ["id", "role"],
+      "properties": {
+        "id":   { "type": "string", "minLength": 1 },
+        "role": { "type": "string", "minLength": 1 }
+      }
+    },
+    "rule_ref_minimum": {
+      "type": "object",
+      "required": ["id"],
+      "properties": {
+        "id":      { "type": "string", "minLength": 1, "description": "Identifier of the referenced rule (URI or internal code)" },
+        "section": { "type": "string", "description": "Optional clause / SOP step reference" }
+      }
+    },
+    "rule_ref_extended": {
+      "type": "object",
+      "required": ["id", "version"],
+      "properties": {
+        "id":      { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "minLength": 1, "description": "Rule version (date or version tag) pinned at decision time" },
+        "section": { "type": "string", "description": "Clause / SOP step number" }
+      },
+      "description": "Extended rule reference requires version pinning for retrospective verification after rule changes"
+    },
+    "checked_item": {
+      "type": "object",
+      "required": ["item", "outcome"],
+      "properties": {
+        "item":    { "type": "string", "minLength": 1 },
+        "outcome": { "enum": ["pass", "fail", "uncertain"] },
+        "note":    { "type": "string" }
+      }
+    },
+    "audit_log_minimum": {
+      "title": "Audit log (minimum) - level A, article-aligned",
+      "type": "object",
+      "required": ["who", "when", "what", "why", "result"],
+      "additionalProperties": true,
+      "properties": {
+        "who": {
+          "type": "object",
+          "required": ["agent", "human_delegator"],
+          "properties": {
+            "agent": {
+              "type": "object",
+              "required": ["id"],
+              "properties": {
+                "id":      { "type": "string", "minLength": 1 },
+                "version": { "type": "string" }
+              }
+            },
+            "human_delegator": { "$ref": "#/$defs/human_principal" }
+          },
+          "description": "Both the deciding agent and the human who delegated authority are required (article-aligned)"
+        },
+        "when": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Decision time in ISO 8601 with timezone"
+        },
+        "what": {
+          "type": "object",
+          "required": ["object_type", "object_id"],
+          "properties": {
+            "object_type": { "type": "string", "minLength": 1 },
+            "object_id":   { "type": "string", "minLength": 1 },
+            "attributes":  { "type": "object" }
+          }
+        },
+        "why": {
+          "type": "object",
+          "required": ["rule_refs", "checked_items"],
+          "properties": {
+            "rule_refs": {
+              "type": "array",
+              "minItems": 1,
+              "items": { "$ref": "#/$defs/rule_ref_minimum" }
+            },
+            "checked_items": {
+              "type": "array",
+              "minItems": 1,
+              "items": { "$ref": "#/$defs/checked_item" }
+            }
+          }
+        },
+        "result": {
+          "type": "object",
+          "required": ["decision"],
+          "properties": {
+            "decision": {
+              "type": "string",
+              "description": "Decision outcome. At the minimum level any non-empty string is accepted, but the extended level enforces a discrete enum.",
+              "minLength": 1
+            },
+            "rationale":     { "type": "string" },
+            "escalated_to":  { "$ref": "#/$defs/human_principal" }
+          }
+        }
+      }
+    },
+    "audit_log_extended": {
+      "title": "Audit log (extended) - level B, J-SOX-grade design additions",
+      "description": "Extended schema enforces (1) rule version pinning, (2) discrete decision enum, (3) escalated_to required when decision is escalated. These are design proposals beyond the source article.",
+      "allOf": [
+        { "$ref": "#/$defs/audit_log_minimum" },
+        {
+          "type": "object",
+          "properties": {
+            "why": {
+              "type": "object",
+              "required": ["rule_refs", "checked_items"],
+              "properties": {
+                "rule_refs": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": { "$ref": "#/$defs/rule_ref_extended" }
+                },
+                "checked_items": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": { "$ref": "#/$defs/checked_item" }
+                }
+              }
+            },
+            "result": {
+              "type": "object",
+              "required": ["decision"],
+              "properties": {
+                "decision": {
+                  "enum": ["approved", "rejected", "escalated"]
+                },
+                "rationale":    { "type": "string" },
+                "escalated_to": { "$ref": "#/$defs/human_principal" }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": { "decision": { "const": "escalated" } },
+                    "required": ["decision"]
+                  },
+                  "then": {
+                    "required": ["escalated_to"]
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  },
+  "oneOf": [
+    { "$ref": "#/$defs/audit_log_minimum" },
+    { "$ref": "#/$defs/audit_log_extended" }
+  ]
+}
