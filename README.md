@@ -8,8 +8,9 @@
 
 A diagnostic tool and extensible framework for deciding **whether a
 high-risk routine business judgment is ready to be delegated to an AI
-agent**. Distilled from a real production case (Ajinomoto Group's
-accounting AI agent, in production since February 2026).
+agent**. Distilled from the **published case study** of Ajinomoto
+Group's accounting AI agent (in production since February 2026); we
+extract the framework from the reporting, not from any internal source.
 
 You get three things from a clone:
 
@@ -137,25 +138,33 @@ framework safe to extend without forking.
 
 ## Background
 
-The framework is distilled from the **Ajinomoto Financial Solutions (AFS)
-× First Accounting accounting AI agent**, which went into production in
-February 2026. The public case study reports a domain-specialized agent
-achieving **93.3%** versus **53.3%** for a vanilla LLM on three published
-tasks (receipt mandatory items, invoice scheme compliance, tax
-entertainment-expense judgment).
+The framework is **not extracted from Ajinomoto itself but from the
+published case study**: the maintainer wrote an analysis article based on
+publicly reported coverage of the **Ajinomoto Financial Solutions (AFS)
+× First Accounting accounting AI agent** (in production since February
+2026), then distilled the framework from that analysis. So the
+provenance chain is: public coverage → analysis article → this framework.
+The maintainer has no internal access to Ajinomoto or AFS.
 
-The case demonstrates that the gap was not closed by a smarter model but
-by **structuring the business logic** around the LLM. This is why the
+The case study reports a domain-specialized agent achieving **93.3%**
+versus **53.3%** for a vanilla LLM on three published tasks (receipt
+mandatory items, invoice scheme compliance, tax entertainment-expense
+judgment). The gap was closed not by a smarter model but by
+**structuring the business logic** around the LLM. This is why the
 framework's lower layers (standardization, structuring) matter more than
 the choice of model.
 
 **Caveats reproduced honestly**: The widely-cited "76% workload
-reduction" headline is **not defined in the source article** — denominator,
-baseline, and scope are unstated. This repository does not warrant
-efficacy figures; it preserves the **observability viewpoint**
+reduction" headline is **not defined in the source articles** —
+denominator, baseline, and scope are unstated. This repository does not
+warrant efficacy figures; it preserves the **observability viewpoint**
 (`docs/01` efficacy axis).
 
-### Original sources
+### Source
+
+- **Analysis article by the maintainer** (Japanese): [「味の素の経理AIエージェントに学ぶ 承認業務をAIに委任する前提条件」](https://suwa-sh.github.io/zenn-contents/articles/ajinomoto-accounting-agent_20260621/) — the immediate source from which the framework was distilled.
+
+### Coverage cited in the analysis article
 
 - [Ajinomoto Financial Solutions × First Accounting press release (2026-04-24)](https://www.fastaccounting.jp/news/20260424/15929/)
 - [ITmedia "76% workload reduction" coverage (2026-06-19, Japanese)](https://www.itmedia.co.jp/business/articles/2606/19/news033.html)

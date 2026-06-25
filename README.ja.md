@@ -7,17 +7,17 @@
 > 🇬🇧 English version: [README.md](README.md)
 
 高リスクな定型業務を AI エージェントに委任して良いかを **診断するツールと
-拡張可能なフレームワーク**。本番稼働中の実例(味の素グループの経理 AI
-エージェント、2026 年 2 月本番稼働)から骨格を抽出している。
+拡張可能なフレームワーク**です。本番稼働中の実例(味の素グループの経理 AI
+エージェント、2026 年 2 月本番稼働)の **事例記事から骨格を抽出しています**。
 
-clone すると 3 つが手に入る:
+clone すると、次の 3 つが手に入ります。
 
 1. **CLI 診断ツール** — `bin/aidr check-readiness` / `score-delegation` /
-   `validate-audit-log`(1 分で動く)
+   `validate-audit-log`(1 分で動きます)
 2. **機械可読のフレームワーク**(`definitions/*.yaml` / `schemas/*.json`) — AI
-   エージェントが system prompt に載せたり、CI パイプラインから直接叩ける
+   エージェントの system prompt に載せたり、CI パイプラインから直接叩けます
 3. **オーバーレイの拡張点** — 各社の独自規定や厳格化した閾値を
-   **フォークせず追加できる**
+   **フォークせず追加できます**
 
 ## Quick start(3 分で動かす)
 
@@ -42,17 +42,17 @@ bin/aidr check-overlay examples/overlays/sample-company/extra-rules.yaml
 bin/aidr list-definitions
 ```
 
-各コマンドは決定的な終了コードを返す(0 = ok、1 = partial / yellow、
-2 = block / red、3 = overlay error)ので CI で診断結果に応じてゲートできる。
+各コマンドは決定的な終了コードを返します(0 = ok、1 = partial / yellow、
+2 = block / red、3 = overlay error)。これにより CI で診断結果に応じてゲートできます。
 
 ## Who this is for
 
 | あなたが... | まず読むもの |
 |---|---|
-| **業務側の意思決定者**(経理部長 / CFO / コンプラ責任者)で AI 化を検討中 | [`docs/01_four_layer_framework.md`](docs/01_four_layer_framework.md) — `bin/aidr check-readiness` で業務を採点 |
-| **実装エンジニア**で高リスク承認業務向け AI エージェントを設計中 | [`schemas/audit-log.schema.json`](schemas/audit-log.schema.json) + [`docs/02_audit_log_schema.md`](docs/02_audit_log_schema.md) — スキーマをロガーに組み込む |
-| **運用担当**で既存 AI 基盤のログを点検したい | [`docs/04_agent_loop_audit_gap.md`](docs/04_agent_loop_audit_gap.md) — 5 ステップ手法を自社 SQL スキーマに当てる |
-| **コンサル / 提案者** | `docs/` 全部 + オーバーレイ拡張モデル — clone してプライベートにフォーク、顧客固有の採点を提示 |
+| **業務側の意思決定者**(経理部長 / CFO / コンプラ責任者)で AI 化を検討中 | [`docs/01_four_layer_framework.md`](docs/01_four_layer_framework.md) — `bin/aidr check-readiness` で業務を採点します |
+| **実装エンジニア**で高リスク承認業務向け AI エージェントを設計中 | [`schemas/audit-log.schema.json`](schemas/audit-log.schema.json) + [`docs/02_audit_log_schema.md`](docs/02_audit_log_schema.md) — スキーマをロガーに組み込みます |
+| **運用担当**で既存 AI 基盤のログを点検したい | [`docs/04_agent_loop_audit_gap.md`](docs/04_agent_loop_audit_gap.md) — 5 ステップ手法を自社 SQL スキーマに当てます |
+| **コンサル / 提案者** | `docs/` 全部 + オーバーレイ拡張モデル — clone してプライベートにフォークし、顧客固有の採点を提示します |
 
 ## What's in this repo
 
@@ -80,8 +80,8 @@ ai-delegation-readiness/
 
 ## How to extend(フレームワークの意図)
 
-各社の独自ルールは **オーバーレイで追加**する(正本ファイルをフォークしない)。
-雛形は [`examples/overlays/sample-company/extra-rules.yaml`](examples/overlays/sample-company/extra-rules.yaml):
+各社の独自ルールは **オーバーレイで追加します**(正本ファイルはフォークしません)。
+雛形は [`examples/overlays/sample-company/extra-rules.yaml`](examples/overlays/sample-company/extra-rules.yaml) を参照してください。
 
 ```yaml
 version: 1
@@ -97,7 +97,7 @@ layers:
       revise: 0.8       # 元 0.6 → 強化のみ可
 ```
 
-そして `--overlay` 付きで診断:
+そして `--overlay` 付きで診断します。
 
 ```bash
 bin/aidr check-readiness mybiz.yaml --overlay /path/to/our-rules.yaml
@@ -106,48 +106,57 @@ bin/aidr check-readiness mybiz.yaml --overlay /path/to/our-rules.yaml
 **フレームワーク再利用の 3 経路**:
 
 - **AI エージェント**: `definitions/four-layer.yaml` や
-  `schemas/audit-log.schema.json` を system prompt や tool context にロード。
-  [`examples/skills/`](examples/skills/) に Claude Code skill のラッパー 2 種を用意
+  `schemas/audit-log.schema.json` を system prompt や tool context にロードします。
+  [`examples/skills/`](examples/skills/) に Claude Code skill のラッパー 2 種を用意しています
 - **CI パイプライン**: 出力ログ 1 件ごとに `bin/aidr validate-audit-log` を呼び、
-  exit code でゲート
-- **社内フォーク**: 自社固有のオーバーレイをプライベートリポで管理し
-  `--overlay` で適用。本リポはクリーンな upstream として pull できる
+  exit code でゲートします
+- **社内フォーク**: 自社固有のオーバーレイをプライベートリポで管理し、
+  `--overlay` で適用します。本リポはクリーンな upstream として pull できます
 
 ## The framework's invariants
 
 正本フレームワーク(`definitions/*.yaml` / `schemas/*.json`)は **全社で
-一貫**を保つ。オーバーレイで可能なのは:
+一貫**を保ちます。オーバーレイで可能なのは、次の 2 つだけです。
 
 - **`add`**: 配列要素の追加(既存要素は read-only)
 - **`strengthen`**: 数値閾値の **強化方向のみ**(緩和は不可)
 
-削除・置換・緩和は merge violation として `aidr check-overlay` が機械的に検出する。
-これによりフォークせず安全に拡張できる。
+削除・置換・緩和は merge violation として `aidr check-overlay` が機械的に検出します。
+これによりフォークせず安全に拡張できます。
 
 ## Background
 
-本フレームワークは **味の素フィナンシャル・ソリューションズ(AFS)× ファースト
-アカウンティング** の経理 AI エージェント(2026 年 2 月本番稼働)から抽出した。
-公表されている検証では、ドメイン特化エージェント = **93.3%**、汎用 LLM 単体 =
-**53.3%** という 40 ポイント差(領収書必須項目 / インボイス制度準拠 / 税務上の
+本フレームワークは **味の素自身ではなく、事例記事から抽出しています**。
+リポメンテナが公開報道をもとに分析記事を書き、その分析記事から本フレームワークを
+抽出した、という来歴です(公開報道 → 分析記事 → 本フレームワーク)。
+メンテナは味の素・AFS の内部情報にはアクセスしていません。
+
+**味の素フィナンシャル・ソリューションズ(AFS)× ファーストアカウンティング** の
+経理 AI エージェント(2026 年 2 月本番稼働)について、事例記事で公表されている
+検証では、ドメイン特化エージェント = **93.3%**、汎用 LLM 単体 = **53.3%** という
+40 ポイント差が報告されています(領収書必須項目 / インボイス制度準拠 / 税務上の
 交際費判定の 3 タスク)。
 
 差を生んだのはモデルの賢さではなく、**業務ロジックを LLM の周りで構造化**した
-ことだと示している。下層の標準化・構造化がモデル選定より重要なのはこのため。
+ことだと示されています。下層の標準化・構造化がモデル選定より重要なのはこのためです。
 
-**正直な留保**: 広く引用される「工数 76% 削減」見出しは **記事に分母・基準値・
-スコープが明示されていない**。本リポは効果数値を保証せず、観測の観点だけ保持する
-(`docs/01` の効果測定軸を参照)。
+**正直な留保**: 広く引用される「工数 76% 削減」見出しは、**事例記事に分母・
+基準値・スコープが明示されていません**。本リポは効果数値を保証せず、観測の観点だけを
+保持します(`docs/01` の効果測定軸を参照してください)。
 
 ### 出典
+
+- **メンテナによる分析記事**(直接の抽出元): [「味の素の経理AIエージェントに学ぶ 承認業務をAIに委任する前提条件」](https://suwa-sh.github.io/zenn-contents/articles/ajinomoto-accounting-agent_20260621/)
+
+### 分析記事が引用している報道
 
 - [ファーストアカウンティング公式プレスリリース (2026-04-24)](https://www.fastaccounting.jp/news/20260424/15929/)
 - [ITmedia「工数 76% 削減」(2026-06-19)](https://www.itmedia.co.jp/business/articles/2606/19/news033.html)
 
 ## ライセンス
 
-[MIT](LICENSE)
+[MIT](LICENSE) を採用しています。
 
 ## セキュリティ
 
-脆弱性報告は [SECURITY.md](SECURITY.md) を参照。
+脆弱性報告は [SECURITY.md](SECURITY.md) を参照してください。
