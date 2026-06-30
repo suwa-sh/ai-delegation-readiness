@@ -6,24 +6,40 @@
 
 > 🇯🇵 日本語版は [README.ja.md](README.ja.md)
 
-A diagnostic tool and extensible framework for deciding **whether a
-high-risk routine business judgment is ready to be delegated to an AI
-agent**. Distilled from the **published case study** of Ajinomoto
-Group's accounting AI agent (in production since February 2026); we
-extract the framework from the reporting, not from any internal source.
+A diagnostic tool and extensible framework for deciding **whether a high-risk
+routine business judgment is ready to be delegated to an AI agent**. Distilled
+from the **published analysis** of Ajinomoto Group's accounting AI agent (in
+production since February 2026).
 
-You get three things from a clone:
+Key features:
 
-1. **A CLI diagnostic** — `bin/aidr check-readiness` / `score-delegation` /
-   `validate-audit-log` — runs in under a minute.
-2. **Machine-readable framework** (`definitions/*.yaml`, `schemas/*.json`)
-   that AI agents can load as system context, and CI pipelines can call
-   directly.
-3. **Overlay extension points** so each company can add their own
-   questions and stricter thresholds **without forking the framework**.
+1. **Diagnoses delegation readiness** — it mechanically scores how far a process
+   has standardized, structured and bounded its judgments, plus whether the
+   claimed efficiency gain is explainable, and returns a deterministic verdict.
+2. **A machine-readable single source of truth** — the four-layer framework, the
+   delegation matrix and the audit-log schema are kept as definitions that AI
+   agents and CI can consume directly.
+3. **Extensible without forking** — each company adds its own questions and
+   stricter thresholds through an overlay.
 
-> **A note on language**: Documents under `docs/` are written in Japanese
-> (the author's working language). This English README is the entry point;
+> **Glossary**:
+> - **J-SOX** (Japan's internal-control reporting regime under the Financial
+>   Instruments and Exchange Act) requires listed companies to evaluate and
+>   report on internal control over financial reporting.
+> - An **audit log** is the record of each AI judgment (who / when / what / why /
+>   result) that lets you reproduce and review the decision afterwards.
+> - The **four-layer framework** is the stack of prerequisites a process must
+>   satisfy before delegation: standardization → structuring → delegation scope →
+>   control.
+> - The **efficacy axis** is a parallel viewpoint that checks whether a claimed
+>   efficiency gain has an explainable denominator and baseline.
+> - The **delegation matrix** scores each judgment on two axes (verifiability ×
+>   answer-definability) and places it into delegate / LLM-assist / human-only.
+> - An **overlay** is a company-specific extension file that adds questions or
+>   strengthens thresholds without forking the canonical definitions.
+
+> **A note on language**: Documents under `docs/` are written in Japanese (the
+> author's working language). This English README is the entry point;
 > [README.ja.md](README.ja.md) is the canonical text.
 
 ## Quick start (3 minutes)
@@ -33,25 +49,56 @@ git clone https://github.com/suwa-sh/ai-delegation-readiness.git
 cd ai-delegation-readiness
 pip install -r requirements.txt
 
-# 1. Score a sample business against the 4-layer + efficacy framework
+# Run each command against the bundled samples
 bin/aidr check-readiness examples/business/sample-expense-approval.yaml
-
-# 2. Score five judgments against the delegation matrix
 bin/aidr score-delegation examples/judgments/sample-judgments.yaml
-
-# 3. Validate an audit log against the J-SOX-grade extended schema
 bin/aidr validate-audit-log examples/audit-log-sample.json --level extended
-
-# 4. Check an overlay's merge rules (additions and strengthening only)
 bin/aidr check-overlay examples/overlays/sample-company/extra-rules.yaml
-
-# 5. Inspect what definitions and overlays are loaded
 bin/aidr list-definitions
 ```
 
-Each command returns a deterministic exit code (0 ok, 1 partial / yellow,
-2 block / red, 3 overlay error) so you can gate CI on the diagnostic
-outcome.
+Every command returns a deterministic exit code so you can gate CI on it:
+**0** ok · **1** partial (yellow) · **2** block (red: gaps, SLA breach, rejected
+overlay) · **3** input error.
+
+## Usage workflow
+
+The commands run against *your* data. Copy the files under `examples/` as
+templates, edit them with your own values, then run the commands in this order —
+from diagnosis to extension.
+
+1. **Prepare** — copy a sample to start your own input file:
+   `cp examples/business/sample-expense-approval.yaml my-business.yaml`
+2. **Diagnose the process** — fill each layer's questions with `yes` / `no`, then
+   `bin/aidr check-readiness my-business.yaml`. Fix the layer named by
+   `First gate to fix` first; lower layers gate the upper ones.
+3. **Score the judgments** — list your judgments and run
+   `bin/aidr score-delegation my-judgments.yaml`. GREEN delegates, YELLOW is
+   LLM-assist (a human decides), RED stays human-only.
+4. **Validate the audit log** — once delegation starts, check that the emitted
+   log satisfies who / when / what / why / result:
+   `bin/aidr validate-audit-log my-log.json --level extended`.
+5. **Extend (optional)** — add your own questions / thresholds via an overlay,
+   validated by `bin/aidr check-overlay <path>` and applied with `--overlay`.
+
+Sample output (`check-readiness`) — `[..]` revise / `[NG]` block per layer, then
+an overall verdict and the first gate to fix:
+
+```text
+Target: Expense claim approval (mid-size company, FY2026 review)
+
+[..] L1 業務標準化層: REVISE (75%)
+[NG] L2 判断構造化層: BLOCK (33%)
+[..] L3 委任範囲層: REVISE (75%)
+[NG] L4 統制・追跡層: BLOCK (0%)
+[..] efficacy 効果測定: REVISE (75%)
+
+Conclusion: BLOCK
+  First gate to fix: layer L1
+```
+
+See [`README.ja.md`](README.ja.md#使い方想定ワークフロー) for sample output of every
+command in the workflow.
 
 ## Who this is for
 
@@ -59,8 +106,8 @@ outcome.
 |---|---|
 | A **business decision maker** (head of accounting, CFO, compliance lead) considering AI for a process | [`docs/01_four_layer_framework.md`](docs/01_four_layer_framework.md) — score your process with `bin/aidr check-readiness` |
 | An **engineer** designing an AI agent for high-risk approvals | [`schemas/audit-log.schema.json`](schemas/audit-log.schema.json) + [`docs/02_audit_log_schema.md`](docs/02_audit_log_schema.md) — wire the schema into your logger |
-| An **operator** auditing an existing AI platform's logging | [`docs/04_agent_loop_audit_gap.md`](docs/04_agent_loop_audit_gap.md) — apply the 5-step method to your own SQL schema |
-| A **consultant / proposal author** | All four `docs/` + the overlay extension model — clone, fork in private, present client-specific scoring |
+| An **operator** auditing an existing AI platform's logging | [`docs/04_audit_log_gap_check.md`](docs/04_audit_log_gap_check.md) — apply the 5-step method to your own SQL schema |
+| A **consultant / proposal author** | All four `docs/` + the overlay model — clone, overlay in private, present client-specific scoring |
 
 ## What's in this repo
 
@@ -83,13 +130,13 @@ ai-delegation-readiness/
     ├── 01_four_layer_framework.md
     ├── 02_audit_log_schema.md
     ├── 03_delegation_matrix.md
-    └── 04_agent_loop_audit_gap.md
+    └── 04_audit_log_gap_check.md
 ```
 
-## How to extend (the framework's intent)
+## How to extend
 
-Each company adds their own rules **via overlays**, not by forking the
-canonical files. See [`examples/overlays/sample-company/extra-rules.yaml`](examples/overlays/sample-company/extra-rules.yaml)
+Each company adds their own rules **via overlays**, not by forking the canonical
+files. See [`examples/overlays/sample-company/extra-rules.yaml`](examples/overlays/sample-company/extra-rules.yaml)
 for a template:
 
 ```yaml
@@ -112,17 +159,16 @@ Then run any diagnostic with `--overlay`:
 bin/aidr check-readiness mybiz.yaml --overlay /path/to/our-rules.yaml
 ```
 
-**Three ways the framework gets reused**:
+The framework is reused in three ways:
 
 - **AI agents**: load `definitions/four-layer.yaml` and
   `schemas/audit-log.schema.json` into the system prompt or tool context.
   See [`examples/skills/`](examples/skills/) for two ready-to-adapt Claude
   Code skill wrappers.
-- **CI pipelines**: call `bin/aidr validate-audit-log` on each emitted
-  log; gate on exit code.
-- **Internal forks**: keep your company-specific overlay in a private repo
-  and apply with `--overlay`. The framework stays a clean upstream that
-  you can pull updates from.
+- **CI pipelines**: call `bin/aidr validate-audit-log` on each emitted log; gate
+  on exit code.
+- **Internal overlays**: keep your company-specific overlay in a private repo and
+  apply with `--overlay`. The framework stays a clean upstream you can pull from.
 
 ## The framework's invariants
 
@@ -132,37 +178,33 @@ The canonical foundation (`definitions/*.yaml`, `schemas/*.json`) is
 - **`add`** new items to a list (existing items stay read-only)
 - **`strengthen`** numeric thresholds (lowering is rejected)
 
-Anything else (delete, replace, weaken) is a merge violation and is
-detected mechanically by `aidr check-overlay`. This is what makes the
-framework safe to extend without forking.
+Anything else (delete, replace, weaken) is a merge violation and is detected
+mechanically by `aidr check-overlay`. This is what makes the framework safe to
+extend without forking.
 
 ## Background
 
-The framework is **not extracted from Ajinomoto itself but from the
-published case study**: the maintainer wrote an analysis article based on
-publicly reported coverage of the **Ajinomoto Financial Solutions (AFS)
-× First Accounting accounting AI agent** (in production since February
-2026), then distilled the framework from that analysis. So the
-provenance chain is: public coverage → analysis article → this framework.
-The maintainer has no internal access to Ajinomoto or AFS.
+The framework is distilled from a **published analysis** of the Ajinomoto Group
+accounting AI agent (in production since February 2026): the maintainer wrote an
+analysis article from publicly reported coverage, then extracted the framework
+from that analysis. The provenance chain is: public coverage → analysis article →
+this framework.
 
-The case study reports a domain-specialized agent achieving **93.3%**
-versus **53.3%** for a vanilla LLM on three published tasks (receipt
-mandatory items, invoice scheme compliance, tax entertainment-expense
-judgment). The gap was closed not by a smarter model but by
-**structuring the business logic** around the LLM. This is why the
-framework's lower layers (standardization, structuring) matter more than
+On three published tasks (receipt mandatory items, invoice scheme compliance, tax
+entertainment-expense judgment), the analysis reports a domain-specialized agent
+reaching **93.3%** versus **53.3%** for a vanilla LLM. The gap was closed not by a
+smarter model but by **structuring the business logic** around the LLM — which is
+why the framework's lower layers (standardization, structuring) matter more than
 the choice of model.
 
-**Caveats reproduced honestly**: The widely-cited "76% workload
-reduction" headline is **not defined in the source articles** —
-denominator, baseline, and scope are unstated. This repository does not
+**Caveat**: the widely-cited "76% workload reduction" headline has no defined
+denominator, baseline, or scope in the source articles. This repository does not
 warrant efficacy figures; it preserves the **observability viewpoint**
 (`docs/01` efficacy axis).
 
 ### Source
 
-- **Analysis article by the maintainer** (Japanese): [「味の素の経理AIエージェントに学ぶ 承認業務をAIに委任する前提条件」](https://suwa-sh.github.io/zenn-contents/articles/ajinomoto-accounting-agent_20260621/) — the immediate source from which the framework was distilled.
+- **Analysis article** (Japanese, the immediate source from which the framework was distilled): [「味の素の経理AIエージェントに学ぶ 承認業務をAIに委任する前提条件」](https://suwa-sh.github.io/zenn-contents/articles/ajinomoto-accounting-agent_20260621/)
 
 ### Coverage cited in the analysis article
 

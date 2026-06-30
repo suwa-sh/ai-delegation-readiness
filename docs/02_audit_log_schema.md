@@ -138,5 +138,5 @@ for err in validator.iter_errors(your_log_dict):
 - 正本: [`schemas/audit-log.schema.json`](../schemas/audit-log.schema.json)
 - サンプル: [`examples/audit-log-sample.json`](../examples/audit-log-sample.json)(`escalated` ケースです)
 - CLI: `bin/aidr validate-audit-log --help`
-- 関連 doc: [`01_four_layer_framework.md`](01_four_layer_framework.md) の④統制層 / [`04_agent_loop_audit_gap.md`](04_agent_loop_audit_gap.md)(自社運用基盤への適用例です)
+- 関連 doc: [`01_four_layer_framework.md`](01_four_layer_framework.md) の④統制層 / [`04_audit_log_gap_check.md`](04_audit_log_gap_check.md)(既存ログ基盤への適用例です)
 - 出典: [メンテナによる分析記事 §④統制・追跡層](https://suwa-sh.github.io/zenn-contents/articles/ajinomoto-accounting-agent_20260621/)

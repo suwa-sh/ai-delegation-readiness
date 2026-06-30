@@ -121,8 +121,8 @@ block になります。
 - 規定バージョンをログに固定し、過去判定を遡及検証できるか
 - 誤承認の補正フローが設計されてログに残るか
 
-監査ログ最小スキーマは `docs/02_audit_log_schema.md` を、自社運用基盤への
-当てはめ例は `docs/04_agent_loop_audit_gap.md` を参照してください。
+監査ログ最小スキーマは `docs/02_audit_log_schema.md` を、既存ログ基盤への
+当てはめ例は `docs/04_audit_log_gap_check.md` を参照してください。
 
 **【観測事実】** 公開情報には統制層の具体(誤承認補正フローや監査ログ設計)が
 ほとんど開示されておらず、再現を目指す側は **ここを自前で設計する必要があります**。
@@ -168,7 +168,7 @@ block になります。
 ## References
 
 - 正本: [`definitions/four-layer.yaml`](../definitions/four-layer.yaml)(問い・閾値・拡張ポイントの正本です)
-- 関連 doc: [`02_audit_log_schema.md`](02_audit_log_schema.md) / [`03_delegation_matrix.md`](03_delegation_matrix.md) / [`04_agent_loop_audit_gap.md`](04_agent_loop_audit_gap.md)
+- 関連 doc: [`02_audit_log_schema.md`](02_audit_log_schema.md) / [`03_delegation_matrix.md`](03_delegation_matrix.md) / [`04_audit_log_gap_check.md`](04_audit_log_gap_check.md)
 - CLI: `bin/aidr check-readiness --help`
 - 出典:
   - [メンテナによる分析記事 (Zenn / gh-pages ミラー)](https://suwa-sh.github.io/zenn-contents/articles/ajinomoto-accounting-agent_20260621/)
