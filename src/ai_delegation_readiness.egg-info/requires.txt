@@ -1,6 +1,0 @@
-PyYAML<7.0,>=6.0
-jsonschema[format-nongpl]<5.0,>=4.21
-overlay-scoring-skeleton==0.1.0
-
-[test]
-pytest<9.0,>=8.0

@@ -1,2 +1,0 @@
-[console_scripts]
-aidr = adr.cli:main
