@@ -143,14 +143,13 @@ for a template:
 version: 1
 extends: four-layer-delegation-readiness
 
-layers:
-  - id: L4
-    add_questions:
-      - id: ACME_L4Q6
-        text: Is the audit log stored in a tamper-evident store?
-        weight: 1.0
-    strengthen_thresholds:
-      revise: 0.8       # was 0.6 — stricter only
+add:
+  - id: "L4.ACME_Q6"
+    text: Is the audit log stored in a tamper-evident store?
+    weight: 1.0
+
+strengthen:
+  "L4": {revise: 0.8}       # was 0.6 — stricter only
 ```
 
 Then run any diagnostic with `--overlay`:

@@ -202,14 +202,13 @@ ai-delegation-readiness/
 version: 1
 extends: four-layer-delegation-readiness
 
-layers:
-  - id: L4
-    add_questions:
-      - id: ACME_L4Q6
-        text: 監査ログは tamper-evident store に保存されているか
-        weight: 1.0
-    strengthen_thresholds:
-      revise: 0.8       # 元 0.6 → 強化のみ可
+add:
+  - id: "L4.ACME_Q6"
+    text: 監査ログは tamper-evident store に保存されているか
+    weight: 1.0
+
+strengthen:
+  "L4": {revise: 0.8}       # 元 0.6 → 強化のみ可
 ```
 
 そして `--overlay` 付きで診断します。
