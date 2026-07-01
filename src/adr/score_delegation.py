@@ -24,7 +24,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from . import overlay as overlay_mod
+import overlay_scoring as overlay_mod
 from .check_readiness import OverlayError, _normalize_yes
 
 DEFINITION_NAME = "delegation-matrix"

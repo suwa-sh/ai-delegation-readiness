@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 
-from adr import overlay as ov
+import overlay_scoring as ov
 from conftest import four_layer_path, matrix_path, sample_overlay_path
 
 

@@ -30,7 +30,7 @@ from typing import Any
 
 import yaml
 
-from . import overlay as overlay_mod
+import overlay_scoring as overlay_mod
 
 DEFINITION_NAME = "four-layer-delegation-readiness"
 DEFAULT_DEFINITION = Path(__file__).resolve().parents[2] / "definitions" / "four-layer.yaml"

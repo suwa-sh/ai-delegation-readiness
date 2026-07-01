@@ -1,4 +1,4 @@
-PyYAML>=6.0,<7.0
-# jsonschema の [format-nongpl] extra で rfc3339-validator 等が入り、
-# "format": "date-time" などのチェッカーが有効になる(監査ログの時刻保証に必須)。
-jsonschema[format-nongpl]>=4.21,<5.0
+# Dependencies are declared in pyproject.toml (the single source of truth).
+# Installing this file installs the package together with all declared
+# dependencies (including the pinned overlay-scoring-skeleton engine).
+.

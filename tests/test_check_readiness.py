@@ -6,7 +6,7 @@ import textwrap
 import pytest
 import yaml
 
-from adr import overlay as ov
+import overlay_scoring as ov
 from adr import check_readiness as cr
 from conftest import sample_business_path, four_layer_path
 

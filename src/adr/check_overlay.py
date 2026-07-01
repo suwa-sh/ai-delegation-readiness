@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
 
-from . import overlay as overlay_mod
+import overlay_scoring as overlay_mod
 
 DEFAULT_DEFINITIONS_DIR = Path(__file__).resolve().parents[2] / "definitions"
 

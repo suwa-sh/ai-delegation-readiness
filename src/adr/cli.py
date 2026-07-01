@@ -12,7 +12,10 @@ from __future__ import annotations
 
 import argparse
 import sys
+from importlib.metadata import PackageNotFoundError, version as _pkg_version
 from pathlib import Path
+
+import overlay_scoring
 
 from . import (
     check_overlay as _check_overlay,
@@ -21,6 +24,19 @@ from . import (
     score_delegation as _score,
     validate_audit_log as _validate,
 )
+
+
+def _version_string() -> str:
+    """`aidr --version` reports the app version and the overlay engine version.
+
+    The engine version is the primary way to see which overlay-scoring-skeleton
+    release this build depends on (requirement: engine version visibility).
+    """
+    try:
+        app = _pkg_version("ai-delegation-readiness")
+    except PackageNotFoundError:  # running from a source checkout
+        app = "0.0.0.dev0"
+    return f"aidr {app} (overlay-scoring-skeleton {overlay_scoring.__version__})"
 
 
 def _shared_overlay_args(parser: argparse.ArgumentParser) -> None:
@@ -128,6 +144,7 @@ def build_parser() -> argparse.ArgumentParser:
             "validate the audit log it produces."
         ),
     )
+    parser.add_argument("--version", action="version", version=_version_string())
     sub = parser.add_subparsers(dest="command", required=True)
 
     p_check = sub.add_parser(

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ai-delegation-readiness"
-version = "0.1.0"
+version = "0.2.0"
 description = "Diagnostic tool and extensible framework for deciding whether a high-risk routine business judgment is ready to be delegated to an AI agent."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -34,6 +34,9 @@ dependencies = [
     # [format-nongpl] extra brings in rfc3339-validator etc so that
     # "format": "date-time" actually validates (critical for audit log time).
     "jsonschema[format-nongpl]>=4.21,<5.0",
+    # Canonical overlay engine. Exact pin so Dependabot(pip) opens a PR on each
+    # new skeleton release (visible, reviewed follow) and images are reproducible.
+    "overlay-scoring-skeleton==0.1.0",
 ]
 
 [project.optional-dependencies]
