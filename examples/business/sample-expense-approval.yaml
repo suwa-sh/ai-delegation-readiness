@@ -6,36 +6,39 @@
 #
 # Each answer must be yes/no (or true/false, 1/0). Unanswered questions
 # are reported as unknown and are treated as no for scoring.
+#
+# Answer keys are the full item id from definitions/four-layer.yaml
+# (group.leaf, e.g. "L1.Q1").
 
 target: Expense claim approval (mid-size company, FY2026 review)
 
 answers:
   # L1 Business standardization
-  L1Q1: yes    # judgment criteria are documented
-  L1Q2: yes    # exceptions are explicit procedures
-  L1Q3: yes    # rule book is versioned
-  L1Q4: no     # SOP granularity is too coarse for a third party to reproduce
+  L1.Q1: yes    # judgment criteria are documented
+  L1.Q2: yes    # exceptions are explicit procedures
+  L1.Q3: yes    # rule book is versioned
+  L1.Q4: no     # SOP granularity is too coarse for a third party to reproduce
 
   # L2 Judgment structuring
-  L2Q1: yes    # rule clauses map to (input, condition, decision)
-  L2Q2: no     # no clear deterministic/LLM/human line yet
-  L2Q3: no     # no regression test for accuracy
+  L2.Q1: yes    # rule clauses map to (input, condition, decision)
+  L2.Q2: no     # no clear deterministic/LLM/human line yet
+  L2.Q3: no     # no regression test for accuracy
 
   # L3 Delegation scope
-  L3Q1: yes
-  L3Q2: yes
-  L3Q3: yes
-  L3Q4: no     # reproducibility from audit log is not yet possible
+  L3.Q1: yes
+  L3.Q2: yes
+  L3.Q3: yes
+  L3.Q4: no     # reproducibility from audit log is not yet possible
 
   # L4 Control & traceability
-  L4Q1: no     # decision and execution are not separated yet
-  L4Q2: no     # rationale retrieval from logs is incomplete
-  L4Q3: no     # audit log does not yet have a structured Who/When/What/Why/Result
-  L4Q4: no     # rule version is not pinned in log
-  L4Q5: no     # no correction flow for false approvals yet
+  L4.Q1: no     # decision and execution are not separated yet
+  L4.Q2: no     # rationale retrieval from logs is incomplete
+  L4.Q3: no     # audit log does not yet have a structured Who/When/What/Why/Result
+  L4.Q4: no     # rule version is not pinned in log
+  L4.Q5: no     # no correction flow for false approvals yet
 
   # Efficacy measurement
-  E1: yes      # denominator and baseline are documented
-  E2: yes      # expected and actual are separated
-  E3: no       # scope (all/part) is not stated
-  E4: yes      # false approvals are tracked separately
+  efficacy.E1: yes      # denominator and baseline are documented
+  efficacy.E2: yes      # expected and actual are separated
+  efficacy.E3: no       # scope (all/part) is not stated
+  efficacy.E4: yes      # false approvals are tracked separately

@@ -6,12 +6,12 @@ Input YAML structure::
       - id: receipt_check
         description: Receipt mandatory items check
         answers:
-          V1: yes
-          V2: yes
-          V3: yes
-          A1: yes
-          A2: yes
-          A3: yes
+          verifiability.V1: yes
+          verifiability.V2: yes
+          verifiability.V3: yes
+          answer_definability.A1: yes
+          answer_definability.A2: yes
+          answer_definability.A3: yes
 
 The output lists each judgment with its (verifiability, answer_definability)
 pair (high or low) and the region (green / yellow / red).
@@ -64,21 +64,26 @@ class ScoreResult:
         return 0
 
 
-def _score_axis(axis: dict, answers: dict[str, Any]) -> AxisScore:
+# axes / regions / examples 以外の追加 group が将来生えても axis として扱えるよう、
+# 予約された非 axis group id はここに列挙する (regions は評価用ルックアップ、examples はデータ)。
+_NON_AXIS_GROUPS = {"regions", "examples"}
+
+
+def _score_axis(axis_id: str, questions: list[dict], header: dict, answers: dict[str, Any]) -> AxisScore:
     yes_ids: list[str] = []
     no_ids: list[str] = []
-    for q in axis["questions"]:
+    for q in questions:
         qid = q["id"]
         ans = _normalize_yes(answers.get(qid))
         if ans is True:
             yes_ids.append(qid)
         elif ans is False:
             no_ids.append(qid)
-    threshold = int(axis.get("threshold", len(axis["questions"])))
+    threshold = int(header.get("threshold", len(questions)))
     score = len(yes_ids)
     level = "high" if score >= threshold else "low"
     return AxisScore(
-        axis_id=axis["id"],
+        axis_id=axis_id,
         score=score,
         threshold=threshold,
         level=level,
@@ -87,15 +92,20 @@ def _score_axis(axis: dict, answers: dict[str, Any]) -> AxisScore:
     )
 
 
-def _resolve_region(regions: list[dict], axis_levels: dict[str, str]) -> dict:
-    """Find the region whose ``when`` clause matches the axis level pair."""
-    for region in regions:
-        when_clauses = region["when"]
+def _resolve_region(region_leaves: list[dict], axis_levels: dict[str, str], sep: str) -> dict:
+    """Find the region whose ``when`` clause matches the axis level pair.
+
+    Region leaves keep their source order (green/yellow/red), evaluated in
+    that order. The returned ``id`` is the local slug (e.g. ``green``), not
+    the full item id (``regions.green``).
+    """
+    for leaf in region_leaves:
+        when_clauses = leaf["when"]
         if isinstance(when_clauses, dict):
             when_clauses = [when_clauses]
         for clause in when_clauses:
             if all(axis_levels.get(k) == v for k, v in clause.items()):
-                return region
+                return {**leaf, "id": leaf["id"].split(sep, 1)[1]}
     raise ValueError(f"no region matches axis levels: {axis_levels}")
 
 
@@ -115,6 +125,11 @@ def score(
     else:
         defn = base
 
+    sep = overlay_mod.separator_of(defn)
+    groups = overlay_mod.group_items(defn)
+    axis_groups = {gid: g for gid, g in groups.items() if gid not in _NON_AXIS_GROUPS}
+    region_leaves = groups["regions"]["leaves"]
+
     input_data = overlay_mod.load_yaml(judgments_path)
     judgments_in = input_data.get("judgments", []) or []
 
@@ -123,9 +138,12 @@ def score(
         jid = j.get("id") or j.get("description", "<unnamed>")
         desc = j.get("description") or jid
         answers = j.get("answers", {}) or {}
-        axis_scores = {axis["id"]: _score_axis(axis, answers) for axis in defn["axes"]}
+        axis_scores = {
+            aid: _score_axis(aid, group["leaves"], group["header"], answers)
+            for aid, group in axis_groups.items()
+        }
         axis_levels = {aid: s.level for aid, s in axis_scores.items()}
-        region = _resolve_region(defn["regions"], axis_levels)
+        region = _resolve_region(region_leaves, axis_levels, sep)
         results.append(
             JudgmentResult(
                 id=jid,

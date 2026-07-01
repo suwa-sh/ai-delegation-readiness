@@ -6,6 +6,7 @@ import textwrap
 import pytest
 import yaml
 
+from adr import overlay as ov
 from adr import check_readiness as cr
 from conftest import sample_business_path, four_layer_path
 
@@ -16,16 +17,14 @@ def _write(tmp_path, text, name="biz.yaml"):
     return p
 
 
-def test_all_yes_passes(tmp_path):
+def _all_yes_answers() -> dict:
     base = yaml.safe_load(four_layer_path().read_text())
-    answers = {}
-    for layer in base["layers"]:
-        for q in layer["questions"]:
-            answers[q["id"]] = "yes"
-    for q in base["efficacy_axis"]["questions"]:
-        answers[q["id"]] = "yes"
+    return {item["id"]: "yes" for item in base["items"] if ov.is_leaf(item["id"], ov.separator_of(base))}
+
+
+def test_all_yes_passes(tmp_path):
     biz_path = tmp_path / "biz.yaml"
-    biz_path.write_text(yaml.safe_dump({"target": "all-yes", "answers": answers}))
+    biz_path.write_text(yaml.safe_dump({"target": "all-yes", "answers": _all_yes_answers()}))
     result = cr.check(biz_path)
     assert result.conclusion == "PASS"
     assert cr.exit_code_for(result) == 0
@@ -41,7 +40,6 @@ def test_sample_business_returns_block():
 
 
 def test_all_no_blocks(tmp_path):
-    base = yaml.safe_load(four_layer_path().read_text())
     biz = _write(
         tmp_path,
         """
@@ -59,53 +57,42 @@ def test_unknown_answer_is_treated_as_unknown(tmp_path):
         """
         target: unknown
         answers:
-          L1Q1: maybe
+          L1.Q1: maybe
         """,
     )
     result = cr.check(biz)
     l1 = next(l for l in result.layers if l.id == "L1")
-    assert "L1Q1" in l1.unknown_ids
+    assert "L1.Q1" in l1.unknown_ids
 
 
 def test_overlay_added_question_is_scored(tmp_path):
     overlay = _write(
         tmp_path,
         """
-        version: 1
         extends: four-layer-delegation-readiness
-        layers:
-          - id: L1
-            add_questions:
-              - id: NEW_Q
-                text: x
-                weight: 1.0
+        add:
+          - id: "L1.NEW_Q"
+            text: x
+            weight: 1.0
         """,
         name="overlay.yaml",
     )
-    base = yaml.safe_load(four_layer_path().read_text())
-    answers = {}
-    for layer in base["layers"]:
-        for q in layer["questions"]:
-            answers[q["id"]] = "yes"
-    for q in base["efficacy_axis"]["questions"]:
-        answers[q["id"]] = "yes"
     biz = tmp_path / "biz.yaml"
-    biz.write_text(yaml.safe_dump({"target": "with-overlay", "answers": answers}))
+    biz.write_text(yaml.safe_dump({"target": "with-overlay", "answers": _all_yes_answers()}))
 
     # Without overlay -> PASS
     result_no = cr.check(biz)
     assert result_no.conclusion == "PASS"
-    # With overlay -> NEW_Q is unknown -> REVISE or BLOCK
+    # With overlay -> L1.NEW_Q is unknown -> REVISE or BLOCK
     result_ov = cr.check(biz, overlay_paths=[overlay])
     l1 = next(l for l in result_ov.layers if l.id == "L1")
-    assert "NEW_Q" in l1.unknown_ids
+    assert "L1.NEW_Q" in l1.unknown_ids
 
 
 def test_overlay_error_propagates(tmp_path):
     overlay = _write(
         tmp_path,
         """
-        version: 1
         extends: wrong-name
         """,
         name="overlay.yaml",

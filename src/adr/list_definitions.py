@@ -62,6 +62,11 @@ def summarize_matrix(
     )
 
 
+# delegation-matrix の "regions"/"examples" は axis ではなく、ルックアップ/データ group
+# なので summarize から除外する。four-layer の "efficacy" は axis と並列の独立 group。
+_NON_AXIS_GROUPS = {"regions", "examples"}
+
+
 def _summarize(
     name: str,
     default_filename: str,
@@ -90,64 +95,41 @@ def _summarize(
         overlays_applied=applied,
     )
 
-    if is_axes:
-        base_axes = {axis["id"]: axis for axis in base.get("axes", [])}
-        for axis in merged.get("axes", []):
-            base_axis = base_axes.get(axis["id"], {})
-            added = _added_ids(base_axis.get("questions", []), axis.get("questions", []))
-            strengthened = {}
-            if axis.get("threshold") != base_axis.get("threshold"):
-                strengthened = {
-                    "threshold": {"from": base_axis.get("threshold"), "to": axis.get("threshold")}
-                }
-            summary.axes.append(
-                LayerSummary(
-                    id=axis["id"],
-                    name=axis.get("name_ja") or axis["id"],
-                    question_count=len(axis.get("questions", [])),
-                    thresholds={"threshold": axis.get("threshold")},
-                    added_question_ids=added,
-                    strengthened_thresholds=strengthened,
-                )
-            )
-    else:
-        base_layers = {layer["id"]: layer for layer in base.get("layers", [])}
-        for layer in merged.get("layers", []):
-            base_layer = base_layers.get(layer["id"], {})
-            added = _added_ids(base_layer.get("questions", []), layer.get("questions", []))
-            strengthened = _strengthened_thresholds(
-                base_layer.get("verdict_thresholds", {}),
-                layer.get("verdict_thresholds", {}),
-            )
-            summary.layers.append(
-                LayerSummary(
-                    id=layer["id"],
-                    name=layer.get("name_ja") or layer["name"],
-                    question_count=len(layer.get("questions", [])),
-                    thresholds=layer.get("verdict_thresholds", {}),
-                    added_question_ids=added,
-                    strengthened_thresholds=strengthened,
-                )
-            )
-        # efficacy_axis も同じ枠で要約する(overlay で add/strengthen 可能)
-        base_efficacy = base.get("efficacy_axis", {})
-        merged_efficacy = merged.get("efficacy_axis")
-        if merged_efficacy:
-            summary.efficacy = LayerSummary(
-                id="efficacy",
-                name=merged_efficacy.get("name_ja") or merged_efficacy.get("name", "efficacy"),
-                question_count=len(merged_efficacy.get("questions", [])),
-                thresholds=merged_efficacy.get("verdict_thresholds", {}),
-                added_question_ids=_added_ids(
-                    base_efficacy.get("questions", []),
-                    merged_efficacy.get("questions", []),
-                ),
-                strengthened_thresholds=_strengthened_thresholds(
-                    base_efficacy.get("verdict_thresholds", {}),
-                    merged_efficacy.get("verdict_thresholds", {}),
-                ),
-            )
+    base_groups = overlay_mod.group_items(base)
+    merged_groups = overlay_mod.group_items(merged)
+    threshold_keys = ("threshold",) if is_axes else ("pass", "revise")
+    skip_groups = _NON_AXIS_GROUPS if is_axes else {"efficacy"}
+
+    for group_id, group in merged_groups.items():
+        if group_id in skip_groups:
+            continue
+        summary_item = _summarize_group(group_id, group, base_groups.get(group_id), threshold_keys)
+        (summary.axes if is_axes else summary.layers).append(summary_item)
+
+    # efficacy_axis は four-layer と並列の独立 group として同じ枠で要約する(overlay で add/strengthen 可能)
+    if not is_axes and "efficacy" in merged_groups:
+        summary.efficacy = _summarize_group(
+            "efficacy", merged_groups["efficacy"], base_groups.get("efficacy"), threshold_keys
+        )
     return summary
+
+
+def _summarize_group(
+    group_id: str, group: dict, base_group: dict | None, threshold_keys: tuple[str, ...]
+) -> LayerSummary:
+    header = group["header"] or {}
+    base_header = (base_group or {}).get("header") or {}
+    base_leaves = (base_group or {}).get("leaves") or []
+    thresholds = {k: header[k] for k in threshold_keys if k in header}
+    base_thresholds = {k: base_header[k] for k in threshold_keys if k in base_header}
+    return LayerSummary(
+        id=group_id,
+        name=header.get("name_ja") or header.get("name") or group_id,
+        question_count=len(group["leaves"]),
+        thresholds=thresholds,
+        added_question_ids=_added_ids(base_leaves, group["leaves"]),
+        strengthened_thresholds=_strengthened_thresholds(base_thresholds, thresholds),
+    )
 
 
 def _added_ids(base_items: list[dict], merged_items: list[dict]) -> list[str]:

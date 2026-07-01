@@ -46,8 +46,8 @@ back into a readable summary plus the first gate to fix.
    ```yaml
    target: <process name>
    answers:
-     L1Q1: yes
-     L1Q2: no
+     L1.Q1: yes
+     L1.Q2: no
      ...
    ```
 

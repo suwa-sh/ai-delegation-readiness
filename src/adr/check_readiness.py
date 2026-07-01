@@ -4,10 +4,10 @@ Input YAML structure::
 
     target: <business name>
     answers:
-      L1Q1: yes
-      L1Q2: no
+      L1.Q1: yes
+      L1.Q2: no
       ...
-      E1: yes
+      efficacy.E1: yes
       ...
 
 The CLI loads the definition (with overlays applied), scores every layer
@@ -75,7 +75,7 @@ def _score_axis(
     axis_id: str,
     axis_name: str,
     questions: list[dict],
-    thresholds: dict,
+    header: dict,
     answers: dict[str, Any],
 ) -> AxisResult:
     yes_ids: list[str] = []
@@ -96,8 +96,8 @@ def _score_axis(
         else:
             unknown_ids.append(qid)
     score = (weighted_yes / weighted_total) if weighted_total else 0.0
-    pass_t = float(thresholds.get("pass", 1.0))
-    revise_t = float(thresholds.get("revise", 0.5))
+    pass_t = float(header.get("pass", 1.0))
+    revise_t = float(header.get("revise", 0.5))
     if score >= pass_t:
         verdict = "pass"
     elif score >= revise_t:
@@ -134,15 +134,19 @@ def check(
     target = overlay_mod.load_yaml(target_path)
     answers = target.get("answers", {}) or {}
 
+    # 層(L1..L4)は efficacy と並列の独立 group。source order を保つ
+    # group_items() のキー順で、efficacy 以外を層として扱う。
+    groups = overlay_mod.group_items(defn)
     layer_results = [
         _score_axis(
-            axis_id=layer["id"],
-            axis_name=layer.get("name_ja") or layer["name"],
-            questions=layer["questions"],
-            thresholds=layer["verdict_thresholds"],
+            axis_id=group_id,
+            axis_name=group["header"].get("name_ja") or group["header"].get("name"),
+            questions=group["leaves"],
+            header=group["header"],
             answers=answers,
         )
-        for layer in defn["layers"]
+        for group_id, group in groups.items()
+        if group_id != "efficacy"
     ]
 
     blocked_from: str | None = None
@@ -150,12 +154,13 @@ def check(
         if blocked_from is None and layer.verdict != "pass":
             blocked_from = layer.id
 
-    efficacy_def = defn["efficacy_axis"]
+    efficacy_group = groups["efficacy"]
+    efficacy_header = efficacy_group["header"]
     efficacy_result = _score_axis(
         axis_id="efficacy",
-        axis_name=efficacy_def.get("name_ja") or efficacy_def["name"],
-        questions=efficacy_def["questions"],
-        thresholds=efficacy_def["verdict_thresholds"],
+        axis_name=efficacy_header.get("name_ja") or efficacy_header.get("name"),
+        questions=efficacy_group["leaves"],
+        header=efficacy_header,
         answers=answers,
     )
 

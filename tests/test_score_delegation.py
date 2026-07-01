@@ -35,12 +35,12 @@ def test_boundary_high_axis(tmp_path):
           - id: boundary
             description: 2/3 each axis
             answers:
-              V1: yes
-              V2: yes
-              V3: no
-              A1: yes
-              A2: yes
-              A3: no
+              verifiability.V1: yes
+              verifiability.V2: yes
+              verifiability.V3: no
+              answer_definability.A1: yes
+              answer_definability.A2: yes
+              answer_definability.A3: no
         """,
     )
     result = sd.score(j)
@@ -69,7 +69,7 @@ def test_mixed_axis_is_yellow(tmp_path):
         judgments:
           - id: high_low
             description: V all yes, A all no
-            answers: { V1: yes, V2: yes, V3: yes }
+            answers: { verifiability.V1: yes, verifiability.V2: yes, verifiability.V3: yes }
         """,
     )
     result = sd.score(j)
@@ -82,7 +82,7 @@ def test_exit_code_2_when_any_red(tmp_path):
         """
         judgments:
           - id: g
-            answers: { V1: yes, V2: yes, V3: yes, A1: yes, A2: yes, A3: yes }
+            answers: { verifiability.V1: yes, verifiability.V2: yes, verifiability.V3: yes, answer_definability.A1: yes, answer_definability.A2: yes, answer_definability.A3: yes }
           - id: r
             answers: {}
         """,
@@ -97,7 +97,7 @@ def test_exit_code_1_when_only_yellows(tmp_path):
         """
         judgments:
           - id: y
-            answers: { V1: yes, V2: yes, V3: yes }
+            answers: { verifiability.V1: yes, verifiability.V2: yes, verifiability.V3: yes }
         """,
     )
     result = sd.score(j)
@@ -110,7 +110,7 @@ def test_exit_code_0_when_only_greens(tmp_path):
         """
         judgments:
           - id: g
-            answers: { V1: yes, V2: yes, V3: yes, A1: yes, A2: yes, A3: yes }
+            answers: { verifiability.V1: yes, verifiability.V2: yes, verifiability.V3: yes, answer_definability.A1: yes, answer_definability.A2: yes, answer_definability.A3: yes }
         """,
     )
     result = sd.score(j)
