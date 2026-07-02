@@ -42,20 +42,27 @@ Key features:
 > author's working language). This English README is the entry point;
 > [README.ja.md](README.ja.md) is the canonical text.
 
-## Quick start (3 minutes)
+## Quick start (2 minutes)
+
+No setup — pull the published image and run it. The bundled samples work out of
+the box:
 
 ```bash
-git clone https://github.com/suwa-sh/ai-delegation-readiness.git
-cd ai-delegation-readiness
-pip install -r requirements.txt
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.2.0 --version
 
-# Run each command against the bundled samples
-bin/aidr check-readiness examples/business/sample-expense-approval.yaml
-bin/aidr score-delegation examples/judgments/sample-judgments.yaml
-bin/aidr validate-audit-log examples/audit-log-sample.json --level extended
-bin/aidr check-overlay examples/overlays/sample-company/extra-rules.yaml
-bin/aidr list-definitions
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.2.0 \
+  check-readiness examples/business/sample-expense-approval.yaml
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.2.0 \
+  score-delegation examples/judgments/sample-judgments.yaml
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.2.0 \
+  validate-audit-log examples/audit-log-sample.json --level extended
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.2.0 \
+  check-overlay examples/overlays/sample-company/extra-rules.yaml
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.2.0 list-definitions
 ```
+
+`--version` prints the app version and the bundled overlay engine version, e.g.
+`aidr 0.2.0 (overlay-scoring-skeleton 0.1.0)`.
 
 Every command returns a deterministic exit code so you can gate CI on it:
 **0** ok · **1** partial (yellow) · **2** block (red: gaps, SLA breach, rejected
@@ -63,23 +70,29 @@ overlay) · **3** input error.
 
 ## Usage workflow
 
-The commands run against *your* data. Copy the files under `examples/` as
-templates, edit them with your own values, then run the commands in this order —
-from diagnosis to extension.
+The commands run against *your* data. Mount the directory that holds your files
+into the container. A shell function keeps the rest of this guide readable:
 
-1. **Prepare** — copy a sample to start your own input file:
-   `cp examples/business/sample-expense-approval.yaml my-business.yaml`
+```bash
+aidr() { docker run --rm -v "$PWD:/data" -w /data \
+  ghcr.io/suwa-sh/ai-delegation-readiness:v0.2.0 "$@"; }
+```
+
+Grab a sample from [`examples/`](examples/) as a template, edit it with your own
+values, then run the commands in this order — from diagnosis to extension.
+
+1. **Prepare** — start your own input file from a sample (`my-business.yaml`).
 2. **Diagnose the process** — fill each layer's questions with `yes` / `no`, then
-   `bin/aidr check-readiness my-business.yaml`. Fix the layer named by
+   `aidr check-readiness my-business.yaml`. Fix the layer named by
    `First gate to fix` first; lower layers gate the upper ones.
 3. **Score the judgments** — list your judgments and run
-   `bin/aidr score-delegation my-judgments.yaml`. GREEN delegates, YELLOW is
+   `aidr score-delegation my-judgments.yaml`. GREEN delegates, YELLOW is
    LLM-assist (a human decides), RED stays human-only.
 4. **Validate the audit log** — once delegation starts, check that the emitted
    log satisfies who / when / what / why / result:
-   `bin/aidr validate-audit-log my-log.json --level extended`.
+   `aidr validate-audit-log my-log.json --level extended`.
 5. **Extend (optional)** — add your own questions / thresholds via an overlay,
-   validated by `bin/aidr check-overlay <path>` and applied with `--overlay`.
+   validated by `aidr check-overlay <path>` and applied with `--overlay`.
 
 Sample output (`check-readiness`) — `[..]` revise / `[NG]` block per layer, then
 an overall verdict and the first gate to fix:
@@ -104,7 +117,7 @@ command in the workflow.
 
 | If you are... | Start with... |
 |---|---|
-| A **business decision maker** (head of accounting, CFO, compliance lead) considering AI for a process | [`docs/01_four_layer_framework.md`](docs/01_four_layer_framework.md) — score your process with `bin/aidr check-readiness` |
+| A **business decision maker** (head of accounting, CFO, compliance lead) considering AI for a process | [`docs/01_four_layer_framework.md`](docs/01_four_layer_framework.md) — score your process with `aidr check-readiness` |
 | An **engineer** designing an AI agent for high-risk approvals | [`schemas/audit-log.schema.json`](schemas/audit-log.schema.json) + [`docs/02_audit_log_schema.md`](docs/02_audit_log_schema.md) — wire the schema into your logger |
 | An **operator** auditing an existing AI platform's logging | [`docs/04_audit_log_gap_check.md`](docs/04_audit_log_gap_check.md) — apply the 5-step method to your own SQL schema |
 | A **consultant / proposal author** | All four `docs/` + the overlay model — clone, overlay in private, present client-specific scoring |
@@ -118,7 +131,7 @@ ai-delegation-readiness/
 │   └── delegation-matrix.yaml   #   2 axes + region map + extension_points
 ├── schemas/
 │   └── audit-log.schema.json    # JSON Schema with $defs: minimum (A) / extended (B)
-├── src/adr/                     # Python diagnostic tool (no pip install required)
+├── src/adr/                     # Python diagnostic tool (shipped as a container image)
 ├── bin/aidr                     # CLI entry point (single command, 5 subcommands)
 ├── examples/
 │   ├── business/                # Sample input for check-readiness
@@ -152,10 +165,11 @@ strengthen:
   "L4": {revise: 0.8}       # was 0.6 — stricter only
 ```
 
-Then run any diagnostic with `--overlay`:
+Then run any diagnostic with `--overlay` (using the `aidr` shell function from
+[Usage workflow](#usage-workflow) so the file is mounted):
 
 ```bash
-bin/aidr check-readiness mybiz.yaml --overlay /path/to/our-rules.yaml
+aidr check-readiness my-business.yaml --overlay our-rules.yaml
 ```
 
 The framework is reused in three ways:
@@ -164,7 +178,7 @@ The framework is reused in three ways:
   `schemas/audit-log.schema.json` into the system prompt or tool context.
   See [`examples/skills/`](examples/skills/) for two ready-to-adapt Claude
   Code skill wrappers.
-- **CI pipelines**: call `bin/aidr validate-audit-log` on each emitted log; gate
+- **CI pipelines**: run `docker run --rm -v "$PWD:/data" -w /data ghcr.io/suwa-sh/ai-delegation-readiness:v0.2.0 validate-audit-log <log>` on each emitted log; gate
   on exit code.
 - **Internal overlays**: keep your company-specific overlay in a private repo and
   apply with `--overlay`. The framework stays a clean upstream you can pull from.

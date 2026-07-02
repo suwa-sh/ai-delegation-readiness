@@ -35,20 +35,27 @@
 > **言語について**: `docs/` は日本語(著者の作業言語)で書いています。英語 README が
 > 入口、本ファイル(日本語)が正本テキストです。
 
-## Quick start(3 分で動かす)
+## Quick start(2 分で動かす)
+
+セットアップは不要です。公開されているイメージを取得して実行するだけで、同梱のサンプルが
+そのまま動きます。
 
 ```bash
-git clone https://github.com/suwa-sh/ai-delegation-readiness.git
-cd ai-delegation-readiness
-pip install -r requirements.txt
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.2.0 --version
 
-# 同梱のサンプルで各コマンドの出力を確認します
-bin/aidr check-readiness examples/business/sample-expense-approval.yaml
-bin/aidr score-delegation examples/judgments/sample-judgments.yaml
-bin/aidr validate-audit-log examples/audit-log-sample.json --level extended
-bin/aidr check-overlay examples/overlays/sample-company/extra-rules.yaml
-bin/aidr list-definitions
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.2.0 \
+  check-readiness examples/business/sample-expense-approval.yaml
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.2.0 \
+  score-delegation examples/judgments/sample-judgments.yaml
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.2.0 \
+  validate-audit-log examples/audit-log-sample.json --level extended
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.2.0 \
+  check-overlay examples/overlays/sample-company/extra-rules.yaml
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.2.0 list-definitions
 ```
+
+`--version` はアプリのバージョンと同梱の overlay エンジンのバージョンを表示します。例:
+`aidr 0.2.0 (overlay-scoring-skeleton 0.1.0)`。
 
 各コマンドは決定的な終了コードを返すので、CI のゲートに使えます。
 **0** ok ・ **1** partial(yellow)・ **2** block(red: 欠落・SLA 違反・overlay 却下)・
@@ -56,17 +63,21 @@ bin/aidr list-definitions
 
 ## 使い方(想定ワークフロー)
 
-コマンドは「自分のデータを用意して実行する」ものです。同梱の `examples/` をひな型として
-コピーし、自社の値に書き換えてから実行します。診断から拡張まで、次の順で使います。
+コマンドは「自分のデータを用意して実行する」ものです。自社のファイルを置いたディレクトリを
+コンテナにマウントします。以降の説明を読みやすくするため、シェル関数を定義しておきます。
+
+```bash
+aidr() { docker run --rm -v "$PWD:/data" -w /data \
+  ghcr.io/suwa-sh/ai-delegation-readiness:v0.2.0 "$@"; }
+```
+
+[`examples/`](examples/) の各サンプルをひな型として書き換え、自社の値を入れてから
+実行します。診断から拡張まで、次の順で使います。
 
 ### ステップ 0 — 準備
 
-サンプルをコピーして、自社用の入力ファイルを作ります。
-
-```bash
-cp examples/business/sample-expense-approval.yaml my-business.yaml
-cp examples/judgments/sample-judgments.yaml       my-judgments.yaml
-```
+[`examples/`](examples/) のサンプルをひな型に、自社用の入力ファイルを作ります
+(`my-business.yaml`、`my-judgments.yaml`)。
 
 ### ステップ 1 — 業務が委任に耐えるかを診断する
 
@@ -74,7 +85,7 @@ cp examples/judgments/sample-judgments.yaml       my-judgments.yaml
 採点します。
 
 ```bash
-bin/aidr check-readiness my-business.yaml
+aidr check-readiness my-business.yaml
 ```
 
 出力例(抜粋):
@@ -105,7 +116,7 @@ Conclusion: BLOCK
 委任 OK / LLM 補助 / 人間に残す に振り分けます。
 
 ```bash
-bin/aidr score-delegation my-judgments.yaml
+aidr score-delegation my-judgments.yaml
 ```
 
 出力例(抜粋):
@@ -128,7 +139,7 @@ bin/aidr score-delegation my-judgments.yaml
 
 ```bash
 cp examples/audit-log-sample.json my-log.json
-bin/aidr validate-audit-log my-log.json --level extended
+aidr validate-audit-log my-log.json --level extended
 ```
 
 出力例:
@@ -147,8 +158,8 @@ enum・エスカレーション先必須化)で検証します。違反は JSON 
 各社固有の質問や厳格化した閾値は overlay で追加し、適用前に検証します。
 
 ```bash
-bin/aidr check-overlay examples/overlays/sample-company/extra-rules.yaml
-bin/aidr check-readiness my-business.yaml --overlay examples/overlays/sample-company/extra-rules.yaml
+aidr check-overlay examples/overlays/sample-company/extra-rules.yaml
+aidr check-readiness my-business.yaml --overlay examples/overlays/sample-company/extra-rules.yaml
 ```
 
 `check-overlay` の出力例:
@@ -164,7 +175,7 @@ overlay が `add`(追加)/ `strengthen`(強化)のルールを満たせば `[OK]
 
 | あなたが... | まず読むもの |
 |---|---|
-| **業務側の意思決定者**(経理部長 / CFO / コンプラ責任者)で AI 化を検討中 | [`docs/01_four_layer_framework.md`](docs/01_four_layer_framework.md) — `bin/aidr check-readiness` で業務を採点します |
+| **業務側の意思決定者**(経理部長 / CFO / コンプラ責任者)で AI 化を検討中 | [`docs/01_four_layer_framework.md`](docs/01_four_layer_framework.md) — `aidr check-readiness` で業務を採点します |
 | **実装エンジニア**で高リスク承認業務向け AI エージェントを設計中 | [`schemas/audit-log.schema.json`](schemas/audit-log.schema.json) + [`docs/02_audit_log_schema.md`](docs/02_audit_log_schema.md) — スキーマをロガーに組み込みます |
 | **運用担当**で既存 AI 基盤のログを点検したい | [`docs/04_audit_log_gap_check.md`](docs/04_audit_log_gap_check.md) — 5 ステップ手法を自社 SQL スキーマに当てます |
 | **コンサル / 提案者** | `docs/` 全部 + overlay 拡張モデル — clone してプライベートに overlay し、顧客固有の採点を提示します |
@@ -178,7 +189,7 @@ ai-delegation-readiness/
 │   └── delegation-matrix.yaml   #   2 軸 + 領域マップ + extension_points
 ├── schemas/
 │   └── audit-log.schema.json    # JSON Schema with $defs: minimum (A) / extended (B)
-├── src/adr/                     # Python 診断ツール(pip 不要)
+├── src/adr/                     # Python 診断ツール(コンテナイメージで配布)
 ├── bin/aidr                     # CLI エントリポイント(単一コマンド、5 サブコマンド)
 ├── examples/
 │   ├── business/                # check-readiness のサンプル入力
@@ -211,10 +222,11 @@ strengthen:
   "L4": {revise: 0.8}       # 元 0.6 → 強化のみ可
 ```
 
-そして `--overlay` 付きで診断します。
+そして `--overlay` 付きで診断します([使い方(想定ワークフロー)](#使い方想定ワークフロー)で
+定義した `aidr` 関数を使うと、ファイルもマウントされます)。
 
 ```bash
-bin/aidr check-readiness mybiz.yaml --overlay /path/to/our-rules.yaml
+aidr check-readiness mybiz.yaml --overlay our-rules.yaml
 ```
 
 フレームワークは次の 3 経路で再利用できます。
@@ -222,8 +234,9 @@ bin/aidr check-readiness mybiz.yaml --overlay /path/to/our-rules.yaml
 - **AI エージェント**: `definitions/four-layer.yaml` や
   `schemas/audit-log.schema.json` を system prompt や tool context にロードします。
   [`examples/skills/`](examples/skills/) に Claude Code skill のラッパー 2 種を用意しています
-- **CI パイプライン**: 出力ログ 1 件ごとに `bin/aidr validate-audit-log` を呼び、
-  exit code でゲートします
+- **CI パイプライン**: 出力ログ 1 件ごとに
+  `docker run --rm -v "$PWD:/data" -w /data ghcr.io/suwa-sh/ai-delegation-readiness:v0.2.0 validate-audit-log <log>`
+  を呼び、exit code でゲートします
 - **社内 overlay**: 自社固有の overlay をプライベートリポで管理し、`--overlay` で
   適用します。本リポはクリーンな upstream として pull できます
 
