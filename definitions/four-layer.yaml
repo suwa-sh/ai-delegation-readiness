@@ -200,16 +200,16 @@ items:
     case_evidence:
       - text: Skill drops ~17% in delegation mode (Anthropic study); the article flags this figure as needing re-verification
         confidence: claim_needs_verification
-        source: notes/zenn/articles/ai-fullstack-team-ajinomoto_20260626.md
+        source: https://suwa-sh.github.io/zenn-contents/articles/ai-fullstack-team-ajinomoto_20260626/
       - text: Junior hiring down ~20% (Stanford payroll data); the article flags this figure as needing re-verification
         confidence: claim_needs_verification
-        source: notes/zenn/articles/ai-fullstack-team-ajinomoto_20260626.md
+        source: https://suwa-sh.github.io/zenn-contents/articles/ai-fullstack-team-ajinomoto_20260626/
       - text: Repositories with bus factor 1 have a ~16% disappearance rate, so deliberate knowledge distribution is required
         confidence: observed_fact
-        source: notes/zenn/articles/ai-fullstack-team-ajinomoto_20260626.md
+        source: https://suwa-sh.github.io/zenn-contents/articles/ai-fullstack-team-ajinomoto_20260626/
       - text: A 40-60% velocity decline is observed at the 10-to-50 person inflection, so incremental-split must be designed from the exploration phase
         confidence: observed_fact
-        source: notes/zenn/articles/ai-fullstack-team-ajinomoto_20260626.md
+        source: https://suwa-sh.github.io/zenn-contents/articles/ai-fullstack-team-ajinomoto_20260626/
       - text: METR revised its methodology in 2026-02, conceding early-2026 is likely faster with AI; do not carry the 19% slowdown conclusion forward unqualified
         confidence: gap_in_source
         source: https://arxiv.org/abs/2507.09089
