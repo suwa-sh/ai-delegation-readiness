@@ -32,8 +32,8 @@ class DefinitionSummary:
     base_path: str
     overlays_applied: list[str]
     layers: list[LayerSummary] = field(default_factory=list)
-    axes: list[LayerSummary] = field(default_factory=list)
-    efficacy: LayerSummary | None = None
+    axes: list[LayerSummary] = field(default_factory=list)  # delegation-matrix scoring axes
+    parallel_axes: list[LayerSummary] = field(default_factory=list)  # four-layer non-gating axes (efficacy, organization)
 
 
 def summarize_four_layer(
@@ -98,19 +98,28 @@ def _summarize(
     base_groups = overlay_mod.group_items(base)
     merged_groups = overlay_mod.group_items(merged)
     threshold_keys = ("threshold",) if is_axes else ("pass", "revise")
-    skip_groups = _NON_AXIS_GROUPS if is_axes else {"efficacy"}
 
-    for group_id, group in merged_groups.items():
-        if group_id in skip_groups:
-            continue
-        summary_item = _summarize_group(group_id, group, base_groups.get(group_id), threshold_keys)
-        (summary.axes if is_axes else summary.layers).append(summary_item)
+    if is_axes:
+        # delegation-matrix: regions/examples はデータ group なので axis から除外。
+        for group_id, group in merged_groups.items():
+            if group_id in _NON_AXIS_GROUPS:
+                continue
+            summary.axes.append(
+                _summarize_group(group_id, group, base_groups.get(group_id), threshold_keys)
+            )
+    else:
+        # four-layer: header の role でゲート層 (layers) と並列軸 (parallel_axes) に振り分ける。
+        # efficacy / organization は並列軸として同じ枠で要約する(overlay で add/strengthen 可能)。
+        from .check_readiness import axis_role, ROLE_PARALLEL
 
-    # efficacy_axis は four-layer と並列の独立 group として同じ枠で要約する(overlay で add/strengthen 可能)
-    if not is_axes and "efficacy" in merged_groups:
-        summary.efficacy = _summarize_group(
-            "efficacy", merged_groups["efficacy"], base_groups.get("efficacy"), threshold_keys
-        )
+        for group_id, group in merged_groups.items():
+            summary_item = _summarize_group(
+                group_id, group, base_groups.get(group_id), threshold_keys
+            )
+            if axis_role(group_id, group["header"] or {}) == ROLE_PARALLEL:
+                summary.parallel_axes.append(summary_item)
+            else:
+                summary.layers.append(summary_item)
     return summary
 
 
@@ -178,17 +187,17 @@ def render_text(summary: DefinitionSummary) -> str:
                 lines.append(f"    +added: {', '.join(a.added_question_ids)}")
             if a.strengthened_thresholds:
                 lines.append(f"    !strengthened: {a.strengthened_thresholds}")
-    if summary.efficacy:
-        e = summary.efficacy
+    if summary.parallel_axes:
         lines.append("")
-        lines.append("efficacy_axis:")
-        lines.append(
-            f"  {e.id} {e.name}: {e.question_count} questions, thresholds={e.thresholds}"
-        )
-        if e.added_question_ids:
-            lines.append(f"    +added: {', '.join(e.added_question_ids)}")
-        if e.strengthened_thresholds:
-            lines.append(f"    !strengthened: {e.strengthened_thresholds}")
+        lines.append("parallel_axes:")
+        for e in summary.parallel_axes:
+            lines.append(
+                f"  {e.id} {e.name}: {e.question_count} questions, thresholds={e.thresholds}"
+            )
+            if e.added_question_ids:
+                lines.append(f"    +added: {', '.join(e.added_question_ids)}")
+            if e.strengthened_thresholds:
+                lines.append(f"    !strengthened: {e.strengthened_thresholds}")
     return "\n".join(lines)
 
 
@@ -220,18 +229,17 @@ def render_json(summary: DefinitionSummary) -> str:
                 }
                 for a in summary.axes
             ],
-            "efficacy_axis": (
+            "parallel_axes": [
                 {
-                    "id": summary.efficacy.id,
-                    "name": summary.efficacy.name,
-                    "question_count": summary.efficacy.question_count,
-                    "thresholds": summary.efficacy.thresholds,
-                    "added_question_ids": summary.efficacy.added_question_ids,
-                    "strengthened_thresholds": summary.efficacy.strengthened_thresholds,
+                    "id": a.id,
+                    "name": a.name,
+                    "question_count": a.question_count,
+                    "thresholds": a.thresholds,
+                    "added_question_ids": a.added_question_ids,
+                    "strengthened_thresholds": a.strengthened_thresholds,
                 }
-                if summary.efficacy
-                else None
-            ),
+                for a in summary.parallel_axes
+            ],
         },
         indent=2,
         ensure_ascii=False,

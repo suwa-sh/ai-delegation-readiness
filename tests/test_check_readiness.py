@@ -8,7 +8,11 @@ import yaml
 
 import overlay_scoring as ov
 from adr import check_readiness as cr
-from conftest import sample_business_path, four_layer_path
+from conftest import sample_business_path, four_layer_path, EXAMPLES_DIR
+
+
+def ajinomoto_discovery_team_path():
+    return EXAMPLES_DIR / "business" / "ajinomoto-discovery-team.yaml"
 
 
 def _write(tmp_path, text, name="biz.yaml"):
@@ -107,3 +111,93 @@ def test_overlay_error_propagates(tmp_path):
     )
     with pytest.raises(cr.OverlayError):
         cr.check(biz, overlay_paths=[overlay])
+
+
+# --- organization axis (parallel, non-gating) --------------------------------
+
+def test_axis_role_classification():
+    # explicit role wins
+    assert cr.axis_role("organization", {"role": "parallel"}) == cr.ROLE_PARALLEL
+    assert cr.axis_role("X", {"role": "gating"}) == cr.ROLE_GATING
+    # unset -> gating, except historically-parallel efficacy
+    assert cr.axis_role("L1", {}) == cr.ROLE_GATING
+    assert cr.axis_role("efficacy", {}) == cr.ROLE_PARALLEL
+
+
+def test_axis_role_unknown_value_is_loud_error():
+    """A role typo must not silently demote a parallel axis to a gating layer."""
+    with pytest.raises(ValueError):
+        cr.axis_role("organization", {"role": "paralell"})
+
+
+def test_unknown_role_in_definition_surfaces_on_check(tmp_path):
+    defn = _write(
+        tmp_path,
+        """
+        version: 1
+        name: four-layer-delegation-readiness
+        separator: "."
+        items:
+          - {id: "L1", name: l1, pass: 1.0, revise: 0.5}
+          - {id: "L1.Q1", text: q, weight: 1.0}
+          - {id: "org", name: org, role: paralell, pass: 1.0, revise: 0.5}
+          - {id: "org.C1", text: c, weight: 1.0}
+        """,
+        name="defn.yaml",
+    )
+    biz = _write(tmp_path, "target: x\nanswers: {L1.Q1: yes, org.C1: yes}\n")
+    with pytest.raises(ValueError):
+        cr.check(biz, definition_path=defn)
+
+
+def test_organization_is_parallel_not_gating():
+    """organization BLOCK must not gate the layers (blocked_from stays None)."""
+    result = cr.check(ajinomoto_discovery_team_path())
+    assert result.conclusion == "BLOCK"
+    assert result.blocked_from is None  # all gating layers pass
+    layer_ids = {l.id for l in result.layers}
+    assert layer_ids == {"L1", "L2", "L3", "L4"}  # organization is NOT a gating layer
+    org = next(a for a in result.parallel_axes if a.id == "organization")
+    assert org.verdict == "block"
+    assert {a.id for a in result.parallel_axes} == {"efficacy", "organization"}
+
+
+def test_empty_parallel_axis_is_skipped(tmp_path):
+    """A parallel axis with zero leaves is unassessed, not a silent BLOCK."""
+    defn = _write(
+        tmp_path,
+        """
+        version: 1
+        name: four-layer-delegation-readiness
+        separator: "."
+        items:
+          - {id: "L1", name: l1, pass: 1.0, revise: 0.5}
+          - {id: "L1.Q1", text: q, weight: 1.0}
+          - {id: "org", name: org, role: parallel, pass: 1.0, revise: 0.5}
+        """,
+        name="defn.yaml",
+    )
+    biz = _write(tmp_path, "target: x\nanswers: {L1.Q1: yes}\n")
+    result = cr.check(biz, definition_path=defn)
+    assert result.conclusion == "PASS"  # empty org axis skipped, not blocking
+    assert {a.id for a in result.parallel_axes} == set()
+
+
+def test_organization_overlay_strengthen_and_add(tmp_path):
+    """add/strengthen work on the organization axis just like on efficacy."""
+    overlay = _write(
+        tmp_path,
+        """
+        extends: four-layer-delegation-readiness
+        add:
+          - id: "organization.NEW_C"
+            text: extra org question
+            weight: 1.0
+        strengthen:
+          "organization": {revise: 0.83}
+        """,
+        name="overlay.yaml",
+    )
+    result = cr.check(ajinomoto_discovery_team_path(), overlay_paths=[overlay])
+    org = next(a for a in result.parallel_axes if a.id == "organization")
+    assert "organization.NEW_C" in org.unknown_ids  # added question is scored

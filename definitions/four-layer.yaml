@@ -6,16 +6,31 @@ description: |
   to AI agents, derived from the Ajinomoto AFS accounting AI agent case.
   Lower layers must hold before upper layers can succeed.
 
+# group の役割宣言 (header の role フィールド):
+# - role 未指定 / role: gating … 積み上げゲート層 (下層 pass が上層点検の前提。L1-L4)。
+# - role: parallel            … ゲートしない並列軸 (単独で採点し conclusion に寄与するが
+#                               層のゲートには関与しない。efficacy / organization)。
+#   check_readiness.py / list_definitions.py はこの role で層と並列軸を振り分ける。
+#   未知の role 値 (typo 等) は静かに降格させず loud にエラーにする (誤分類の防止)。
+#
+# case_evidence.confidence の語彙 (自由文字列だが下記 3 値に揃える):
+# - observed_fact            … 出典で確認できる観測事実。
+# - gap_in_source            … 出典に記載が無い / 定義されていない箇所。
+# - claim_needs_verification … 主張はあるが出典が数値の再確認を留保している (事実断定しない)。
+#
 # 拡張ポイント宣言: 各社のオーバーレイで何ができるかを self-documenting に
 # - add:         既存 group への leaf 追加のみ可。既存 item の上書き・削除は不可。
 # - strengthen:  閾値を厳しい方向にのみ変更可(緩和は不可)。
 extension_points:
   - {group: "L*", allow: add}
   - {group: "efficacy", allow: add}
+  - {group: "organization", allow: add}
   - {group: "L*", level: group, field: pass, allow: strengthen, direction: higher}
   - {group: "L*", level: group, field: revise, allow: strengthen, direction: higher}
   - {group: "efficacy", level: group, field: pass, allow: strengthen, direction: higher}
   - {group: "efficacy", level: group, field: revise, allow: strengthen, direction: higher}
+  - {group: "organization", level: group, field: pass, allow: strengthen, direction: higher}
+  - {group: "organization", level: group, field: revise, allow: strengthen, direction: higher}
 
 # 各層は積み上げ。下層の合否が pass でなければ上層の点検に進む意味はない。
 items:
@@ -134,6 +149,7 @@ items:
   - id: "efficacy"
     name: efficacy_measurement
     name_ja: 効果測定
+    role: parallel
     purpose: |
       Even if the 4 layers hold, the efficacy figures must be defensible
       (denominator, baseline, period). The cited "76% reduction" in coverage
@@ -158,4 +174,60 @@ items:
     weight: 1.0
   - id: "efficacy.E4"
     text: Are AI-caused false approvals and rejections tracked separately from efficiency?
+    weight: 1.0
+
+  # --- organization (4 層と並列の独立軸: 組織 readiness) ---
+  # 業務プロセスの委任 readiness (L1-L4) とは別に、組織がその委任を受け止められるか
+  # (撤退判断 / 受け皿 / 知識移転 / bus factor) を並列に採点する。「業務は委任可だが
+  # 組織が未成熟」を分離するための軸。出典: 味の素モデル記事の「6 条件チェックリスト」。
+  # pass=1.0 (6/6), revise=0.66 (4/6 以上; 記事の「4 つ以上なら試行は妥当、3 つ以下なら
+  # まず受け皿作り」に一致。6 問等重みで 4/6=0.667>=0.66, 3/6=0.5<0.66 → block)。
+  - id: "organization"
+    name: organization_readiness
+    name_ja: 組織 readiness層
+    role: parallel
+    purpose: |
+      Even if a process is delegable (L1-L4 pass), the organization must be
+      able to absorb the delegation: the authority to pull the plug, a
+      company-wide literacy layer to receive the tool, a knowledge-transfer
+      contract, an incremental-split design for the scaling phase, and a
+      bus-factor countermeasure. This axis is parallel to the four layers so
+      that "process delegable but organization not ready" is scored on its own.
+    pass: 1.0
+    revise: 0.66
+    # 反証 5 点を軸の根拠として記録。記事が数値の再確認を留保した反証 1 (技能 17% 低下) と
+    # 反証 2 (ジュニア雇用 20% 減) は claim_needs_verification とし事実断定しない。
+    case_evidence:
+      - text: Skill drops ~17% in delegation mode (Anthropic study); the article flags this figure as needing re-verification
+        confidence: claim_needs_verification
+        source: notes/zenn/articles/ai-fullstack-team-ajinomoto_20260626.md
+      - text: Junior hiring down ~20% (Stanford payroll data); the article flags this figure as needing re-verification
+        confidence: claim_needs_verification
+        source: notes/zenn/articles/ai-fullstack-team-ajinomoto_20260626.md
+      - text: Repositories with bus factor 1 have a ~16% disappearance rate, so deliberate knowledge distribution is required
+        confidence: observed_fact
+        source: notes/zenn/articles/ai-fullstack-team-ajinomoto_20260626.md
+      - text: A 40-60% velocity decline is observed at the 10-to-50 person inflection, so incremental-split must be designed from the exploration phase
+        confidence: observed_fact
+        source: notes/zenn/articles/ai-fullstack-team-ajinomoto_20260626.md
+      - text: METR revised its methodology in 2026-02, conceding early-2026 is likely faster with AI; do not carry the 19% slowdown conclusion forward unqualified
+        confidence: gap_in_source
+        source: https://arxiv.org/abs/2507.09089
+  - id: "organization.C1"
+    text: Is there the authority and culture to decide to pull the plug within 8-12 months?
+    weight: 1.0
+  - id: "organization.C2"
+    text: Is a company-wide literacy layer (business-side receivers) grown to a double-digit headcount?
+    weight: 1.0
+  - id: "organization.C3"
+    text: Is an AI tool foundation (Copilot / internal chat / RAG) established at the individual level?
+    weight: 1.0
+  - id: "organization.C4"
+    text: Can a knowledge-transfer contract make internalization (the "I" of SECI) a KPI (e.g. IPA model contract)?
+    weight: 1.0
+  - id: "organization.C5"
+    text: Can the incremental split for the scaling phase (Stream-aligned to Complicated-Subsystem / Platform) be designed in advance?
+    weight: 1.0
+  - id: "organization.C6"
+    text: Is a bus-factor countermeasure (pair programming / ADR / Knowledge Transfer Day) in operation?
     weight: 1.0

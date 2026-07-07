@@ -205,7 +205,7 @@ def test_source_order_and_opaque_payload_preserved():
     assert r.ok, r.violations
     groups = ov.group_items(r.merged)
     # group order preserved
-    assert list(groups.keys()) == ["L1", "L2", "L3", "L4", "efficacy"]
+    assert list(groups.keys()) == ["L1", "L2", "L3", "L4", "efficacy", "organization"]
     # added leaves appended to their group, base leaves kept in order
     l1_leaves = [i["id"] for i in groups["L1"]["leaves"]]
     assert l1_leaves == ["L1.Q1", "L1.Q2", "L1.Q3", "L1.Q4", "L1.ACME_Q5"]

@@ -12,8 +12,11 @@
 
 主な特徴は、次の 3 点です。
 
-1. **委任の可否を診断します** — 業務の標準化・構造化・委任範囲・統制を機械的に採点し、
-   導入効果の説明可能性とあわせて、決定的な合否で返します。
+1. **委任の可否を 2 つの面で診断します** — *業務*の標準化・構造化・委任範囲・統制を
+   機械的に採点し(導入効果の説明可能性を含む)、それと*並列に*、*組織*が委任を
+   受け止められるか(撤退判断の権限・受け皿となるリテラシー層・知識移転契約・bus factor
+   対策)を採点します。両者を別々の合否で返すので、「業務は委任できるが組織がまだ整って
+   いない」が、緑の業務スコアに隠れず独立した穴として表れます。
 2. **機械可読の正本を持ちます** — 4 層フレーム・委任マトリクス・監査ログスキーマを
    定義として持ち、AI エージェントや CI から直接利用できます。
 3. **フォークせず拡張できます** — 各社固有の質問や厳格化した閾値を、overlay で
@@ -27,6 +30,13 @@
 > - **4 層フレーム**は、標準化 → 構造化 → 委任範囲 → 統制 の順に積み上がる、委任の前提条件です。
 > - **効果測定軸(efficacy axis)**は、導入効果の数値に説明可能な分母・基準値があるかを
 >   確認する、4 層と並列の観点です。
+> - **組織 readiness 軸(organization axis)**は、業務ではなく*組織*が委任を受け止められるかを
+>   確認する、4 層と並列の観点です(撤退判断の権限 / 全社リテラシー層 / 知識移転契約 /
+>   漸進分割の設計 / bus factor 対策)。
+> - **bus factor** は、プロジェクトが止まるまでに失われる必要がある人数です。bus factor 1 は、
+>   その 1 人が単一障害点であることを意味します。
+> - **知識移転契約**は、成果物の納品だけでなく、ベンダーの know-how が自社に移る「内面化」を
+>   KPI として測る契約です。
 > - **委任マトリクス(delegation matrix)**は、検証可能性 × 正解定義可能性 の 2 軸で、各判定を
 >   委任 / LLM 補助 / 人間に残す に振り分ける採点です。
 > - **overlay(オーバーレイ)**は、正本をフォークせず、各社固有の質問追加・閾値強化を行う
@@ -41,21 +51,21 @@
 そのまま動きます。
 
 ```bash
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.2.0 --version
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.3.0 --version
 
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.2.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.3.0 \
   check-readiness examples/business/sample-expense-approval.yaml
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.2.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.3.0 \
   score-delegation examples/judgments/sample-judgments.yaml
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.2.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.3.0 \
   validate-audit-log examples/audit-log-sample.json --level extended
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.2.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.3.0 \
   check-overlay examples/overlays/sample-company/extra-rules.yaml
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.2.0 list-definitions
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.3.0 list-definitions
 ```
 
 `--version` はアプリのバージョンと同梱の overlay エンジンのバージョンを表示します。例:
-`aidr 0.2.0 (overlay-scoring-skeleton 0.1.0)`。
+`aidr 0.3.0 (overlay-scoring-skeleton 0.1.0)`。
 
 各コマンドは決定的な終了コードを返すので、CI のゲートに使えます。
 **0** ok ・ **1** partial(yellow)・ **2** block(red: 欠落・SLA 違反・overlay 却下)・
@@ -68,7 +78,7 @@ docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.2.0 list-definitions
 
 ```bash
 aidr() { docker run --rm -v "$PWD:/data" -w /data \
-  ghcr.io/suwa-sh/ai-delegation-readiness:v0.2.0 "$@"; }
+  ghcr.io/suwa-sh/ai-delegation-readiness:v0.3.0 "$@"; }
 ```
 
 [`examples/`](examples/) の各サンプルをひな型として書き換え、自社の値を入れてから
@@ -81,33 +91,38 @@ aidr() { docker run --rm -v "$PWD:/data" -w /data \
 
 ### ステップ 1 — 業務が委任に耐えるかを診断する
 
-`my-business.yaml` の各層の問いに `yes` / `no` を埋め、対象業務を 4 層 + 効果測定で
-採点します。
+`my-business.yaml` の各層の問いに `yes` / `no` を埋め、対象業務を 4 層 + 効果測定 +
+組織 readiness で採点します。
 
 ```bash
 aidr check-readiness my-business.yaml
 ```
 
-出力例(抜粋):
+出力例 — 同梱の
+[`examples/business/ajinomoto-discovery-team.yaml`](examples/business/ajinomoto-discovery-team.yaml)。
+*業務*は整っているが*組織*が未成熟なチームの例です。
 
 ```text
-Target: Expense claim approval (mid-size company, FY2026 review)
+Target: New-business discovery team (small full-stack, exploration phase)
 
-[..] L1 業務標準化層: REVISE (75%)
-    no: L1Q4
-[NG] L2 判断構造化層: BLOCK (33%)
-    no: L2Q2, L2Q3
-[..] L3 委任範囲層: REVISE (75%)
-[NG] L4 統制・追跡層: BLOCK (0%)
-[..] efficacy 効果測定: REVISE (75%)
+[OK] L1 業務標準化層: PASS (100%)
+[OK] L2 判断構造化層: PASS (100%)
+[OK] L3 委任範囲層: PASS (100%)
+[OK] L4 統制・追跡層: PASS (100%)
+[OK] efficacy 効果測定: PASS (100%)
+[NG] organization 組織 readiness層: BLOCK (33%)
+    no: organization.C2, organization.C4, organization.C5, organization.C6
 
 Conclusion: BLOCK
-  First gate to fix: layer L1
 ```
 
-`[..]` revise / `[NG]` block を層ごとに示し、最後に総合判定を返します。**下の層が
-崩れていると上の層は採点に意味がない**ため、`First gate to fix` が示す最下層から
-順に埋めます。各層の問いと合否基準は [docs/01](docs/01_four_layer_framework.md) を
+業務の各層は全て PASS でも、総合判定は BLOCK です。組織軸が、受け皿となるリテラシー層
+(C2)・知識移転契約(C4)・漸進分割の設計(C5)・bus factor 対策(C6)の不足を表面化させます。
+`[OK]` pass / `[..]` revise / `[NG]` block を層・軸ごとに示し、最後に総合判定を返します。
+**4 層は積み上げ**(下の層が崩れていると上の層は採点に意味がない)ため、層が最初のゲートに
+なるときは `First gate to fix` も表示します。効果測定・組織 readiness の 2 軸は並列で、
+層のゲートには関与しません。業務層が最初のゲートになるときは、`First gate to fix` が示す
+最下層から順に埋めます。各層の問いと合否基準は [docs/01](docs/01_four_layer_framework.md) を
 参照してください。
 
 ### ステップ 2 — 判定単位の委任領域を決める
@@ -185,17 +200,17 @@ overlay が `add`(追加)/ `strengthen`(強化)のルールを満たせば `[OK]
 ```
 ai-delegation-readiness/
 ├── definitions/                 # 機械可読の正本フレームワーク(YAML)
-│   ├── four-layer.yaml          #   4 層 + 効果測定軸 + extension_points
+│   ├── four-layer.yaml          #   4 層 + 効果測定軸・組織 readiness 軸 + extension_points
 │   └── delegation-matrix.yaml   #   2 軸 + 領域マップ + extension_points
 ├── schemas/
 │   └── audit-log.schema.json    # JSON Schema with $defs: minimum (A) / extended (B)
 ├── src/adr/                     # Python 診断ツール(コンテナイメージで配布)
 ├── bin/aidr                     # CLI エントリポイント(単一コマンド、5 サブコマンド)
 ├── examples/
-│   ├── business/                # check-readiness のサンプル入力
+│   ├── business/                # check-readiness のサンプル入力(2 軸の ajinomoto-discovery-team を含む)
 │   ├── judgments/               # score-delegation のサンプル入力
 │   ├── audit-log-sample.json    # サンプル監査ログ(extended 有効)
-│   ├── overlays/                # overlay サンプル(Acme Corp)
+│   ├── overlays/                # overlay サンプル(Acme Corp / organization-readiness-ajinomoto)
 │   └── skills/                  # Claude Code skill サンプル 2 種
 └── docs/
     ├── 01_four_layer_framework.md
@@ -222,6 +237,11 @@ strengthen:
   "L4": {revise: 0.8}       # 元 0.6 → 強化のみ可
 ```
 
+overlay は組織軸にも効きます。
+[`examples/overlays/organization-readiness-ajinomoto.yaml`](examples/overlays/organization-readiness-ajinomoto.yaml)
+は、自社固有の組織質問を 1 つ追加し、組織軸の合格基準を強化(`revise` 0.66 → 0.83)する例です
+(組織 readiness は到達が難しいという反証エビデンスを反映)。
+
 そして `--overlay` 付きで診断します([使い方(想定ワークフロー)](#使い方想定ワークフロー)で
 定義した `aidr` 関数を使うと、ファイルもマウントされます)。
 
@@ -235,7 +255,7 @@ aidr check-readiness mybiz.yaml --overlay our-rules.yaml
   `schemas/audit-log.schema.json` を system prompt や tool context にロードします。
   [`examples/skills/`](examples/skills/) に Claude Code skill のラッパー 2 種を用意しています
 - **CI パイプライン**: 出力ログ 1 件ごとに
-  `docker run --rm -v "$PWD:/data" -w /data ghcr.io/suwa-sh/ai-delegation-readiness:v0.2.0 validate-audit-log <log>`
+  `docker run --rm -v "$PWD:/data" -w /data ghcr.io/suwa-sh/ai-delegation-readiness:v0.3.0 validate-audit-log <log>`
   を呼び、exit code でゲートします
 - **社内 overlay**: 自社固有の overlay をプライベートリポで管理し、`--overlay` で
   適用します。本リポはクリーンな upstream として pull できます

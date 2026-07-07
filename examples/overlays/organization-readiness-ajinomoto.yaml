@@ -1,0 +1,29 @@
+# Sample overlay: how a company that takes the "5 refutations" seriously
+# extends the organization-readiness axis of four-layer-delegation-readiness.
+#
+# Merge rules (enforced by `aidr check-overlay`):
+#   add          : append new items (existing ones are read-only)
+#   strengthen   : move a declared numeric field toward the stricter direction
+# Anything else (delete, replace, weaken) fails validation.
+#
+# The organization axis is a first-class parallel axis in the base definition
+# (six conditions distilled from the Ajinomoto full-stack-team analysis). This
+# overlay demonstrates that add/strengthen work on the new axis just like they
+# do on L1-L4 and efficacy.
+
+version: 1
+extends: four-layer-delegation-readiness
+
+add:
+  # This company makes withdrawal authority explicit at the board level, on top
+  # of the base "authority and culture to pull the plug" question.
+  - id: "organization.AJI_C7"
+    text: Is the withdrawal-decision authority written down at the executive-committee level?
+    weight: 1.0
+
+strengthen:
+  # The 5 refutations (skill decay, junior-hiring decline, bus-factor collapse,
+  # velocity decline at the 10->50 inflection, METR revision) argue for a high
+  # organization bar. Refuse to call organization "revise" below ~5/6.
+  # Base value was 0.66; raising it to 0.83 is allowed because it is stricter.
+  "organization": {pass: 1.0, revise: 0.83}

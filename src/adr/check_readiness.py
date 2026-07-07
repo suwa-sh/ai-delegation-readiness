@@ -35,6 +35,32 @@ import overlay_scoring as overlay_mod
 DEFINITION_NAME = "four-layer-delegation-readiness"
 DEFAULT_DEFINITION = Path(__file__).resolve().parents[2] / "definitions" / "four-layer.yaml"
 
+# group header の role: 積み上げゲート層 (gating) か、ゲートしない並列軸 (parallel) か。
+ROLE_GATING = "gating"
+ROLE_PARALLEL = "parallel"
+_VALID_ROLES = {ROLE_GATING, ROLE_PARALLEL}
+# role 未指定でも並列軸として扱う group id (後方互換: efficacy は元から並列軸)。
+_IMPLICIT_PARALLEL = {"efficacy"}
+
+
+def axis_role(group_id: str, header: dict) -> str:
+    """Classify a group as a gating layer or a parallel axis by its ``role``.
+
+    ``role`` unset falls back to gating, except for historically-parallel
+    groups (``efficacy``). An unknown ``role`` value (e.g. a typo like
+    ``paralell``) is a loud error rather than a silent demotion to gating,
+    so the axis cannot be quietly inverted.
+    """
+    role = (header or {}).get("role")
+    if role is None:
+        return ROLE_PARALLEL if group_id in _IMPLICIT_PARALLEL else ROLE_GATING
+    if role not in _VALID_ROLES:
+        raise ValueError(
+            f"group '{group_id}' has unknown role '{role}' "
+            f"(allowed: {ROLE_PARALLEL}, {ROLE_GATING}, or unset)"
+        )
+    return role
+
 
 @dataclass
 class AxisResult:
@@ -51,7 +77,7 @@ class AxisResult:
 class CheckResult:
     target: str
     layers: list[AxisResult]
-    efficacy: AxisResult
+    parallel_axes: list[AxisResult]  # efficacy, organization, ... (non-gating)
     conclusion: str  # PASS | REVISE | BLOCK
     blocked_from: str | None = None
 
@@ -134,37 +160,37 @@ def check(
     target = overlay_mod.load_yaml(target_path)
     answers = target.get("answers", {}) or {}
 
-    # 層(L1..L4)は efficacy と並列の独立 group。source order を保つ
-    # group_items() のキー順で、efficacy 以外を層として扱う。
+    # group を role で振り分ける: ゲート層 (L1..L4) と 並列軸 (efficacy, organization, ...)。
+    # source order を保つ (group_items() のキー順)。leaf 0 個の並列軸は overlay 前提の
+    # 未評価軸として採点対象から外す (誤 BLOCK を防ぐ)。ゲート層は元から leaf を持つ。
     groups = overlay_mod.group_items(defn)
-    layer_results = [
-        _score_axis(
+    layer_results: list[AxisResult] = []
+    parallel_results: list[AxisResult] = []
+    for group_id, group in groups.items():
+        header = group["header"] or {}
+        role = axis_role(group_id, header)
+        leaves = group["leaves"]
+        if role == ROLE_PARALLEL and not leaves:
+            continue  # 未評価の並列軸 (空) はスキップ
+        axis = _score_axis(
             axis_id=group_id,
-            axis_name=group["header"].get("name_ja") or group["header"].get("name"),
-            questions=group["leaves"],
-            header=group["header"],
+            axis_name=header.get("name_ja") or header.get("name"),
+            questions=leaves,
+            header=header,
             answers=answers,
         )
-        for group_id, group in groups.items()
-        if group_id != "efficacy"
-    ]
+        if role == ROLE_PARALLEL:
+            parallel_results.append(axis)
+        else:
+            layer_results.append(axis)
 
+    # ゲート層のみが blocked_from を作る (並列軸は上層をゲートしない)。
     blocked_from: str | None = None
     for layer in layer_results:
         if blocked_from is None and layer.verdict != "pass":
             blocked_from = layer.id
 
-    efficacy_group = groups["efficacy"]
-    efficacy_header = efficacy_group["header"]
-    efficacy_result = _score_axis(
-        axis_id="efficacy",
-        axis_name=efficacy_header.get("name_ja") or efficacy_header.get("name"),
-        questions=efficacy_group["leaves"],
-        header=efficacy_header,
-        answers=answers,
-    )
-
-    overall_axes = layer_results + [efficacy_result]
+    overall_axes = layer_results + parallel_results
     verdicts = {axis.verdict for axis in overall_axes}
     if verdicts == {"pass"}:
         conclusion = "PASS"
@@ -176,7 +202,7 @@ def check(
     return CheckResult(
         target=target.get("target", str(target_path)),
         layers=layer_results,
-        efficacy=efficacy_result,
+        parallel_axes=parallel_results,
         conclusion=conclusion,
         blocked_from=blocked_from,
     )
@@ -201,13 +227,16 @@ def render_text(result: CheckResult) -> str:
             lines.append(f"    unknown: {', '.join(layer.unknown_ids)}")
         if result.blocked_from == layer.id and layer.verdict != "pass":
             lines.append(f"    -> upper layers are gated by this verdict")
-    bar = _verdict_marker(result.efficacy.verdict)
-    lines.append(
-        f"{bar} efficacy {result.efficacy.name}: {result.efficacy.verdict.upper()} "
-        f"({int(result.efficacy.score * 100)}%)"
-    )
-    if result.efficacy.no_ids:
-        lines.append(f"    no: {', '.join(result.efficacy.no_ids)}")
+    for axis in result.parallel_axes:
+        bar = _verdict_marker(axis.verdict)
+        lines.append(
+            f"{bar} {axis.id} {axis.name}: {axis.verdict.upper()} "
+            f"({int(axis.score * 100)}%)"
+        )
+        if axis.no_ids:
+            lines.append(f"    no: {', '.join(axis.no_ids)}")
+        if axis.unknown_ids:
+            lines.append(f"    unknown: {', '.join(axis.unknown_ids)}")
     lines.append("")
     lines.append(f"Conclusion: {result.conclusion}")
     if result.conclusion != "PASS" and result.blocked_from:
@@ -225,7 +254,7 @@ def render_json(result: CheckResult) -> str:
         "conclusion": result.conclusion,
         "blocked_from": result.blocked_from,
         "layers": [_axis_to_dict(l) for l in result.layers],
-        "efficacy": _axis_to_dict(result.efficacy),
+        "parallel_axes": [_axis_to_dict(a) for a in result.parallel_axes],
     }
     return json.dumps(payload, indent=2, ensure_ascii=False)
 

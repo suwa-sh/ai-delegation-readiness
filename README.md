@@ -13,9 +13,14 @@ production since February 2026).
 
 Key features:
 
-1. **Diagnoses delegation readiness** — it mechanically scores how far a process
-   has standardized, structured and bounded its judgments, plus whether the
-   claimed efficiency gain is explainable, and returns a deterministic verdict.
+1. **Diagnoses delegation readiness on two fronts** — it mechanically scores how
+   far a *process* has standardized, structured and bounded its judgments (plus
+   whether the claimed efficiency gain is explainable), and — in parallel —
+   whether the *organization* can absorb the delegation (authority to pull the
+   plug, a literacy layer to receive the tool, a knowledge-transfer contract, a
+   bus-factor countermeasure). It returns a deterministic verdict for each, so
+   "the process is delegable but the organization is not ready yet" shows up as
+   its own gap instead of hiding behind a green process score.
 2. **A machine-readable single source of truth** — the four-layer framework, the
    delegation matrix and the audit-log schema are kept as definitions that AI
    agents and CI can consume directly.
@@ -33,6 +38,16 @@ Key features:
 >   control.
 > - The **efficacy axis** is a parallel viewpoint that checks whether a claimed
 >   efficiency gain has an explainable denominator and baseline.
+> - The **organization axis** is a parallel viewpoint that checks whether the
+>   organization (not the process) is ready: withdrawal authority, a
+>   company-wide literacy layer, a knowledge-transfer contract, an
+>   incremental-split design, and a bus-factor countermeasure.
+> - **Bus factor** is the number of people who would have to be lost before a
+>   project stalls; a bus factor of 1 means a single person is a single point of
+>   failure.
+> - A **knowledge-transfer contract** makes internalization (the vendor's
+>   know-how moving in-house) a measured KPI, rather than paying only for a
+>   delivered artifact.
 > - The **delegation matrix** scores each judgment on two axes (verifiability ×
 >   answer-definability) and places it into delegate / LLM-assist / human-only.
 > - An **overlay** is a company-specific extension file that adds questions or
@@ -48,21 +63,21 @@ No setup — pull the published image and run it. The bundled samples work out o
 the box:
 
 ```bash
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.2.0 --version
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.3.0 --version
 
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.2.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.3.0 \
   check-readiness examples/business/sample-expense-approval.yaml
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.2.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.3.0 \
   score-delegation examples/judgments/sample-judgments.yaml
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.2.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.3.0 \
   validate-audit-log examples/audit-log-sample.json --level extended
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.2.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.3.0 \
   check-overlay examples/overlays/sample-company/extra-rules.yaml
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.2.0 list-definitions
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.3.0 list-definitions
 ```
 
 `--version` prints the app version and the bundled overlay engine version, e.g.
-`aidr 0.2.0 (overlay-scoring-skeleton 0.1.0)`.
+`aidr 0.3.0 (overlay-scoring-skeleton 0.1.0)`.
 
 Every command returns a deterministic exit code so you can gate CI on it:
 **0** ok · **1** partial (yellow) · **2** block (red: gaps, SLA breach, rejected
@@ -75,16 +90,18 @@ into the container. A shell function keeps the rest of this guide readable:
 
 ```bash
 aidr() { docker run --rm -v "$PWD:/data" -w /data \
-  ghcr.io/suwa-sh/ai-delegation-readiness:v0.2.0 "$@"; }
+  ghcr.io/suwa-sh/ai-delegation-readiness:v0.3.0 "$@"; }
 ```
 
 Grab a sample from [`examples/`](examples/) as a template, edit it with your own
 values, then run the commands in this order — from diagnosis to extension.
 
 1. **Prepare** — start your own input file from a sample (`my-business.yaml`).
-2. **Diagnose the process** — fill each layer's questions with `yes` / `no`, then
-   `aidr check-readiness my-business.yaml`. Fix the layer named by
-   `First gate to fix` first; lower layers gate the upper ones.
+2. **Diagnose the process and the organization** — fill each layer's questions
+   with `yes` / `no`, then `aidr check-readiness my-business.yaml`. The four
+   layers stack (fix the layer named by `First gate to fix` first; lower layers
+   gate the upper ones), while the efficacy and organization axes are scored in
+   parallel — an organization gap does not gate the layers, it stands on its own.
 3. **Score the judgments** — list your judgments and run
    `aidr score-delegation my-judgments.yaml`. GREEN delegates, YELLOW is
    LLM-assist (a human decides), RED stays human-only.
@@ -94,21 +111,29 @@ values, then run the commands in this order — from diagnosis to extension.
 5. **Extend (optional)** — add your own questions / thresholds via an overlay,
    validated by `aidr check-overlay <path>` and applied with `--overlay`.
 
-Sample output (`check-readiness`) — `[..]` revise / `[NG]` block per layer, then
-an overall verdict and the first gate to fix:
+Sample output (`check-readiness`) — `[OK]` pass / `[..]` revise / `[NG]` block per
+layer and axis, then an overall verdict. This run uses the bundled
+[`examples/business/ajinomoto-discovery-team.yaml`](examples/business/ajinomoto-discovery-team.yaml),
+a team that has nailed the *process* but not the *organization*:
 
 ```text
-Target: Expense claim approval (mid-size company, FY2026 review)
+Target: New-business discovery team (small full-stack, exploration phase)
 
-[..] L1 業務標準化層: REVISE (75%)
-[NG] L2 判断構造化層: BLOCK (33%)
-[..] L3 委任範囲層: REVISE (75%)
-[NG] L4 統制・追跡層: BLOCK (0%)
-[..] efficacy 効果測定: REVISE (75%)
+[OK] L1 業務標準化層: PASS (100%)
+[OK] L2 判断構造化層: PASS (100%)
+[OK] L3 委任範囲層: PASS (100%)
+[OK] L4 統制・追跡層: PASS (100%)
+[OK] efficacy 効果測定: PASS (100%)
+[NG] organization 組織 readiness層: BLOCK (33%)
+    no: organization.C2, organization.C4, organization.C5, organization.C6
 
 Conclusion: BLOCK
-  First gate to fix: layer L1
 ```
+
+Every process layer passes, yet the verdict is BLOCK: the organization axis
+surfaces the missing literacy layer (C2), knowledge-transfer contract (C4),
+incremental-split design (C5) and bus-factor countermeasure (C6). When a layer
+is the first gate instead, the output also prints `First gate to fix`.
 
 See [`README.ja.md`](README.ja.md#使い方想定ワークフロー) for sample output of every
 command in the workflow.
@@ -127,17 +152,17 @@ command in the workflow.
 ```
 ai-delegation-readiness/
 ├── definitions/                 # Machine-readable canonical framework (YAML)
-│   ├── four-layer.yaml          #   4 layers + efficacy axis + extension_points
+│   ├── four-layer.yaml          #   4 layers + efficacy & organization axes + extension_points
 │   └── delegation-matrix.yaml   #   2 axes + region map + extension_points
 ├── schemas/
 │   └── audit-log.schema.json    # JSON Schema with $defs: minimum (A) / extended (B)
 ├── src/adr/                     # Python diagnostic tool (shipped as a container image)
 ├── bin/aidr                     # CLI entry point (single command, 5 subcommands)
 ├── examples/
-│   ├── business/                # Sample input for check-readiness
+│   ├── business/                # Sample input for check-readiness (incl. the two-axis ajinomoto-discovery-team)
 │   ├── judgments/               # Sample input for score-delegation
 │   ├── audit-log-sample.json    # Sample audit log (extended-level valid)
-│   ├── overlays/                # Sample overlay (Acme Corp)
+│   ├── overlays/                # Sample overlays (Acme Corp; organization-readiness-ajinomoto)
 │   └── skills/                  # Two Claude Code skill samples
 └── docs/
     ├── 01_four_layer_framework.md
@@ -165,6 +190,12 @@ strengthen:
   "L4": {revise: 0.8}       # was 0.6 — stricter only
 ```
 
+Overlays work on the organization axis too. See
+[`examples/overlays/organization-readiness-ajinomoto.yaml`](examples/overlays/organization-readiness-ajinomoto.yaml),
+which adds a company-specific organization question and raises the organization
+bar (`revise` 0.66 → 0.83) to reflect the evidence that organizational readiness
+is hard to reach.
+
 Then run any diagnostic with `--overlay` (using the `aidr` shell function from
 [Usage workflow](#usage-workflow) so the file is mounted):
 
@@ -178,7 +209,7 @@ The framework is reused in three ways:
   `schemas/audit-log.schema.json` into the system prompt or tool context.
   See [`examples/skills/`](examples/skills/) for two ready-to-adapt Claude
   Code skill wrappers.
-- **CI pipelines**: run `docker run --rm -v "$PWD:/data" -w /data ghcr.io/suwa-sh/ai-delegation-readiness:v0.2.0 validate-audit-log <log>` on each emitted log; gate
+- **CI pipelines**: run `docker run --rm -v "$PWD:/data" -w /data ghcr.io/suwa-sh/ai-delegation-readiness:v0.3.0 validate-audit-log <log>` on each emitted log; gate
   on exit code.
 - **Internal overlays**: keep your company-specific overlay in a private repo and
   apply with `--overlay`. The framework stays a clean upstream you can pull from.

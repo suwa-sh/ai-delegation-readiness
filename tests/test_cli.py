@@ -105,3 +105,25 @@ def test_format_json_returns_parseable_json():
     payload = json.loads(r.stdout)
     assert payload["ok"] is True
     assert payload["level"] == "extended"
+
+
+def test_check_readiness_json_exposes_parallel_axes():
+    """The rendered JSON must carry parallel_axes (incl. organization), not a
+    singular efficacy key. This guards the v0.3.0 axis-model migration at the
+    renderer boundary, which the object-level golden test does not exercise."""
+    r = _run("check-readiness", str(sample_business_path()), "--format", "json")
+    payload = json.loads(r.stdout)
+    assert "parallel_axes" in payload
+    assert "efficacy" not in payload  # old singular key is gone
+    axis_ids = {a["id"] for a in payload["parallel_axes"]}
+    assert {"efficacy", "organization"} <= axis_ids
+
+
+def test_list_definitions_json_exposes_parallel_axes():
+    r = _run("list-definitions", "--format", "json")
+    payload = json.loads(r.stdout)  # array of definition summaries
+    four_layer = next(d for d in payload if d["name"] == "four-layer-delegation-readiness")
+    assert "parallel_axes" in four_layer
+    assert "efficacy_axis" not in four_layer  # old singular key is gone
+    axis_ids = {a["id"] for a in four_layer["parallel_axes"]}
+    assert {"efficacy", "organization"} <= axis_ids

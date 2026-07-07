@@ -34,11 +34,15 @@ bin/aidr check-readiness examples/business/sample-expense-approval.yaml
 [..] L3 委任範囲層:   REVISE (75%)
 [NG] L4 統制・追跡層: BLOCK (0%)
 [..] efficacy 効果測定: REVISE (75%)
+[NG] organization 組織 readiness層: BLOCK (0%)
+    unknown: organization.C1, organization.C2, organization.C3, organization.C4, organization.C5, organization.C6
 
 Conclusion: BLOCK
   First gate to fix: layer L1
 ```
 
+このサンプルは業務プロセス(4 層 + 効果測定)の記入例です。組織 readiness 軸は未記入なので
+`unknown` = BLOCK になります(組織軸の詳細は [`05_organization_axis.md`](05_organization_axis.md))。
 自社業務を採点する場合は、`examples/business/sample-expense-approval.yaml` を
 コピーして各問いに Yes/No を埋めてください。
 
@@ -168,7 +172,7 @@ block になります。
 ## References
 
 - 正本: [`definitions/four-layer.yaml`](../definitions/four-layer.yaml)(問い・閾値・拡張ポイントの正本です)
-- 関連 doc: [`02_audit_log_schema.md`](02_audit_log_schema.md) / [`03_delegation_matrix.md`](03_delegation_matrix.md) / [`04_audit_log_gap_check.md`](04_audit_log_gap_check.md)
+- 関連 doc: [`02_audit_log_schema.md`](02_audit_log_schema.md) / [`03_delegation_matrix.md`](03_delegation_matrix.md) / [`04_audit_log_gap_check.md`](04_audit_log_gap_check.md) / [`05_organization_axis.md`](05_organization_axis.md)(組織 readiness の並列軸)
 - CLI: `bin/aidr check-readiness --help`
 - 出典:
   - [メンテナによる分析記事 (Zenn / gh-pages ミラー)](https://suwa-sh.github.io/zenn-contents/articles/ajinomoto-accounting-agent_20260621/)

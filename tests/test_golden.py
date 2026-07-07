@@ -23,7 +23,12 @@ GOLDEN_CHECK_READINESS = {
         "L3": {"verdict": "revise", "score": 0.75},
         "L4": {"verdict": "block", "score": 0.0},
     },
-    "efficacy": {"verdict": "revise", "score": 0.75},
+    "parallel_axes": {
+        # The sample business provides no organization answers, so that axis is
+        # all-unknown -> score 0.0 -> block. efficacy is unchanged by the axis change.
+        "efficacy": {"verdict": "revise", "score": 0.75},
+        "organization": {"verdict": "block", "score": 0.0},
+    },
 }
 
 GOLDEN_SCORE_DELEGATION = {
@@ -58,8 +63,11 @@ def test_golden_check_readiness_sample_business():
         expected = GOLDEN_CHECK_READINESS["layers"][layer.id]
         assert layer.verdict == expected["verdict"], layer.id
         assert layer.score == expected["score"], layer.id
-    assert result.efficacy.verdict == GOLDEN_CHECK_READINESS["efficacy"]["verdict"]
-    assert result.efficacy.score == GOLDEN_CHECK_READINESS["efficacy"]["score"]
+    by_axis = {a.id: a for a in result.parallel_axes}
+    assert set(by_axis) == set(GOLDEN_CHECK_READINESS["parallel_axes"])
+    for axis_id, expected in GOLDEN_CHECK_READINESS["parallel_axes"].items():
+        assert by_axis[axis_id].verdict == expected["verdict"], axis_id
+        assert by_axis[axis_id].score == expected["score"], axis_id
 
 
 def test_golden_score_delegation_sample_judgments():
