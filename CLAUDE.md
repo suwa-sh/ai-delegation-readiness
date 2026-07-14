@@ -37,18 +37,18 @@ doc は説明としてリンクし直す。
 違反は `aidr check-overlay <path>` で即検出される。**変更を加えるときは必ず
 `check-overlay` を回す**。
 
-### `extension_points` 宣言と overlay.py のハードコードを揃える
+### `extension_points` 宣言はエンジンがランタイムで解釈する(overlay.py は存在しない)
 
 `definitions/*.yaml` の `extension_points` ブロックは **読み手と AI エージェント向けの
-self-documenting**(「ここは拡張可」の宣言)で、現状は `src/adr/overlay.py` の
-マージロジックと**手動で対応を取っている**。`extension_points` をランタイムで参照して
-マージ規則を自動派生する設計は将来の課題(`src/adr/overlay.py` 内のハードコード分岐を
-宣言から導出する)。
+self-documenting** であると同時に、**マージ規則の実体**でもある。マージロジックは
+別配布の pip パッケージ `overlay-scoring-skeleton`(`import overlay_scoring`)に切り出され、
+`_parse_extension_points()` が **宣言から add/strengthen 規則を導出**する。旧 `src/adr/overlay.py`
+のハードコード分岐は撤去済みで、このリポには存在しない。
 
-**これがあるため**: `definitions/*.yaml` の `extension_points` を追加・変更したら、
-**必ず `src/adr/overlay.py` の対応する分岐も追従**する。追従漏れがあると、
-宣言は「拡張可」と言うのに実装は拒否するという挙動になる。pytest の
-`tests/test_overlay.py` がこの対応関係を検証している。
+**これがあるため**: 新しい定義(例 `task-contract.yaml`)を追加しても、`extension_points` を
+宣言すればエンジンがコード追加なしでマージする。定義側の変更に追従すべき「ハードコード分岐」は
+無い。overlay 規則の検証は `tests/test_overlay.py`(定義ごとの add/strengthen/weaken/非拡張拒否)
+が担う。エンジン本体の pin は `pyproject.toml` の `overlay-scoring-skeleton==<ver>`。
 
 ## doc の段階的開示テンプレ
 

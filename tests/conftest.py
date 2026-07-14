@@ -23,6 +23,10 @@ def matrix_path() -> Path:
     return DEFINITIONS_DIR / "delegation-matrix.yaml"
 
 
+def task_contract_path() -> Path:
+    return DEFINITIONS_DIR / "task-contract.yaml"
+
+
 def audit_schema_path() -> Path:
     return SCHEMAS_DIR / "audit-log.schema.json"
 
@@ -41,3 +45,11 @@ def sample_judgments_path() -> Path:
 
 def sample_overlay_path() -> Path:
     return EXAMPLES_DIR / "overlays" / "sample-company" / "extra-rules.yaml"
+
+
+def sample_task_contract_green_path() -> Path:
+    return EXAMPLES_DIR / "task-contracts" / "sample-green.yaml"
+
+
+def sample_task_contract_red_path() -> Path:
+    return EXAMPLES_DIR / "task-contracts" / "sample-red-ai-judge.yaml"

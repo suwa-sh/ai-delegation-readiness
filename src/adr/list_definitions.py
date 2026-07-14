@@ -62,9 +62,26 @@ def summarize_matrix(
     )
 
 
-# delegation-matrix の "regions"/"examples" は axis ではなく、ルックアップ/データ group
-# なので summarize から除外する。four-layer の "efficacy" は axis と並列の独立 group。
-_NON_AXIS_GROUPS = {"regions", "examples"}
+def summarize_task_contract(
+    overlay_paths: list[str | Path] | None = None,
+    definition_path: str | Path | None = None,
+) -> DefinitionSummary:
+    # The 4 execution-rubric elements (intent/boundary/evidence/scorer) are
+    # scored like matrix axes (absolute threshold over question leaves); gates
+    # and examples are lookup groups and are excluded via _NON_AXIS_GROUPS.
+    return _summarize(
+        name="task-contract",
+        default_filename="task-contract.yaml",
+        overlay_paths=overlay_paths,
+        definition_path=definition_path,
+        is_axes=True,
+    )
+
+
+# delegation-matrix の "regions"/"examples"、task-contract の "gates"/"examples" は
+# axis ではなくルックアップ/データ group なので summarize から除外する。
+# four-layer の "efficacy" は axis と並列の独立 group。
+_NON_AXIS_GROUPS = {"regions", "examples", "gates"}
 
 
 def _summarize(
@@ -131,10 +148,16 @@ def _summarize_group(
     base_leaves = (base_group or {}).get("leaves") or []
     thresholds = {k: header[k] for k in threshold_keys if k in header}
     base_thresholds = {k: base_header[k] for k in threshold_keys if k in base_header}
+    # Count only presence questions. Existing definitions have no ``kind`` on
+    # their leaves, so they default to "question"; task-contract's ``kind: data``
+    # leaves (scorer.type, scorer.iruler_double_eval) are not counted.
+    question_leaves = [
+        leaf for leaf in group["leaves"] if leaf.get("kind", "question") == "question"
+    ]
     return LayerSummary(
         id=group_id,
         name=header.get("name_ja") or header.get("name") or group_id,
-        question_count=len(group["leaves"]),
+        question_count=len(question_leaves),
         thresholds=thresholds,
         added_question_ids=_added_ids(base_leaves, group["leaves"]),
         strengthened_thresholds=_strengthened_thresholds(base_thresholds, thresholds),

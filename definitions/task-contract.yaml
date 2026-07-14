@@ -1,0 +1,168 @@
+version: 1
+name: task-contract
+separator: "."
+description: |
+  Execution rubric for delegating a task to an AI agent AFTER readiness
+  (go/no-go) has passed. This is the phase after check-readiness /
+  score-delegation: readiness decides *whether* a business may be delegated,
+  this rubric checks *how a single task is handed over and scored*.
+
+  Four elements must each be declared adequately:
+    intent   — what must hold to accept (pass condition)
+    boundary — what the agent must not do + when to escalate
+    evidence — what inputs/outputs to record (audit scope)
+    scorer   — who scores the output (human / ai_judge / two_stage)
+
+  Each element is scored by presence questions (kind: question). A leaf is
+  "present" when its group's yes-count reaches the threshold, "partial" when
+  some but not enough are yes, "absent" when none are yes.
+
+  scorer carries two data leaves (kind: data) the gate reads directly:
+    scorer.type              — human | ai_judge | two_stage (required)
+    scorer.iruler_double_eval — is an iRULER-style rubric-of-rubric check in place?
+
+  When the scorer is an AI judge without that double-evaluation, the contract
+  is blocked (red) — an AI judge scoring against a single rubric optimizes the
+  visible criteria (Goodhart) with no second-order check. two_stage carries a
+  human second stage, so the double-eval gate does not force it.
+
+# 拡張ポイント: 各社のオーバーレイで presence 質問・具体例を追加でき、閾値は強化のみ可。
+# 安全ゲート (iRULER) は gates の boolean policy 側にあり、overlay の add/strengthen 対象外
+# なので緩和できない (質問を足して threshold を据え置くと相対的に緩むため、add 時は
+# threshold の同時強化を推奨する。docs/06 参照)。
+extension_points:
+  - {group: "intent", allow: add}
+  - {group: "boundary", allow: add}
+  - {group: "evidence", allow: add}
+  - {group: "scorer", allow: add}
+  - {group: "intent", level: group, field: threshold, allow: strengthen, direction: higher}
+  - {group: "boundary", level: group, field: threshold, allow: strengthen, direction: higher}
+  - {group: "evidence", level: group, field: threshold, allow: strengthen, direction: higher}
+  - {group: "scorer", level: group, field: threshold, allow: strengthen, direction: higher}
+  - {group: "examples", allow: add}
+
+items:
+  # --- 意図 (intent): 何を満たせば合格か ---
+  - id: "intent"
+    name: intent
+    name_ja: 意図
+    description: What must hold for the output to be accepted.
+    threshold: 2          # >=2 questions yes => present
+  - id: "intent.I1"
+    kind: question
+    text: Is the pass condition written explicitly (what must hold to accept the output)?
+  - id: "intent.I2"
+    kind: question
+    text: Is the acceptance criterion mechanically checkable (re-runnable test or enumerable list)?
+  - id: "intent.I3"
+    kind: question
+    text: Is the primary deliverable named so that "done" is unambiguous?
+
+  # --- 境界 (boundary): やってはいけないこと / エスカレーション ---
+  - id: "boundary"
+    name: boundary
+    name_ja: 境界
+    description: What the agent must not do, and when to stop and hand to a human.
+    threshold: 2
+  - id: "boundary.B1"
+    kind: question
+    text: Are prohibited actions listed (what the agent must not do)?
+  - id: "boundary.B2"
+    kind: question
+    text: Is the escalation condition defined (when to stop and hand to a human)?
+  - id: "boundary.B3"
+    kind: question
+    text: Is the data-access scope bounded (least privilege / which sources may be read)?
+
+  # --- 証跡 (evidence): どの入出力を残すか ---
+  - id: "evidence"
+    name: evidence
+    name_ja: 証跡
+    description: What inputs/outputs to record so the decision can be re-checked.
+    threshold: 2
+  - id: "evidence.E1"
+    kind: question
+    text: Is the set of inputs/outputs to record defined (audit scope)?
+  - id: "evidence.E2"
+    kind: question
+    text: Is Who/When/What/Why/Result captured for each decision?
+  - id: "evidence.E3"
+    kind: question
+    text: Is the record produced by a deterministic step (not a best-effort tail that a long run can skip)?
+
+  # --- 採点者 (scorer): 人 / AI-as-judge / 二段審査 ---
+  - id: "scorer"
+    name: scorer
+    name_ja: 採点者
+    description: Who scores the output, and whether the scoring rubric is written down.
+    threshold: 2
+  - id: "scorer.S1"
+    kind: question
+    text: Is the scorer assigned (a specific human, an AI judge, or a two-stage review)?
+  - id: "scorer.S2"
+    kind: question
+    text: Is the scoring rubric itself written down (not left tacit)?
+  # data leaves: the gate reads these directly (not presence-scored).
+  - id: "scorer.type"
+    kind: data
+    label: "scorer type (required). one of: human | ai_judge | two_stage"
+    enum: [human, ai_judge, two_stage]
+  - id: "scorer.iruler_double_eval"
+    kind: data
+    label: "is an iRULER-style rubric-of-rubric double-evaluation in place? (yes/no)"
+
+  # --- gates: 要素の present/partial/absent と iRULER ゲートから region を決める ---
+  # region 解決は上から順に最初にマッチした when を採る (score_delegation の region walk と同型)。
+  # when のトークンは consumer の condition evaluator と 1:1 対応し、conformance test が一致を固定する。
+  # exit_code も定義側に持つので、機械可読定義だけで判定 (region + exit) を再現できる。
+  - id: "gates"
+    kind: lookup
+    label: Gate map (element presence + iRULER gate -> region)
+  - id: "gates.red"
+    kind: lookup
+    name: blocked
+    name_ja: 委任不可
+    when: [any_element_absent, ai_judge_without_iruler]
+    exit_code: 2
+    action: |
+      A required element is entirely undeclared, OR the scorer is an AI judge
+      without an iRULER-style double-evaluation. Do not delegate until fixed:
+      declare the missing element, or add a second-order rubric check / human
+      second stage before letting an AI judge score.
+  - id: "gates.yellow"
+    kind: lookup
+    name: gaps_present
+    name_ja: 要素に穴
+    when: [any_element_partial]
+    exit_code: 1
+    action: |
+      Every element is addressed but at least one is below threshold. Fill the
+      thin element before delegating; the contract is incomplete, not unsafe by
+      itself.
+  - id: "gates.green"
+    kind: lookup
+    name: contract_ready
+    name_ja: 契約充足
+    when: [otherwise]
+    exit_code: 0
+    action: |
+      All four elements are declared and the scorer gate holds. The task
+      contract is ready to run.
+
+  # --- worked examples: 採点済みの具体例 (本ルーブリックへの当てはめ = 設計提案) ---
+  - id: "examples"
+    kind: lookup
+    label: Worked examples (synthesized; illustrate the gate, not drawn from a single source)
+  - id: "examples.expense_approval_ai_judge_no_iruler"
+    kind: lookup
+    judgment: Expense approval, AI judge scores against one rubric, no double-eval
+    scorer_type: ai_judge
+    iruler_double_eval: no
+    region: red
+    rationale: An AI judge with a single visible rubric optimizes the visible criteria; the iRULER gate blocks it.
+  - id: "examples.expense_approval_two_stage"
+    kind: lookup
+    judgment: Expense approval, AI drafts then a human approves (two-stage)
+    scorer_type: two_stage
+    region: green
+    rationale: The human second stage carries the second-order check; all four elements declared.

@@ -1,0 +1,19 @@
+# Same contract, but the AI judge scores against a single rubric with no
+# iRULER double-evaluation. The safety gate fires -> RED (exit 2), even though
+# every element is otherwise declared. Fix by adding a second-order rubric
+# check or a human second stage (scorer.type: two_stage).
+task: Expense approval delegated to the accounting agent (unsafe scorer)
+answers:
+  intent.I1: yes
+  intent.I2: yes
+  intent.I3: yes
+  boundary.B1: yes
+  boundary.B2: yes
+  boundary.B3: yes
+  evidence.E1: yes
+  evidence.E2: yes
+  evidence.E3: yes
+  scorer.S1: yes
+  scorer.S2: yes
+  scorer.type: ai_judge
+  scorer.iruler_double_eval: no    # -> RED: AI judge without double-eval

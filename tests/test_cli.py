@@ -21,6 +21,8 @@ from conftest import (
     sample_business_path,
     sample_judgments_path,
     sample_overlay_path,
+    sample_task_contract_green_path,
+    sample_task_contract_red_path,
 )
 
 AIDR = REPO_ROOT / "bin" / "aidr"
@@ -42,7 +44,7 @@ def test_help_exits_zero():
 
 @pytest.mark.parametrize(
     "subcommand",
-    ["check-readiness", "score-delegation", "validate-audit-log", "check-overlay", "list-definitions"],
+    ["check-readiness", "score-delegation", "check-task-contract", "validate-audit-log", "check-overlay", "list-definitions"],
 )
 def test_subcommand_help(subcommand):
     r = _run(subcommand, "--help")
@@ -59,6 +61,32 @@ def test_score_delegation_mixed_sample_exits_2():
     """The sample includes a red judgment so exit is 2."""
     r = _run("score-delegation", str(sample_judgments_path()))
     assert r.returncode == 2
+
+
+def test_check_task_contract_green_sample_exits_0():
+    r = _run("check-task-contract", str(sample_task_contract_green_path()))
+    assert r.returncode == 0
+
+
+def test_check_task_contract_red_ai_judge_sample_exits_2():
+    r = _run("check-task-contract", str(sample_task_contract_red_path()))
+    assert r.returncode == 2
+
+
+def test_check_task_contract_missing_scorer_type_exits_3(tmp_path):
+    c = tmp_path / "c.yaml"
+    c.write_text("task: t\nanswers:\n  intent.I1: yes\n")
+    r = _run("check-task-contract", str(c))
+    assert r.returncode == 3
+    assert "ERROR" in r.stderr
+
+
+def test_check_task_contract_json_exposes_region_and_elements():
+    r = _run("check-task-contract", str(sample_task_contract_green_path()), "--format", "json")
+    payload = json.loads(r.stdout)
+    assert payload["region"] == "green"
+    assert payload["exit_code"] == 0
+    assert {e["id"] for e in payload["elements"]} == {"intent", "boundary", "evidence", "scorer"}
 
 
 def test_validate_audit_log_minimum_passes():

@@ -1,8 +1,9 @@
 """Command-line entry point for ``aidr``.
 
 Subcommands:
-    check-readiness        4-layer + efficacy readiness check
+    check-readiness        4-layer + efficacy readiness check (delegate-or-not)
     score-delegation       delegation matrix scoring per judgment
+    check-task-contract    execution rubric per delegated task (intent/boundary/evidence/scorer)
     validate-audit-log     JSON Schema validation (minimum or extended)
     check-overlay          overlay merge-rule validation
     list-definitions       inspect loaded base + overlay structure
@@ -20,6 +21,7 @@ import overlay_scoring
 from . import (
     check_overlay as _check_overlay,
     check_readiness as _check_readiness,
+    check_task_contract as _task,
     list_definitions as _list,
     score_delegation as _score,
     validate_audit_log as _validate,
@@ -85,6 +87,24 @@ def _cmd_score_delegation(args: argparse.Namespace) -> int:
     return result.conclusion_exit_code
 
 
+def _cmd_check_task_contract(args: argparse.Namespace) -> int:
+    try:
+        result = _task.score(args.contract, overlay_paths=args.overlay)
+    except _check_readiness.OverlayError as e:
+        sys.stderr.write(f"[ERROR] {e}\n")
+        return 3
+    except _task.InputError as e:
+        sys.stderr.write(f"[ERROR] {e}\n")
+        return 3
+    output = (
+        _task.render_json(result)
+        if args.format == "json"
+        else _task.render_text(result)
+    )
+    print(output)
+    return result.exit_code
+
+
 def _cmd_validate_audit_log(args: argparse.Namespace) -> int:
     result = _validate.validate(args.log, level=args.level)
     output = (
@@ -114,6 +134,8 @@ def _cmd_list_definitions(args: argparse.Namespace) -> int:
             summaries.append(_list.summarize_four_layer(overlay_paths=args.overlay))
         if args.target in {"matrix", "all"}:
             summaries.append(_list.summarize_matrix(overlay_paths=args.overlay))
+        if args.target in {"task-contract", "all"}:
+            summaries.append(_list.summarize_task_contract(overlay_paths=args.overlay))
     except _check_readiness.OverlayError as e:
         sys.stderr.write(f"[ERROR] {e}\n")
         return 3
@@ -163,6 +185,14 @@ def build_parser() -> argparse.ArgumentParser:
     _shared_overlay_args(p_score)
     p_score.set_defaults(func=_cmd_score_delegation)
 
+    p_task = sub.add_parser(
+        "check-task-contract",
+        help="Score a delegated task's execution contract (intent/boundary/evidence/scorer)",
+    )
+    p_task.add_argument("contract", help="Path to the task-contract YAML")
+    _shared_overlay_args(p_task)
+    p_task.set_defaults(func=_cmd_check_task_contract)
+
     p_val = sub.add_parser(
         "validate-audit-log",
         help="Validate an audit log JSON against the schema",
@@ -199,7 +229,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_list.add_argument(
         "--target",
-        choices=["four-layer", "matrix", "all"],
+        choices=["four-layer", "matrix", "task-contract", "all"],
         default="all",
         help="Which definition(s) to inspect",
     )

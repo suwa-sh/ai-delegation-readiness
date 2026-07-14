@@ -11,7 +11,7 @@ from __future__ import annotations
 from copy import deepcopy
 
 import overlay_scoring as ov
-from conftest import four_layer_path, matrix_path, sample_overlay_path
+from conftest import four_layer_path, matrix_path, sample_overlay_path, task_contract_path
 
 
 def four_layer() -> dict:
@@ -20,6 +20,10 @@ def four_layer() -> dict:
 
 def matrix() -> dict:
     return ov.load_yaml(matrix_path())
+
+
+def task_contract() -> dict:
+    return ov.load_yaml(task_contract_path())
 
 
 def _ids(defn: dict) -> list[str]:
@@ -290,3 +294,48 @@ def test_matrix_regions_order_and_opaque_when_preserved():
     assert region_ids == ["regions.green", "regions.yellow", "regions.red"]
     green = groups["regions"]["leaves"][0]
     assert green["when"] == [{"verifiability": "high", "answer_definability": "high"}]
+
+
+# --- task-contract overlay cases --------------------------------------------
+
+def test_task_contract_base_validates():
+    assert ov.validate_definition(task_contract()) == []
+
+
+def test_task_contract_add_question_to_element():
+    overlay = {"extends": "task-contract",
+               "add": [{"id": "intent.I4", "kind": "question", "text": "extra"}]}
+    r = ov.apply_overlay(task_contract(), overlay)
+    assert r.ok, r.violations
+    assert "intent.I4" in _ids(r.merged)
+
+
+def test_task_contract_strengthen_threshold_higher_is_accepted():
+    overlay = {"extends": "task-contract",
+               "strengthen": {"boundary": {"threshold": 3}}}
+    r = ov.apply_overlay(task_contract(), overlay)
+    assert r.ok, r.violations
+
+
+def test_task_contract_strengthen_threshold_weakening_is_rejected():
+    overlay = {"extends": "task-contract",
+               "strengthen": {"boundary": {"threshold": 1}}}  # 2 -> 1 is weaker
+    r = ov.apply_overlay(task_contract(), overlay)
+    assert {v.kind for v in r.violations} == {"weakening_rejected"}
+
+
+def test_task_contract_add_to_gates_is_rejected():
+    # gates is a lookup group, not declared extensible.
+    overlay = {"extends": "task-contract",
+               "add": [{"id": "gates.orange", "kind": "lookup", "when": ["otherwise"]}]}
+    r = ov.apply_overlay(task_contract(), overlay)
+    assert not r.ok
+
+
+def test_task_contract_gates_order_and_opaque_when_preserved():
+    groups = ov.group_items(task_contract())
+    gate_ids = [i["id"] for i in groups["gates"]["leaves"]]
+    assert gate_ids == ["gates.red", "gates.yellow", "gates.green"]
+    red = groups["gates"]["leaves"][0]
+    assert red["when"] == ["any_element_absent", "ai_judge_without_iruler"]
+    assert red["exit_code"] == 2

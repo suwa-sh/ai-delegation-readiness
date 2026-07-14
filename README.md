@@ -7,9 +7,10 @@
 > 🇯🇵 日本語版は [README.ja.md](README.ja.md)
 
 A diagnostic tool and extensible framework for deciding **whether a high-risk
-routine business judgment is ready to be delegated to an AI agent**. Distilled
-from the **published analysis** of Ajinomoto Group's accounting AI agent (in
-production since February 2026).
+routine business judgment is ready to be delegated to an AI agent** — and, once
+it is, **how each task is handed over and scored**. Distilled from the
+**published analysis** of Ajinomoto Group's accounting AI agent (in production
+since February 2026).
 
 Key features:
 
@@ -21,10 +22,14 @@ Key features:
    bus-factor countermeasure). It returns a deterministic verdict for each, so
    "the process is delegable but the organization is not ready yet" shows up as
    its own gap instead of hiding behind a green process score.
-2. **A machine-readable single source of truth** — the four-layer framework, the
-   delegation matrix and the audit-log schema are kept as definitions that AI
-   agents and CI can consume directly.
-3. **Extensible without forking** — each company adds its own questions and
+2. **Checks how each delegated task is run** — once readiness passes, it scores a
+   task's execution contract on four elements (intent, boundary, evidence,
+   scorer), so a task is not handed to an agent with an unstated pass condition,
+   no escalation path, or an AI judge that scores itself against a single rubric.
+3. **A machine-readable single source of truth** — the four-layer framework, the
+   delegation matrix, the task-contract rubric and the audit-log schema are kept
+   as definitions that AI agents and CI can consume directly.
+4. **Extensible without forking** — each company adds its own questions and
    stricter thresholds through an overlay.
 
 > **Glossary**:
@@ -50,6 +55,12 @@ Key features:
 >   delivered artifact.
 > - The **delegation matrix** scores each judgment on two axes (verifiability ×
 >   answer-definability) and places it into delegate / LLM-assist / human-only.
+> - The **task-contract execution rubric** is the phase *after* readiness: it
+>   checks how one delegated task is handed over and scored, across four elements
+>   — intent, boundary, evidence, scorer.
+> - **iRULER** (CHI 2026) is a rubric-of-rubric double-evaluation: when an AI is
+>   the scorer, it evaluates the scoring rubric itself, so the AI judge is not
+>   grading against a single visible rubric it can optimize (Goodhart).
 > - An **overlay** is a company-specific extension file that adds questions or
 >   strengthens thresholds without forking the canonical definitions.
 
@@ -63,21 +74,21 @@ No setup — pull the published image and run it. The bundled samples work out o
 the box:
 
 ```bash
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.3.0 --version
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.4.0 --version
 
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.3.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.4.0 \
   check-readiness examples/business/sample-expense-approval.yaml
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.3.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.4.0 \
   score-delegation examples/judgments/sample-judgments.yaml
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.3.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.4.0 \
   validate-audit-log examples/audit-log-sample.json --level extended
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.3.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.4.0 \
   check-overlay examples/overlays/sample-company/extra-rules.yaml
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.3.0 list-definitions
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.4.0 list-definitions
 ```
 
 `--version` prints the app version and the bundled overlay engine version, e.g.
-`aidr 0.3.0 (overlay-scoring-skeleton 0.1.0)`.
+`aidr 0.4.0 (overlay-scoring-skeleton 0.1.0)`.
 
 Every command returns a deterministic exit code so you can gate CI on it:
 **0** ok · **1** partial (yellow) · **2** block (red: gaps, SLA breach, rejected
@@ -90,7 +101,7 @@ into the container. A shell function keeps the rest of this guide readable:
 
 ```bash
 aidr() { docker run --rm -v "$PWD:/data" -w /data \
-  ghcr.io/suwa-sh/ai-delegation-readiness:v0.3.0 "$@"; }
+  ghcr.io/suwa-sh/ai-delegation-readiness:v0.4.0 "$@"; }
 ```
 
 Grab a sample from [`examples/`](examples/) as a template, edit it with your own
@@ -105,10 +116,16 @@ values, then run the commands in this order — from diagnosis to extension.
 3. **Score the judgments** — list your judgments and run
    `aidr score-delegation my-judgments.yaml`. GREEN delegates, YELLOW is
    LLM-assist (a human decides), RED stays human-only.
-4. **Validate the audit log** — once delegation starts, check that the emitted
+4. **Check the task contract** — for a task you decided to delegate, declare its
+   intent / boundary / evidence / scorer and run
+   `aidr check-task-contract my-contract.yaml`. GREEN is ready to run, YELLOW has
+   a thin element, RED blocks (a missing element, or an AI judge with no iRULER
+   double-evaluation). Start from
+   [`examples/task-contracts/sample-green.yaml`](examples/task-contracts/sample-green.yaml).
+5. **Validate the audit log** — once delegation starts, check that the emitted
    log satisfies who / when / what / why / result:
    `aidr validate-audit-log my-log.json --level extended`.
-5. **Extend (optional)** — add your own questions / thresholds via an overlay,
+6. **Extend (optional)** — add your own questions / thresholds via an overlay,
    validated by `aidr check-overlay <path>` and applied with `--overlay`.
 
 Sample output (`check-readiness`) — `[OK]` pass / `[..]` revise / `[NG]` block per
@@ -153,14 +170,16 @@ command in the workflow.
 ai-delegation-readiness/
 ├── definitions/                 # Machine-readable canonical framework (YAML)
 │   ├── four-layer.yaml          #   4 layers + efficacy & organization axes + extension_points
-│   └── delegation-matrix.yaml   #   2 axes + region map + extension_points
+│   ├── delegation-matrix.yaml   #   2 axes + region map + extension_points
+│   └── task-contract.yaml       #   4 execution-rubric elements + gate policy + extension_points
 ├── schemas/
 │   └── audit-log.schema.json    # JSON Schema with $defs: minimum (A) / extended (B)
 ├── src/adr/                     # Python diagnostic tool (shipped as a container image)
-├── bin/aidr                     # CLI entry point (single command, 5 subcommands)
+├── bin/aidr                     # CLI entry point (single command, 6 subcommands)
 ├── examples/
 │   ├── business/                # Sample input for check-readiness (incl. the two-axis ajinomoto-discovery-team)
 │   ├── judgments/               # Sample input for score-delegation
+│   ├── task-contracts/          # Sample input for check-task-contract (green / red-ai-judge)
 │   ├── audit-log-sample.json    # Sample audit log (extended-level valid)
 │   ├── overlays/                # Sample overlays (Acme Corp; organization-readiness-ajinomoto)
 │   └── skills/                  # Two Claude Code skill samples
@@ -168,7 +187,9 @@ ai-delegation-readiness/
     ├── 01_four_layer_framework.md
     ├── 02_audit_log_schema.md
     ├── 03_delegation_matrix.md
-    └── 04_audit_log_gap_check.md
+    ├── 04_audit_log_gap_check.md
+    ├── 05_organization_axis.md
+    └── 06_task_contract_execution_rubric.md
 ```
 
 ## How to extend
@@ -209,7 +230,7 @@ The framework is reused in three ways:
   `schemas/audit-log.schema.json` into the system prompt or tool context.
   See [`examples/skills/`](examples/skills/) for two ready-to-adapt Claude
   Code skill wrappers.
-- **CI pipelines**: run `docker run --rm -v "$PWD:/data" -w /data ghcr.io/suwa-sh/ai-delegation-readiness:v0.3.0 validate-audit-log <log>` on each emitted log; gate
+- **CI pipelines**: run `docker run --rm -v "$PWD:/data" -w /data ghcr.io/suwa-sh/ai-delegation-readiness:v0.4.0 validate-audit-log <log>` on each emitted log; gate
   on exit code.
 - **Internal overlays**: keep your company-specific overlay in a private repo and
   apply with `--overlay`. The framework stays a clean upstream you can pull from.

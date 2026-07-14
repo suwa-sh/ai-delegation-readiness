@@ -1,0 +1,21 @@
+# A fully-declared task contract: all four elements present, and the AI judge
+# carries an iRULER double-evaluation. check-task-contract -> GREEN (exit 0).
+task: Expense approval delegated to the accounting agent
+answers:
+  # 意図 (intent)
+  intent.I1: yes    # pass condition written (statutory items + amount thresholds)
+  intent.I2: yes    # mechanically checkable (rule references + re-runnable check)
+  intent.I3: yes    # primary deliverable named (approved / rejected / escalated verdict)
+  # 境界 (boundary)
+  boundary.B1: yes  # prohibited: never auto-approve above the escalation amount
+  boundary.B2: yes  # escalate when receipt is missing or amount exceeds threshold
+  boundary.B3: yes  # least privilege: read the expense DB row + rulebook only
+  # 証跡 (evidence)
+  evidence.E1: yes  # record input row, rule refs, verdict
+  evidence.E2: yes  # Who/When/What/Why/Result captured per decision
+  evidence.E3: yes  # written by the deterministic scoring step, not a tail hook
+  # 採点者 (scorer)
+  scorer.S1: yes    # scorer assigned
+  scorer.S2: yes    # scoring rubric written down
+  scorer.type: ai_judge
+  scorer.iruler_double_eval: yes   # rubric-of-rubric double-eval in place
