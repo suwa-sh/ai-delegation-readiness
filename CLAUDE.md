@@ -86,6 +86,20 @@ self-documenting** であると同時に、**マージ規則の実体**でもあ
 - 既存ログ基盤の点検メモ(`docs/04`)は、ある自社運用エージェント基盤を題材にした
   worked example。他者は同じ手法を自社環境に当てる(冒頭の 5 ステップ参照)
 
+## リリース手順(タグ push だけ。Release は手動作成しない)
+
+`.github/workflows/release.yml` が **`v*` タグの push を契機に** マルチアーチ
+イメージ(GHCR)push と **GitHub Release 作成(`gh release create --generate-notes`)を自ら行う**。
+
+- **リリースは `git tag -a vX.Y.Z` + `git push origin vX.Y.Z` だけで完結する。**
+  手動で `gh release create` を打たない — workflow の Release 作成ステップと衝突し
+  HTTP 422 "Release.tag_name already exists" で release ジョブが赤くなる(v0.4.0 で発生)。
+- 自動生成 notes ではなく手書き notes を載せたいときは、**タグ push 後に**
+  `gh release edit vX.Y.Z --notes-file <file>` で上書きする(create は workflow に任せる)。
+- workflow は Release が既存なら作成をスキップする(idempotent)ので、手動先行があっても
+  イメージ push は通るが、上の原則(create しない)を守るのが正。
+- `pyproject.toml` の `version` とタグを一致させる(`aidr --version` と OCI label がタグ由来)。
+
 ## 横断的な注意点
 
 - 秘密情報・ハードコード認証情報の混入なきこと(`examples/audit-log-sample.json` の
