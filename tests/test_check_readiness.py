@@ -201,3 +201,49 @@ def test_organization_overlay_strengthen_and_add(tmp_path):
     result = cr.check(ajinomoto_discovery_team_path(), overlay_paths=[overlay])
     org = next(a for a in result.parallel_axes if a.id == "organization")
     assert "organization.NEW_C" in org.unknown_ids  # added question is scored
+
+
+# --- high-stakes domain overlay (examples/overlays/high-stakes-domain) ------
+
+def _hs_overlay_path():
+    from conftest import hs_overlay_four_layer_path
+    return hs_overlay_four_layer_path()
+
+
+def _merged_all_yes_answers() -> dict:
+    base = yaml.safe_load(four_layer_path().read_text())
+    merged = ov.apply_overlays(base, [_hs_overlay_path()]).merged
+    sep = ov.separator_of(merged)
+    return {item["id"]: "yes" for item in merged["items"] if ov.is_leaf(item["id"], sep)}
+
+
+def test_high_stakes_all_yes_passes(tmp_path):
+    """4/4 on L5 (and all other layers) -> PASS."""
+    biz_path = tmp_path / "biz.yaml"
+    biz_path.write_text(yaml.safe_dump({"target": "hs-all-yes", "answers": _merged_all_yes_answers()}))
+    result = cr.check(biz_path, overlay_paths=[_hs_overlay_path()])
+    assert result.conclusion == "PASS"
+    assert result.blocked_from is None
+
+
+def test_high_stakes_single_no_blocks(tmp_path):
+    """The L5 gate has no revise band: 3/4 -> BLOCK, not REVISE."""
+    answers = _merged_all_yes_answers()
+    answers["L5.Q4"] = "no"
+    biz_path = tmp_path / "biz.yaml"
+    biz_path.write_text(yaml.safe_dump({"target": "hs-one-no", "answers": answers}))
+    result = cr.check(biz_path, overlay_paths=[_hs_overlay_path()])
+    assert result.conclusion == "BLOCK"
+    assert result.blocked_from == "L5"
+    l5 = next(layer for layer in result.layers if layer.id == "L5")
+    assert l5.verdict == "block"
+
+
+def test_sample_ip_business_blocks_at_l5():
+    """The bundled IP sample: process layers pass, the prerequisite gate blocks."""
+    from conftest import sample_ip_business_path
+    result = cr.check(sample_ip_business_path(), overlay_paths=[_hs_overlay_path()])
+    verdicts = {layer.id: layer.verdict for layer in result.layers}
+    assert verdicts == {"L1": "pass", "L2": "pass", "L3": "pass", "L4": "pass", "L5": "block"}
+    assert result.conclusion == "BLOCK"
+    assert result.blocked_from == "L5"

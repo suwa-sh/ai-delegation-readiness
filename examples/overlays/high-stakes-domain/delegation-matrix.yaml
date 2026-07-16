@@ -1,0 +1,78 @@
+# Domain overlay: high-stakes professional work (IP / legal / pharma) —
+# per-judgment axis (extends delegation-matrix).
+#
+# Derived from the Omron IP AI-agent insourcing analysis
+# (https://suwa-sh.github.io/zenn-contents/articles/omron-ip-agent-insourcing_20260629/).
+#
+# What this overlay does:
+#   1. Strengthens both axis thresholds from 2 to 3: an axis counts as "high"
+#      only on a perfect score. This is the cautious-side discount justified
+#      by the counter-evidence recorded in the sibling four-layer overlay
+#      (self-reported savings running opposite to measured ones, ~95% of
+#      pilots without P&L impact, specialist legal tools still hallucinating).
+#   2. Adds four worked examples for patent-work process steps, scored under
+#      the strengthened thresholds. They show the aptitude ordering from the
+#      source analysis: classification -> prior-art retrieval -> spec draft
+#      -> invalidity finalization.
+#
+# NOTE — reading the inherited base examples under this overlay:
+# overlays cannot rewrite existing items, so the base worked examples keep
+# region values computed under the base thresholds (2/3). Read under the
+# strengthened thresholds (3/3), four of them land in a stricter region:
+#   entertainment_expense_determination  green  -> red
+#   coding_mechanical_refactor           green  -> yellow
+#   discriminatory_expression_detection  yellow -> red
+#   expense_account_code_suggestion      yellow -> red
+# This is the intended effect of the cautious-side discount, and it is pinned
+# by tests/test_score_delegation.py so the divergence stays explicit.
+#
+# Merge rules (enforced by `aidr check-overlay`):
+#   add          : append new items (existing ones are read-only)
+#   strengthen   : move a declared numeric field toward the stricter direction
+# Anything else (delete, replace, weaken) fails validation.
+
+version: 1
+extends: delegation-matrix
+
+strengthen:
+  "verifiability": {threshold: 3}
+  "answer_definability": {threshold: 3}
+
+add:
+  # Worked examples: patent-work process steps (the source analysis's layer-1
+  # aptitude ordering). Regions are computed under the strengthened thresholds
+  # (high requires 3/3 on an axis). All are design proposals: the observable
+  # fact from the source case is only that Omron targeted prior-art search and
+  # analysis-report generation first.
+  - id: "examples.patent_classification"
+    judgment: Patent classification (finite label set, large corpus of granted labels)
+    case: Omron IP agent (design proposal from the analysis article)
+    verifiability_yes: [V1, V2, V3]
+    answer_definability_yes: [A1, A2, A3]
+    region: green
+    rationale: Multi-class classification against existing label codes; verdicts are mechanically checkable
+    confidence: design_proposal
+  - id: "examples.prior_art_candidate_retrieval"
+    judgment: Prior-art search — candidate retrieval (not the "nothing found" verdict)
+    case: Omron IP agent (design proposal from the analysis article)
+    verifiability_yes: [V1, V2, V3]
+    answer_definability_yes: [A1, A2]
+    region: yellow
+    rationale: Examiner citations give verifiable labels, but whether a candidate set is "sufficient" stays case-context dependent (A3 fails)
+    confidence: design_proposal
+  - id: "examples.patent_spec_draft"
+    judgment: Patent specification draft (structure re-editing into problem/means/effect)
+    case: Omron IP agent (design proposal from the analysis article)
+    verifiability_yes: [V1, V2]
+    answer_definability_yes: [A1, A2, A3]
+    region: yellow
+    rationale: Drafting rules are documentable, but claim-scope validity cannot be expressed as a re-runnable test (V3 fails)
+    confidence: design_proposal
+  - id: "examples.invalidity_search_final"
+    judgment: Invalidity search — the "no relevant art exists" finalization
+    case: Omron IP agent (design proposal from the analysis article)
+    verifiability_yes: [V1, V2]
+    answer_definability_yes: [A1, A2]
+    region: red
+    rationale: Exhaustiveness carries legal responsibility; a miss is neither cheaply verifiable afterwards nor uniquely definable in advance
+    confidence: design_proposal

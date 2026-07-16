@@ -47,6 +47,22 @@ def sample_overlay_path() -> Path:
     return EXAMPLES_DIR / "overlays" / "sample-company" / "extra-rules.yaml"
 
 
+def hs_overlay_four_layer_path() -> Path:
+    return EXAMPLES_DIR / "overlays" / "high-stakes-domain" / "four-layer.yaml"
+
+
+def hs_overlay_matrix_path() -> Path:
+    return EXAMPLES_DIR / "overlays" / "high-stakes-domain" / "delegation-matrix.yaml"
+
+
+def sample_ip_business_path() -> Path:
+    return EXAMPLES_DIR / "business" / "sample-ip-agent-readiness.yaml"
+
+
+def sample_ip_judgments_path() -> Path:
+    return EXAMPLES_DIR / "judgments" / "sample-ip-judgments.yaml"
+
+
 def sample_task_contract_green_path() -> Path:
     return EXAMPLES_DIR / "task-contracts" / "sample-green.yaml"
 

@@ -172,7 +172,7 @@ block になります。
 ## References
 
 - 正本: [`definitions/four-layer.yaml`](../definitions/four-layer.yaml)(問い・閾値・拡張ポイントの正本です)
-- 関連 doc: [`02_audit_log_schema.md`](02_audit_log_schema.md) / [`03_delegation_matrix.md`](03_delegation_matrix.md) / [`04_audit_log_gap_check.md`](04_audit_log_gap_check.md) / [`05_organization_axis.md`](05_organization_axis.md)(組織 readiness の並列軸)
+- 関連 doc: [`02_audit_log_schema.md`](02_audit_log_schema.md) / [`03_delegation_matrix.md`](03_delegation_matrix.md) / [`04_audit_log_gap_check.md`](04_audit_log_gap_check.md) / [`05_organization_axis.md`](05_organization_axis.md)(組織 readiness の並列軸)/ [`07_high_stakes_domain_overlay.md`](07_high_stakes_domain_overlay.md)(知財/法務/薬事向けに L5 ゲート層を足すドメイン overlay。base の層構成は変わりません)
 - CLI: `bin/aidr check-readiness --help`
 - 出典:
   - [メンテナによる分析記事 (Zenn / gh-pages ミラー)](https://suwa-sh.github.io/zenn-contents/articles/ajinomoto-accounting-agent_20260621/)

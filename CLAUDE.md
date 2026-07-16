@@ -85,6 +85,10 @@ self-documenting** であると同時に、**マージ規則の実体**でもあ
   読者から実装提案が来た時点で `schemas/audit-log.schema.json` に追加する
 - 既存ログ基盤の点検メモ(`docs/04`)は、ある自社運用エージェント基盤を題材にした
   worked example。他者は同じ手法を自社環境に当てる(冒頭の 5 ステップ参照)
+- **ドメイン overlay**(`examples/overlays/high-stakes-domain/`)は base を変えずに
+  高責任専門業務(知財/法務/薬事)向けの L5 ゲート層・閾値強化を足す実例(`docs/07`)。
+  新ドメインを足すときは同じ形(overlay ディレクトリ + サンプル入力 + docs/NN)を踏襲する。
+  case_evidence の出典が更新されたら overlay 側も追随する
 
 ## リリース手順(タグ push だけ。Release は手動作成しない)
 

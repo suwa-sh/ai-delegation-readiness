@@ -1,0 +1,33 @@
+# Sample input for `aidr score-delegation` with the high-stakes domain overlay.
+#
+# Run it twice to see the overlay's cautious-side discount in action:
+#
+#   # base thresholds (high = 2/3 per axis)
+#   ./bin/aidr score-delegation examples/judgments/sample-ip-judgments.yaml
+#
+#   # strengthened thresholds (high = 3/3 per axis)
+#   ./bin/aidr score-delegation examples/judgments/sample-ip-judgments.yaml \
+#     --overlay examples/overlays/high-stakes-domain/delegation-matrix.yaml
+#
+# Four patent-work process steps, mirroring the worked examples declared in
+# the overlay. Under base thresholds all four score green; under the overlay
+# only patent classification stays green — the boundary cases (2/3 on an
+# axis) drop to yellow or red. That drop is the point: in high-stakes domains
+# a near-perfect axis is not treated as "high".
+
+judgments:
+  - id: patent_classification
+    description: Assign patent classification codes (finite label set, large corpus of granted labels)
+    answers: { verifiability.V1: yes, verifiability.V2: yes, verifiability.V3: yes, answer_definability.A1: yes, answer_definability.A2: yes, answer_definability.A3: yes }
+
+  - id: prior_art_candidate_retrieval
+    description: Retrieve prior-art candidates for a claim (not the "nothing found" verdict)
+    answers: { verifiability.V1: yes, verifiability.V2: yes, verifiability.V3: yes, answer_definability.A1: yes, answer_definability.A2: yes, answer_definability.A3: no }
+
+  - id: patent_spec_draft
+    description: Draft a specification section by re-editing disclosure notes into problem/means/effect
+    answers: { verifiability.V1: yes, verifiability.V2: yes, verifiability.V3: no, answer_definability.A1: yes, answer_definability.A2: yes, answer_definability.A3: yes }
+
+  - id: invalidity_search_final
+    description: Finalize an invalidity search with the verdict "no relevant art exists"
+    answers: { verifiability.V1: yes, verifiability.V2: yes, verifiability.V3: no, answer_definability.A1: yes, answer_definability.A2: yes, answer_definability.A3: no }

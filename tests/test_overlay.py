@@ -11,7 +11,14 @@ from __future__ import annotations
 from copy import deepcopy
 
 import overlay_scoring as ov
-from conftest import four_layer_path, matrix_path, sample_overlay_path, task_contract_path
+from conftest import (
+    four_layer_path,
+    hs_overlay_four_layer_path,
+    hs_overlay_matrix_path,
+    matrix_path,
+    sample_overlay_path,
+    task_contract_path,
+)
 
 
 def four_layer() -> dict:
@@ -234,6 +241,28 @@ def test_roundtrip_sample_overlay():
     assert "L1.ACME_Q5" in ids and "L4.ACME_Q6" in ids
     l4 = next(i for i in r.merged["items"] if i["id"] == "L4")
     assert l4["revise"] == 0.8
+
+
+def test_roundtrip_high_stakes_four_layer_overlay():
+    r = ov.apply_overlay(four_layer(), ov.load_yaml(hs_overlay_four_layer_path()))
+    assert r.ok, r.violations
+    ids = _ids(r.merged)
+    assert "L5" in ids and "L5.Q1" in ids and "L5.Q4" in ids
+    assert "L3.HS_Q5" in ids and "L3.HS_Q6" in ids
+    l5 = next(i for i in r.merged["items"] if i["id"] == "L5")
+    # hard gate: no revise band — anything below 4/4 blocks
+    assert l5["pass"] == 1.0 and l5["revise"] == 1.0
+
+
+def test_roundtrip_high_stakes_matrix_overlay():
+    r = ov.apply_overlay(matrix(), ov.load_yaml(hs_overlay_matrix_path()))
+    assert r.ok, r.violations
+    for axis_id in ("verifiability", "answer_definability"):
+        axis = next(i for i in r.merged["items"] if i["id"] == axis_id)
+        assert axis["threshold"] == 3
+    ids = _ids(r.merged)
+    assert "examples.patent_classification" in ids
+    assert "examples.invalidity_search_final" in ids
 
 
 # --- delegation-matrix: axes / examples / regions ---------------------------

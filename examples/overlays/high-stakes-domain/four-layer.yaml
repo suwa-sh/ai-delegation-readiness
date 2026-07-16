@@ -1,0 +1,86 @@
+# Domain overlay: high-stakes professional work (IP / legal / pharma) —
+# readiness axis (extends four-layer-delegation-readiness).
+#
+# Derived from the Omron IP AI-agent insourcing analysis
+# (https://suwa-sh.github.io/zenn-contents/articles/omron-ip-agent-insourcing_20260629/).
+# The analysis concludes that delegating AI work in high-stakes professional
+# domains is an *exception that holds only under four prerequisites* — not a
+# general rule. This overlay encodes those prerequisites as a hard gate.
+#
+# What this overlay does:
+#   1. Adds a new gating layer "L5" (high-stakes prerequisites) with
+#      pass: 1.0 and revise: 1.0 — a single No verdict means BLOCK.
+#      "Meets all four conditions or do not delegate."
+#   2. Adds two reversibility / error-cost questions to L3 (delegation scope).
+#      Note the scoring consequence: L3 becomes 6 equal-weight questions, so
+#      pass requires 6/6 and revise requires 5/6 (revise: 0.75).
+#
+# How to reuse for your own domain: copy this file, rewrite the L5 questions
+# for your domain's failure modes (keep them domain-neutral in structure:
+# confidentiality, human verification loop, trained HITL, platform lifecycle),
+# and refresh case_evidence with your own sources. Validate with
+# `aidr check-overlay <your-file>`.
+#
+# Merge rules (enforced by `aidr check-overlay`):
+#   add          : append new items (existing ones are read-only)
+#   strengthen   : move a declared numeric field toward the stricter direction
+# Anything else (delete, replace, weaken) fails validation.
+
+version: 1
+extends: four-layer-delegation-readiness
+
+add:
+  # --- L3: reversibility and error-cost questions -----------------------------
+  # Delegation aptitude in high-stakes domains is determined by input structure
+  # x verifiability x reversibility x error tolerance. The base L3 covers
+  # verifiability; these two questions add reversibility and error cost.
+  - id: "L3.HS_Q5"
+    text: Are irreversible final decisions (filing confirmation, claim scope, "no prior art found") excluded from delegation?
+    weight: 1.0
+  - id: "L3.HS_Q6"
+    text: Is a human final decision inserted at steps where the cost of an error is asymmetric (litigation, loss of rights, regulatory sanction)?
+    weight: 1.0
+
+  # --- L5: high-stakes prerequisites (hard gate) ------------------------------
+  # pass: 1.0 and revise: 1.0 leave no revise band: 4/4 Yes passes, anything
+  # less is BLOCK. This is intentional — the source analysis frames the four
+  # conditions as necessary, not advisory.
+  - id: "L5"
+    name: high_stakes_prerequisites
+    name_ja: 高責任ドメイン成立条件層
+    purpose: |
+      Four prerequisites under which delegating high-context, high-stakes
+      professional work (IP / legal / pharma) holds as an exception. All four
+      must hold; a single missing condition means the delegation should not
+      proceed. Derived from the Omron IP AI-agent case read against its
+      strongest counter-evidence.
+    pass: 1.0
+    revise: 1.0
+    case_evidence:
+      - text: "METR RCT: experienced developers were measured 19% slower with AI while self-reporting 20% faster; METR's 2026-02 revision concedes early-2026 models are likely faster — treat self-reported savings as a discounting signal, not a constant"
+        confidence: claim_needs_verification
+        source: https://metr.org/blog/2025-07-10-early-2025-ai-experienced-os-dev-study/
+      - text: "MIT Project NANDA reports ~95% of generative-AI pilots produce no measurable P&L impact (secondary corroboration via Fortune)"
+        confidence: claim_needs_verification
+        source: https://fortune.com/2025/08/18/mit-report-95-percent-generative-ai-pilots-at-companies-failing-cfo/
+      - text: "Legal RAG tools from specialized vendors still hallucinate case law at material rates, so vendor pedigree alone does not remove the need for a trained human verification loop"
+        confidence: observed_fact
+        source: https://dho.stanford.edu/wp-content/uploads/Legal_RAG_Hallucinations.pdf
+      - text: "Entering pre-filing inventions into cloud AI services can constitute public prior disclosure (novelty loss); the EU applies absolute novelty with no grace period"
+        confidence: observed_fact
+        source: https://www.dlapiper.com/en-us/insights/publications/2026/04/before-you-prompt-ai-and-the-risk-of-public-prior-disclosure-for-patentable-inventions
+      - text: "Amazon Bedrock model lifecycle allows models to reach EOL on a 12-month cycle, so foundation-model migration is a standing yearly operating cost, not a one-time setup"
+        confidence: observed_fact
+        source: https://docs.aws.amazon.com/bedrock/latest/userguide/model-lifecycle.html
+  - id: "L5.Q1"
+    text: Is confidential material (pre-filing inventions, litigation records, clinical trial data) handled in a closed network with no public-disclosure or leakage path?
+    weight: 1.0
+  - id: "L5.Q2"
+    text: Is a human verification loop designed to catch misses (false negatives) where high recall is required?
+    weight: 1.0
+  - id: "L5.Q3"
+    text: Are human-in-the-loop procedures designed and trained assuming complacency (not merely "a human is present")?
+    weight: 1.0
+  - id: "L5.Q4"
+    text: Is the yearly operating cost of tracking short foundation-model lifecycles (EOL in as little as 12 months) budgeted?
+    weight: 1.0

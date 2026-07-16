@@ -1,0 +1,68 @@
+# Sample input for `aidr check-readiness` with the high-stakes domain overlay:
+#
+#   ./bin/aidr check-readiness examples/business/sample-ip-agent-readiness.yaml \
+#     --overlay examples/overlays/high-stakes-domain/four-layer.yaml
+#
+# Models a hypothetical IP department evaluating whether to delegate
+# prior-art search (candidate retrieval + analysis-report drafting) to an
+# in-house AI agent. The answers are illustrative, not from any real
+# organization.
+#
+# The story this sample tells: the process itself is well prepared — L1
+# through L4 all pass, including the overlay's reversibility questions
+# (L3.HS_Q5 / HS_Q6). What blocks the delegation is the high-stakes
+# prerequisite gate: HITL procedures exist but are not designed against
+# complacency (L5.Q3: no). One missing prerequisite is enough — the L5 gate
+# has no revise band, so the conclusion is BLOCK with blocked_from: L5.
+#
+# Answer keys are the full item id from definitions/four-layer.yaml plus the
+# overlay's added items. Unanswered questions count as unknown (treated as no).
+
+target: Prior-art search agent (hypothetical IP department, FY2026 assessment)
+
+answers:
+  # L1 Business standardization — search SOP and report templates are mature
+  L1.Q1: yes
+  L1.Q2: yes
+  L1.Q3: yes
+  L1.Q4: yes
+
+  # L2 Judgment structuring — retrieval/rerank rules map to (input, condition, decision)
+  L2.Q1: yes
+  L2.Q2: yes
+  L2.Q3: yes
+
+  # L3 Delegation scope — including the overlay's reversibility / error-cost questions
+  L3.Q1: yes
+  L3.Q2: yes
+  L3.Q3: yes
+  L3.Q4: yes
+  L3.HS_Q5: yes   # "no prior art found" finalization stays with humans
+  L3.HS_Q6: yes   # human final decision at asymmetric-error steps
+
+  # L4 Control & traceability
+  L4.Q1: yes
+  L4.Q2: yes
+  L4.Q3: yes
+  L4.Q4: yes
+  L4.Q5: yes
+
+  # L5 High-stakes prerequisites (overlay hard gate: all four must be yes)
+  L5.Q1: yes      # closed network for pre-filing inventions
+  L5.Q2: yes      # high-recall human verification loop designed
+  L5.Q3: no       # HITL exists but is NOT designed/trained against complacency
+  L5.Q4: yes      # yearly model-migration cost budgeted
+
+  # Efficacy measurement — measurement design still partial
+  efficacy.E1: yes
+  efficacy.E2: yes
+  efficacy.E3: no    # all-of-process vs part-of-process scope not yet stated
+  efficacy.E4: yes
+
+  # Organization readiness — receiving side mostly ready, bus factor open
+  organization.C1: yes
+  organization.C2: yes
+  organization.C3: yes
+  organization.C4: yes
+  organization.C5: yes
+  organization.C6: no   # no bus-factor countermeasure in operation yet

@@ -127,6 +127,20 @@ values, then run the commands in this order — from diagnosis to extension.
    `aidr validate-audit-log my-log.json --level extended`.
 6. **Extend (optional)** — add your own questions / thresholds via an overlay,
    validated by `aidr check-overlay <path>` and applied with `--overlay`.
+   A bundled domain overlay for high-stakes professional work (IP / legal /
+   pharma) adds a hard prerequisite gate (L5) and cautious-side matrix
+   thresholds — see
+   [`docs/07_high_stakes_domain_overlay.md`](docs/07_high_stakes_domain_overlay.md):
+
+   ```bash
+   aidr check-readiness examples/business/sample-ip-agent-readiness.yaml \
+     --overlay examples/overlays/high-stakes-domain/four-layer.yaml
+   # => L1-L4 all PASS, yet one missing prerequisite blocks at L5
+
+   aidr score-delegation examples/judgments/sample-ip-judgments.yaml \
+     --overlay examples/overlays/high-stakes-domain/delegation-matrix.yaml
+   # => boundary cases (2/3 on an axis) drop from green to yellow / red
+   ```
 
 Sample output (`check-readiness`) — `[OK]` pass / `[..]` revise / `[NG]` block per
 layer and axis, then an overall verdict. This run uses the bundled
@@ -177,11 +191,11 @@ ai-delegation-readiness/
 ├── src/adr/                     # Python diagnostic tool (shipped as a container image)
 ├── bin/aidr                     # CLI entry point (single command, 6 subcommands)
 ├── examples/
-│   ├── business/                # Sample input for check-readiness (incl. the two-axis ajinomoto-discovery-team)
-│   ├── judgments/               # Sample input for score-delegation
+│   ├── business/                # Sample input for check-readiness (ajinomoto-discovery-team / sample-ip-agent-readiness)
+│   ├── judgments/               # Sample input for score-delegation (generic / 4 patent-work steps)
 │   ├── task-contracts/          # Sample input for check-task-contract (green / red-ai-judge)
 │   ├── audit-log-sample.json    # Sample audit log (extended-level valid)
-│   ├── overlays/                # Sample overlays (Acme Corp; organization-readiness-ajinomoto)
+│   ├── overlays/                # Sample overlays (Acme Corp; organization-readiness-ajinomoto; high-stakes-domain)
 │   └── skills/                  # Two Claude Code skill samples
 └── docs/
     ├── 01_four_layer_framework.md
@@ -189,7 +203,8 @@ ai-delegation-readiness/
     ├── 03_delegation_matrix.md
     ├── 04_audit_log_gap_check.md
     ├── 05_organization_axis.md
-    └── 06_task_contract_execution_rubric.md
+    ├── 06_task_contract_execution_rubric.md
+    └── 07_high_stakes_domain_overlay.md
 ```
 
 ## How to extend

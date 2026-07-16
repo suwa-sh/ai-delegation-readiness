@@ -115,3 +115,91 @@ def test_exit_code_0_when_only_greens(tmp_path):
     )
     result = sd.score(j)
     assert result.conclusion_exit_code == 0
+
+
+# --- high-stakes domain overlay (examples/overlays/high-stakes-domain) ------
+
+def _hs_matrix_overlay_path():
+    from conftest import hs_overlay_matrix_path
+    return hs_overlay_matrix_path()
+
+
+def _ip_judgments_path():
+    from conftest import sample_ip_judgments_path
+    return sample_ip_judgments_path()
+
+
+def test_sample_ip_judgments_without_overlay_all_green():
+    """Under base thresholds (2/3), every patent-work step scores green."""
+    result = sd.score(_ip_judgments_path())
+    assert {j.region for j in result.judgments} == {"green"}
+
+
+def test_sample_ip_judgments_with_overlay_regions():
+    """Under strengthened thresholds (3/3), only classification stays green."""
+    result = sd.score(_ip_judgments_path(), overlay_paths=[_hs_matrix_overlay_path()])
+    by_id = {j.id: j.region for j in result.judgments}
+    assert by_id == {
+        "patent_classification": "green",
+        "prior_art_candidate_retrieval": "yellow",
+        "patent_spec_draft": "yellow",
+        "invalidity_search_final": "red",
+    }
+
+
+def _region_for(v_high: bool, a_high: bool) -> str:
+    if v_high and a_high:
+        return "green"
+    if v_high or a_high:
+        return "yellow"
+    return "red"
+
+
+def _merged_matrix_with_hs_overlay() -> dict:
+    import overlay_scoring as ov
+    from conftest import matrix_path
+    base = ov.load_yaml(matrix_path())
+    r = ov.apply_overlays(base, [_hs_matrix_overlay_path()])
+    assert r.ok, r.violations
+    return r.merged
+
+
+# Base worked examples whose stored region (computed under base thresholds 2/3)
+# lands in a stricter region when re-read under the overlay thresholds (3/3).
+# Overlays cannot rewrite existing items, so this divergence is intentional and
+# pinned here; docs/07 documents how to read it.
+_EXPECTED_STALE_BASE_EXAMPLES = {
+    "examples.entertainment_expense_determination": ("green", "red"),
+    "examples.coding_mechanical_refactor": ("green", "yellow"),
+    "examples.discriminatory_expression_detection": ("yellow", "red"),
+    "examples.expense_account_code_suggestion": ("yellow", "red"),
+}
+
+_HS_EXAMPLE_IDS = {
+    "examples.patent_classification",
+    "examples.prior_art_candidate_retrieval",
+    "examples.patent_spec_draft",
+    "examples.invalidity_search_final",
+}
+
+
+def test_high_stakes_examples_consistent_and_base_divergence_pinned():
+    merged = _merged_matrix_with_hs_overlay()
+    thresholds = {
+        i["id"]: i["threshold"]
+        for i in merged["items"]
+        if i["id"] in ("verifiability", "answer_definability")
+    }
+    stale: dict[str, tuple[str, str]] = {}
+    for item in merged["items"]:
+        if "verifiability_yes" not in item:
+            continue  # examples group header or non-scored leaf
+        v_high = len(item["verifiability_yes"]) >= thresholds["verifiability"]
+        a_high = len(item.get("answer_definability_yes", [])) >= thresholds["answer_definability"]
+        recomputed = _region_for(v_high, a_high)
+        if item["id"] in _HS_EXAMPLE_IDS:
+            # overlay-declared examples must agree with the strengthened thresholds
+            assert item["region"] == recomputed, item["id"]
+        elif item["region"] != recomputed:
+            stale[item["id"]] = (item["region"], recomputed)
+    assert stale == _EXPECTED_STALE_BASE_EXAMPLES

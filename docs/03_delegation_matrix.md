@@ -113,4 +113,4 @@ bin/aidr score-delegation examples/judgments/sample-judgments.yaml
 - 正本: [`definitions/delegation-matrix.yaml`](../definitions/delegation-matrix.yaml)
 - サンプル入力: [`examples/judgments/sample-judgments.yaml`](../examples/judgments/sample-judgments.yaml)
 - CLI: `bin/aidr score-delegation --help`
-- 関連 doc: [`01_four_layer_framework.md`](01_four_layer_framework.md) の③委任範囲層 / [`02_audit_log_schema.md`](02_audit_log_schema.md)
+- 関連 doc: [`01_four_layer_framework.md`](01_four_layer_framework.md) の③委任範囲層 / [`02_audit_log_schema.md`](02_audit_log_schema.md) / [`07_high_stakes_domain_overlay.md`](07_high_stakes_domain_overlay.md)(知財/法務/薬事向けに両軸の閾値を 3/3 へ強化するドメイン overlay。base の閾値 2/3 は変わりません)

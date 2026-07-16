@@ -210,6 +210,21 @@ aidr check-readiness my-business.yaml --overlay examples/overlays/sample-company
 overlay が `add`(追加)/ `strengthen`(強化)のルールを満たせば `[OK]`、違反すれば
 `[NG]` と理由を返します。検証を通った overlay を `--overlay` で各コマンドに適用します。
 
+**ドメイン overlay の実例**: 知財/法務/薬事のような高責任専門業務向けに、成立条件 4 つの
+ハードゲート層(L5)と慎重側の閾値(両軸 3/3)を足す overlay を同梱しています。
+
+```bash
+aidr check-readiness examples/business/sample-ip-agent-readiness.yaml \
+  --overlay examples/overlays/high-stakes-domain/four-layer.yaml
+# => L1-L4 が全 PASS でも、成立条件が 1 つ欠ければ L5 で BLOCK
+
+aidr score-delegation examples/judgments/sample-ip-judgments.yaml \
+  --overlay examples/overlays/high-stakes-domain/delegation-matrix.yaml
+# => base では green の境界例(2/3)が yellow / red に落ちる
+```
+
+背景と読み替え方は [`docs/07_high_stakes_domain_overlay.md`](docs/07_high_stakes_domain_overlay.md) を参照してください。
+
 ## Who this is for
 
 | あなたが... | まず読むもの |
@@ -232,11 +247,11 @@ ai-delegation-readiness/
 ├── src/adr/                     # Python 診断ツール(コンテナイメージで配布)
 ├── bin/aidr                     # CLI エントリポイント(単一コマンド、6 サブコマンド)
 ├── examples/
-│   ├── business/                # check-readiness のサンプル入力(2 軸の ajinomoto-discovery-team を含む)
-│   ├── judgments/               # score-delegation のサンプル入力
+│   ├── business/                # check-readiness のサンプル入力(ajinomoto-discovery-team / sample-ip-agent-readiness)
+│   ├── judgments/               # score-delegation のサンプル入力(汎用 / 知財 4 工程)
 │   ├── task-contracts/          # check-task-contract のサンプル入力(green / red-ai-judge)
 │   ├── audit-log-sample.json    # サンプル監査ログ(extended 有効)
-│   ├── overlays/                # overlay サンプル(Acme Corp / organization-readiness-ajinomoto)
+│   ├── overlays/                # overlay サンプル(Acme Corp / organization-readiness-ajinomoto / high-stakes-domain)
 │   └── skills/                  # Claude Code skill サンプル 2 種
 └── docs/
     ├── 01_four_layer_framework.md
@@ -244,7 +259,8 @@ ai-delegation-readiness/
     ├── 03_delegation_matrix.md
     ├── 04_audit_log_gap_check.md
     ├── 05_organization_axis.md
-    └── 06_task_contract_execution_rubric.md
+    ├── 06_task_contract_execution_rubric.md
+    └── 07_high_stakes_domain_overlay.md
 ```
 
 ## How to extend(フレームワークの意図)
