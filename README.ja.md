@@ -60,21 +60,21 @@
 そのまま動きます。
 
 ```bash
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.4.0 --version
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.5.0 --version
 
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.4.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.5.0 \
   check-readiness examples/business/sample-expense-approval.yaml
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.4.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.5.0 \
   score-delegation examples/judgments/sample-judgments.yaml
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.4.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.5.0 \
   validate-audit-log examples/audit-log-sample.json --level extended
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.4.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.5.0 \
   check-overlay examples/overlays/sample-company/extra-rules.yaml
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.4.0 list-definitions
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.5.0 list-definitions
 ```
 
 `--version` はアプリのバージョンと同梱の overlay エンジンのバージョンを表示します。例:
-`aidr 0.4.0 (overlay-scoring-skeleton 0.1.0)`。
+`aidr 0.5.0 (overlay-scoring-skeleton 0.1.0)`。
 
 各コマンドは決定的な終了コードを返すので、CI のゲートに使えます。
 **0** ok ・ **1** partial(yellow)・ **2** block(red: 欠落・SLA 違反・overlay 却下)・
@@ -87,7 +87,7 @@ docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.4.0 list-definitions
 
 ```bash
 aidr() { docker run --rm -v "$PWD:/data" -w /data \
-  ghcr.io/suwa-sh/ai-delegation-readiness:v0.4.0 "$@"; }
+  ghcr.io/suwa-sh/ai-delegation-readiness:v0.5.0 "$@"; }
 ```
 
 [`examples/`](examples/) の各サンプルをひな型として書き換え、自社の値を入れてから
@@ -299,7 +299,7 @@ aidr check-readiness mybiz.yaml --overlay our-rules.yaml
   `schemas/audit-log.schema.json` を system prompt や tool context にロードします。
   [`examples/skills/`](examples/skills/) に Claude Code skill のラッパー 2 種を用意しています
 - **CI パイプライン**: 出力ログ 1 件ごとに
-  `docker run --rm -v "$PWD:/data" -w /data ghcr.io/suwa-sh/ai-delegation-readiness:v0.4.0 validate-audit-log <log>`
+  `docker run --rm -v "$PWD:/data" -w /data ghcr.io/suwa-sh/ai-delegation-readiness:v0.5.0 validate-audit-log <log>`
   を呼び、exit code でゲートします
 - **社内 overlay**: 自社固有の overlay をプライベートリポで管理し、`--overlay` で
   適用します。本リポはクリーンな upstream として pull できます
