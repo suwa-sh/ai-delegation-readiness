@@ -74,7 +74,7 @@ docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.5.0 list-definitions
 ```
 
 `--version` はアプリのバージョンと同梱の overlay エンジンのバージョンを表示します。例:
-`aidr 0.5.0 (overlay-scoring-skeleton 0.1.0)`。
+`aidr 0.6.0 (overlay-scoring-skeleton 0.1.0)`。
 
 各コマンドは決定的な終了コードを返すので、CI のゲートに使えます。
 **0** ok ・ **1** partial(yellow)・ **2** block(red: 欠落・SLA 違反・overlay 却下)・
@@ -225,6 +225,18 @@ aidr score-delegation examples/judgments/sample-ip-judgments.yaml \
 
 背景と読み替え方は [`docs/07_high_stakes_domain_overlay.md`](docs/07_high_stakes_domain_overlay.md) を参照してください。
 
+**内製化判断責任の overlay**: 「AI に委任してよいか」の前段にある **内製化=どの判断責任を社内に残すか**
+を採点する並列軸 `L_insourcing`(5 問)を足す overlay も同梱しています。L1〜L4 をゲートせず、
+「業務は委任できるが内製化判断責任が未確立」を独立した verdict として表面化させます。
+
+```bash
+aidr check-readiness examples/business/sample-insourcing-readiness.yaml \
+  --overlay examples/overlays/insourcing-judgment/four-layer.yaml
+# => L1-L4・組織が全 PASS でも、上流判断に社内の固有名が欠ければ L_insourcing が REVISE/BLOCK
+```
+
+背景と 5 問の設計は [`docs/08_insourcing_judgment_overlay.md`](docs/08_insourcing_judgment_overlay.md) を参照してください。
+
 ## Who this is for
 
 | あなたが... | まず読むもの |
@@ -247,11 +259,11 @@ ai-delegation-readiness/
 ├── src/adr/                     # Python 診断ツール(コンテナイメージで配布)
 ├── bin/aidr                     # CLI エントリポイント(単一コマンド、6 サブコマンド)
 ├── examples/
-│   ├── business/                # check-readiness のサンプル入力(ajinomoto-discovery-team / sample-ip-agent-readiness)
+│   ├── business/                # check-readiness のサンプル入力(ajinomoto-discovery-team / sample-ip-agent-readiness / sample-insourcing-readiness)
 │   ├── judgments/               # score-delegation のサンプル入力(汎用 / 知財 4 工程)
 │   ├── task-contracts/          # check-task-contract のサンプル入力(green / red-ai-judge)
 │   ├── audit-log-sample.json    # サンプル監査ログ(extended 有効)
-│   ├── overlays/                # overlay サンプル(Acme Corp / organization-readiness-ajinomoto / high-stakes-domain)
+│   ├── overlays/                # overlay サンプル(Acme Corp / organization-readiness-ajinomoto / high-stakes-domain / insourcing-judgment)
 │   └── skills/                  # Claude Code skill サンプル 2 種
 └── docs/
     ├── 01_four_layer_framework.md
@@ -260,7 +272,8 @@ ai-delegation-readiness/
     ├── 04_audit_log_gap_check.md
     ├── 05_organization_axis.md
     ├── 06_task_contract_execution_rubric.md
-    └── 07_high_stakes_domain_overlay.md
+    ├── 07_high_stakes_domain_overlay.md
+    └── 08_insourcing_judgment_overlay.md
 ```
 
 ## How to extend(フレームワークの意図)

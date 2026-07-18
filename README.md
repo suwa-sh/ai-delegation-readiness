@@ -88,7 +88,7 @@ docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.5.0 list-definitions
 ```
 
 `--version` prints the app version and the bundled overlay engine version, e.g.
-`aidr 0.5.0 (overlay-scoring-skeleton 0.1.0)`.
+`aidr 0.6.0 (overlay-scoring-skeleton 0.1.0)`.
 
 Every command returns a deterministic exit code so you can gate CI on it:
 **0** ok · **1** partial (yellow) · **2** block (red: gaps, SLA breach, rejected
@@ -142,6 +142,19 @@ values, then run the commands in this order — from diagnosis to extension.
    # => boundary cases (2/3 on an axis) drop from green to yellow / red
    ```
 
+   A second bundled overlay scores **insourcing judgment responsibility** — the
+   "which upstream judgments a company keeps in-house" question that *precedes*
+   delegation — as a parallel axis `L_insourcing` (5 questions). It does not gate
+   L1-L4; it surfaces "process delegable, but insourcing judgment responsibility
+   not established" as its own verdict. See
+   [`docs/08_insourcing_judgment_overlay.md`](docs/08_insourcing_judgment_overlay.md):
+
+   ```bash
+   aidr check-readiness examples/business/sample-insourcing-readiness.yaml \
+     --overlay examples/overlays/insourcing-judgment/four-layer.yaml
+   # => L1-L4 and organization all PASS, yet a missing in-house owner is REVISE/BLOCK
+   ```
+
 Sample output (`check-readiness`) — `[OK]` pass / `[..]` revise / `[NG]` block per
 layer and axis, then an overall verdict. This run uses the bundled
 [`examples/business/ajinomoto-discovery-team.yaml`](examples/business/ajinomoto-discovery-team.yaml),
@@ -191,11 +204,11 @@ ai-delegation-readiness/
 ├── src/adr/                     # Python diagnostic tool (shipped as a container image)
 ├── bin/aidr                     # CLI entry point (single command, 6 subcommands)
 ├── examples/
-│   ├── business/                # Sample input for check-readiness (ajinomoto-discovery-team / sample-ip-agent-readiness)
+│   ├── business/                # Sample input for check-readiness (ajinomoto-discovery-team / sample-ip-agent-readiness / sample-insourcing-readiness)
 │   ├── judgments/               # Sample input for score-delegation (generic / 4 patent-work steps)
 │   ├── task-contracts/          # Sample input for check-task-contract (green / red-ai-judge)
 │   ├── audit-log-sample.json    # Sample audit log (extended-level valid)
-│   ├── overlays/                # Sample overlays (Acme Corp; organization-readiness-ajinomoto; high-stakes-domain)
+│   ├── overlays/                # Sample overlays (Acme Corp; organization-readiness-ajinomoto; high-stakes-domain; insourcing-judgment)
 │   └── skills/                  # Two Claude Code skill samples
 └── docs/
     ├── 01_four_layer_framework.md
@@ -204,7 +217,8 @@ ai-delegation-readiness/
     ├── 04_audit_log_gap_check.md
     ├── 05_organization_axis.md
     ├── 06_task_contract_execution_rubric.md
-    └── 07_high_stakes_domain_overlay.md
+    ├── 07_high_stakes_domain_overlay.md
+    └── 08_insourcing_judgment_overlay.md
 ```
 
 ## How to extend

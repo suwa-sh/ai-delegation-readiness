@@ -1,0 +1,104 @@
+# Overlay: insourcing judgment-responsibility axis (extends four-layer-delegation-readiness).
+#
+# Derived from the Mizuho Securities insourcing analysis
+# (「内製化の本質は採用ではなく『誰が判断責任を持つか』」).
+# The analysis reframes insourcing as *which judgment responsibility a company
+# keeps in-house*, not *which work it pulls back*. In the AI era the work layer
+# (coding) moves to agents, so the durable substance is upstream judgment
+# responsibility: who in-house decides requirement priority, architecture,
+# acceptance criteria, and exception handling.
+#
+# What this overlay does:
+#   Adds ONE parallel axis "L_insourcing" (role: parallel) with five equal-weight
+#   questions — I0 (the core/non-core line) plus I1-I4 (the four upstream
+#   judgment-ownership questions). It is scored alongside `organization` and
+#   `efficacy`, and does NOT gate the delegation layers L1-L4. This encodes the
+#   article's point that insourcing judgment responsibility *complements* the
+#   delegation question rather than blocking it: "the process is delegable, but
+#   who owns the upstream judgment is unclear" surfaces as its own verdict.
+#
+# Why the id is "L_insourcing" (not "insourcing"):
+#   The base `extension_points` only make groups matching `L*` / `efficacy` /
+#   `organization` add-able via overlay. A brand-new `insourcing` group is
+#   rejected by `aidr check-overlay`. The `L*` selector accepts any L-prefixed
+#   name, and `check_readiness.py` classifies gating-vs-parallel purely by the
+#   `role` field (not by the name), so `L_insourcing` + `role: parallel` is a
+#   non-gating axis added without touching the base definition.
+#
+# Scope note (no duplication with existing axes):
+#   The article's layer 2 (talent development / role redesign / bus factor) is
+#   already covered by the `organization` axis (C2/C4/C6); its layer 3 (AI does
+#   the work, humans keep final judgment) is already covered by L3/L4. This
+#   overlay deliberately scores only the non-overlapping core — layer 0 (I0) and
+#   layer 1 (I1-I4). See docs/08 for the mapping.
+#
+# How to reuse for your own framing: copy this file, keep the five-question
+# structure (one "what is core" precondition + four "who owns the judgment"
+# questions), rewrite the questions for your domain, and refresh case_evidence
+# with your own sources. Validate with `aidr check-overlay <your-file>`.
+#
+# Merge rules (enforced by `aidr check-overlay`):
+#   add          : append new items (existing ones are read-only)
+#   strengthen   : move a declared numeric field toward the stricter direction
+# Anything else (delete, replace, weaken) fails validation.
+
+version: 1
+extends: four-layer-delegation-readiness
+
+add:
+  # --- L_insourcing: insourcing judgment-responsibility (parallel axis) --------
+  # pass: 1.0 (5/5) and revise: 0.8 (4/5) => a single missing owner is REVISE,
+  # two or more (<=3/5) is BLOCK. The strict bar (0.8, vs organization's 0.66)
+  # is grounded in the refutations below: insourcing is a management-wide design
+  # (core/non-core line + development + role redesign + evaluation), so each of
+  # the four upstream judgments genuinely needs a named in-house owner. I0 is the
+  # precondition ("draw the core/non-core line first"); the engine scores the
+  # axis as a flat weighted average, so I0 is one equal-weight signal — when I0
+  # is no, read the downstream I1-I4 as premature (fix the line first). See
+  # docs/08 for the layer-0 -> layer-1 dependency reading.
+  - id: "L_insourcing"
+    name: insourcing_judgment_responsibility
+    name_ja: 内製化判断責任層
+    role: parallel
+    pass: 1.0
+    revise: 0.8
+    purpose: |
+      Insourcing is not "which work to pull back in-house" but "which judgment
+      responsibility a company keeps in-house". In the AI era the work layer
+      moves to agents, so readiness is measured by whether each upstream
+      judgment (requirement priority, architecture, acceptance criteria,
+      exception handling) has a named in-house owner, on top of a documented
+      core/non-core line. This axis is parallel to L1-L4 so that "process
+      delegable but insourcing judgment responsibility not established" is
+      scored on its own, not hidden behind a green delegation score.
+    # Refutations recorded as discounting conditions. Figures the source article
+    # flags as second-hand / not cross-checked against the primary PDF are marked
+    # claim_needs_verification and must not be asserted as fact.
+    case_evidence:
+      - text: Mizuho is a statement-stage case, not a proven exemplar; the FSA cited a gap between stated policy and execution and a corporate culture not easily improved (2021-11-26 administrative action)
+        confidence: gap_in_source
+        source: https://www.fsa.go.jp/news/r3/ginkou/20211126/20211126.html
+      - text: Full insourcing fails in typical patterns (hiring cost ~2x the estimate, system stoppage on key-person departure, technical debt from missing docs/reviews), so the core/non-core line (I0) must come first
+        confidence: claim_needs_verification
+        source: https://lassic.co.jp/media/column/in-house-development-failure-patterns/
+      - text: IT talent is skewed to vendors in Japan (~72% vendor-employed, cited second-hand from IPA white papers; the primary-PDF page match is unresolved), so a single company's design alone cannot close the gap — set expectations against this structural constraint
+        confidence: claim_needs_verification
+        source: https://www.ipa.go.jp/digital/chousa/dx-trend/dx-trend-2025.html
+      - text: The core/non-core split (keep strategic/competitive areas in-house, buy commodity as SaaS/outsourcing) is the standard move for turning IT from a cost center into value creation
+        confidence: observed_fact
+        source: https://www.soumu.go.jp/johotsusintokei/whitepaper/ja/r01/html/nd123110.html
+  - id: "L_insourcing.I0"
+    text: Is the core/non-core line (what counts as in-house scope) documented and decided by a named in-house owner?
+    weight: 1.0
+  - id: "L_insourcing.I1"
+    text: Does a named in-house owner decide requirement priority (what to build and what not to build)?
+    weight: 1.0
+  - id: "L_insourcing.I2"
+    text: Does a named in-house owner hold the final decision on the main technical/architecture choices?
+    weight: 1.0
+  - id: "L_insourcing.I3"
+    text: Does a named in-house owner define the acceptance criteria (the pass/fail line) and sign off on deliverables?
+    weight: 1.0
+  - id: "L_insourcing.I4"
+    text: On exception/rollback, is it defined where a human intervenes and who bears responsibility?
+    weight: 1.0

@@ -247,3 +247,78 @@ def test_sample_ip_business_blocks_at_l5():
     assert verdicts == {"L1": "pass", "L2": "pass", "L3": "pass", "L4": "pass", "L5": "block"}
     assert result.conclusion == "BLOCK"
     assert result.blocked_from == "L5"
+
+
+# --- insourcing-judgment overlay (examples/overlays/insourcing-judgment) -----
+# L_insourcing is a PARALLEL axis: it is scored alongside efficacy/organization
+# and never gates L1-L4. pass 1.0 / revise 0.8 over 5 equal-weight questions ->
+# 5/5 PASS, 4/5 REVISE, <=3/5 BLOCK. These fix each boundary individually.
+
+def _insourcing_overlay_path():
+    from conftest import insourcing_overlay_path
+    return insourcing_overlay_path()
+
+
+def _merged_all_yes_insourcing_answers() -> dict:
+    base = yaml.safe_load(four_layer_path().read_text())
+    merged = ov.apply_overlays(base, [_insourcing_overlay_path()]).merged
+    sep = ov.separator_of(merged)
+    return {item["id"]: "yes" for item in merged["items"] if ov.is_leaf(item["id"], sep)}
+
+
+def _insourcing_axis(result):
+    return next(a for a in result.parallel_axes if a.id == "L_insourcing")
+
+
+def test_insourcing_all_yes_passes(tmp_path):
+    """5/5 on L_insourcing (and all other axes) -> PASS."""
+    biz_path = tmp_path / "biz.yaml"
+    biz_path.write_text(yaml.safe_dump({"target": "ins-all-yes", "answers": _merged_all_yes_insourcing_answers()}))
+    result = cr.check(biz_path, overlay_paths=[_insourcing_overlay_path()])
+    axis = _insourcing_axis(result)
+    assert axis.verdict == "pass" and axis.score == 1.0
+    assert result.conclusion == "PASS"
+    assert result.blocked_from is None
+
+
+def test_insourcing_single_no_revises_without_gating(tmp_path):
+    """4/5 (one missing owner) -> the axis REVISEs but does NOT gate L1-L4."""
+    answers = _merged_all_yes_insourcing_answers()
+    answers["L_insourcing.I2"] = "no"
+    biz_path = tmp_path / "biz.yaml"
+    biz_path.write_text(yaml.safe_dump({"target": "ins-one-no", "answers": answers}))
+    result = cr.check(biz_path, overlay_paths=[_insourcing_overlay_path()])
+    axis = _insourcing_axis(result)
+    assert axis.verdict == "revise" and axis.score == 0.8
+    assert result.conclusion == "REVISE"
+    # parallel axis: every gating layer still passes, so no first gate to fix
+    assert all(layer.verdict == "pass" for layer in result.layers)
+    assert result.blocked_from is None
+
+
+def test_insourcing_two_no_blocks_without_gating(tmp_path):
+    """3/5 -> the axis BLOCKs but still does NOT gate L1-L4 (parallel)."""
+    answers = _merged_all_yes_insourcing_answers()
+    answers["L_insourcing.I0"] = "no"
+    answers["L_insourcing.I1"] = "no"
+    biz_path = tmp_path / "biz.yaml"
+    biz_path.write_text(yaml.safe_dump({"target": "ins-two-no", "answers": answers}))
+    result = cr.check(biz_path, overlay_paths=[_insourcing_overlay_path()])
+    axis = _insourcing_axis(result)
+    assert axis.verdict == "block" and axis.score == 0.6
+    assert result.conclusion == "BLOCK"
+    # even at BLOCK the parallel axis does not become a gate
+    assert all(layer.verdict == "pass" for layer in result.layers)
+    assert result.blocked_from is None
+
+
+def test_sample_insourcing_business_revises():
+    """The bundled sample: process + organization pass, L_insourcing REVISEs (I2)."""
+    from conftest import sample_insourcing_business_path
+    result = cr.check(sample_insourcing_business_path(), overlay_paths=[_insourcing_overlay_path()])
+    assert all(layer.verdict == "pass" for layer in result.layers)
+    axis = _insourcing_axis(result)
+    assert axis.verdict == "revise"
+    assert axis.no_ids == ["L_insourcing.I2"]
+    assert result.conclusion == "REVISE"
+    assert result.blocked_from is None

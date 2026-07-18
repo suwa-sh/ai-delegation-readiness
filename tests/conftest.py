@@ -63,6 +63,14 @@ def sample_ip_judgments_path() -> Path:
     return EXAMPLES_DIR / "judgments" / "sample-ip-judgments.yaml"
 
 
+def insourcing_overlay_path() -> Path:
+    return EXAMPLES_DIR / "overlays" / "insourcing-judgment" / "four-layer.yaml"
+
+
+def sample_insourcing_business_path() -> Path:
+    return EXAMPLES_DIR / "business" / "sample-insourcing-readiness.yaml"
+
+
 def sample_task_contract_green_path() -> Path:
     return EXAMPLES_DIR / "task-contracts" / "sample-green.yaml"
 

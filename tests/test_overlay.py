@@ -15,6 +15,7 @@ from conftest import (
     four_layer_path,
     hs_overlay_four_layer_path,
     hs_overlay_matrix_path,
+    insourcing_overlay_path,
     matrix_path,
     sample_overlay_path,
     task_contract_path,
@@ -252,6 +253,19 @@ def test_roundtrip_high_stakes_four_layer_overlay():
     l5 = next(i for i in r.merged["items"] if i["id"] == "L5")
     # hard gate: no revise band — anything below 4/4 blocks
     assert l5["pass"] == 1.0 and l5["revise"] == 1.0
+
+
+def test_roundtrip_insourcing_overlay():
+    r = ov.apply_overlay(four_layer(), ov.load_yaml(insourcing_overlay_path()))
+    assert r.ok, r.violations
+    ids = _ids(r.merged)
+    assert "L_insourcing" in ids
+    for q in ("I0", "I1", "I2", "I3", "I4"):
+        assert f"L_insourcing.{q}" in ids
+    axis = next(i for i in r.merged["items"] if i["id"] == "L_insourcing")
+    # parallel axis (does not gate L1-L4) with a strict bar: 5/5 pass, 4/5 revise
+    assert axis["role"] == "parallel"
+    assert axis["pass"] == 1.0 and axis["revise"] == 0.8
 
 
 def test_roundtrip_high_stakes_matrix_overlay():
