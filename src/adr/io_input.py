@@ -122,7 +122,15 @@ def _read_csv_rows(path: Path) -> list[list[str]]:
             raise InputFormatError(
                 f"{path.name}: cannot decode as UTF-8 or CP932 (Shift_JIS)"
             ) from e
-    rows = list(csv.reader(io.StringIO(text, newline="")))
+    if "\x00" in text:
+        # cp932 は多くのバイト列を受理するため、バイナリを誤って decode しうる。
+        # NUL 入りは CSV ではない(Python 3.10 の csv は NUL で例外、3.11+ は
+        # 素通しとバージョン差もある)ので、一貫して入力エラーにする。
+        raise InputFormatError(f"{path.name}: binary data (NUL bytes) — not a CSV file")
+    try:
+        rows = list(csv.reader(io.StringIO(text, newline="")))
+    except csv.Error as e:
+        raise InputFormatError(f"{path.name}: malformed CSV: {e}") from e
     # セル前後の空白を strip し、末尾の空行を落とす
     rows = [[cell.strip() for cell in row] for row in rows]
     while rows and not any(rows[-1]):
