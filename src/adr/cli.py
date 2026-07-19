@@ -209,7 +209,7 @@ def build_parser() -> argparse.ArgumentParser:
         "check-readiness",
         help="Score a business against the 4-layer + efficacy framework",
     )
-    p_check.add_argument("business", help="Path to the business answers YAML")
+    p_check.add_argument("business", help="Path to the answers file (CSV or YAML)")
     _shared_overlay_args(p_check, formats=_REPORT_FORMATS)
     p_check.set_defaults(func=_cmd_check_readiness)
 
@@ -242,7 +242,7 @@ def build_parser() -> argparse.ArgumentParser:
         "screen-transition",
         help="Screen task groups into the 4 AI-transition types (pre-delegation planning map)",
     )
-    p_screen.add_argument("task_groups", help="Path to the task-groups YAML")
+    p_screen.add_argument("task_groups", help="Path to the task-groups file (CSV or YAML)")
     _shared_overlay_args(p_screen, formats=_REPORT_FORMATS)
     p_screen.set_defaults(func=_cmd_screen_transition)
 
@@ -250,7 +250,7 @@ def build_parser() -> argparse.ArgumentParser:
         "score-delegation",
         help="Score per-judgment delegation regions (green/yellow/red)",
     )
-    p_score.add_argument("judgments", help="Path to the judgments YAML")
+    p_score.add_argument("judgments", help="Path to the judgments file (CSV or YAML)")
     _shared_overlay_args(p_score, formats=_REPORT_FORMATS)
     p_score.set_defaults(func=_cmd_score_delegation)
 
@@ -258,7 +258,7 @@ def build_parser() -> argparse.ArgumentParser:
         "check-task-contract",
         help="Score a delegated task's execution contract (intent/boundary/evidence/scorer)",
     )
-    p_task.add_argument("contract", help="Path to the task-contract YAML")
+    p_task.add_argument("contract", help="Path to the task-contract file (CSV or YAML)")
     _shared_overlay_args(p_task, formats=_REPORT_FORMATS)
     p_task.set_defaults(func=_cmd_check_task_contract)
 

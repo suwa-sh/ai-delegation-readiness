@@ -135,6 +135,19 @@ def _all_text_ja() -> dict[str, str]:
 _ANSWER_LINE_RE = re.compile(r"^\s*([\w.]+): \S")
 
 
+def _data_label_ja() -> dict[str, str]:
+    """data leaf(scorer.type 等)の label_ja を定義から集める(ドリフト検査用)。"""
+    data = ov.load_yaml(task_contract_path())
+    return {
+        item["id"]: " ".join(str(item["label_ja"]).split())
+        for item in data.get("items", [])
+        if isinstance(item, dict) and item.get("kind") == "data" and "label_ja" in item
+    }
+
+
+_DATA_LABEL_JA = _data_label_ja()
+
+
 def test_example_question_comments_match_definitions():
     """残す YAML 記入例(双子 1 本)の「問:」コメントが正本と一致すること。"""
     text_ja = _all_text_ja()
@@ -191,8 +204,14 @@ def test_example_csv_question_column_matches_definitions():
             loc = f"{path.relative_to(EXAMPLES_DIR)}:{lineno}"
             question = (row[1] if len(row) > 1 else "").strip()
             if rid not in text_ja:
-                # data leaf(scorer.type 等)はラベル列なので text_ja 照合対象外
-                if rid in ("scorer.type", "scorer.iruler_double_eval"):
+                # data leaf(scorer.type 等)はラベル列。label_ja と照合する
+                if rid in _DATA_LABEL_JA:
+                    checked += 1
+                    if question != _DATA_LABEL_JA[rid]:
+                        problems.append(
+                            f"{loc}: drifted data label for {rid}\n"
+                            f"    csv:      {question}\n    label_ja: {_DATA_LABEL_JA[rid]}"
+                        )
                     continue
                 problems.append(f"{loc}: unknown question id: {rid}")
                 continue

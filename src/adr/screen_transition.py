@@ -136,6 +136,7 @@ def _score_axis_strict(
             level=level,
             yes_ids=yes_ids,
             no_ids=no_ids,
+            total=len(questions),
         ),
         missing,
         invalid,
@@ -177,16 +178,12 @@ def screen(
     from . import io_input
 
     try:
-        input_data, input_format = io_input.load_input(task_groups_path, "transition")
+        input_data, input_format, row_ids = io_input.load_input(task_groups_path, "transition")
     except yaml.YAMLError as e:
         raise InputError(f"input is not valid YAML: {e}") from e
     if input_format == "csv":
         known = io_input.collect_question_ids(defn, non_question_groups=_NON_AXIS_GROUPS)
-        for g in input_data.get("task_groups", []):
-            io_input.validate_known_ids(
-                (g.get("answers") or {}).keys(), known,
-                f"{Path(task_groups_path).name} [{g.get('id')}]",
-            )
+        io_input.validate_known_ids(row_ids, known, Path(task_groups_path).name)
     if not isinstance(input_data, dict):
         raise InputError("input must be a YAML mapping with a 'task_groups' list")
     if "task_groups" not in input_data or input_data["task_groups"] is None:
@@ -306,7 +303,8 @@ def render_csv_rows(result: ScreenResult) -> list[list[str]]:
     for r in result.task_groups:
         levels = {aid: s.level for aid, s in r.axes.items()}
         rows.append([
-            "task_group", str(r.delegation_priority), r.id, sanitize_cell(r.description),
+            "task_group", str(r.delegation_priority), sanitize_cell(r.id),
+            sanitize_cell(r.description),
             r.type, "true" if r.human_control_required else "false",
             levels.get("technical_exposure", ""), levels.get("human_necessity", ""),
             levels.get("demand_elasticity", ""), " ".join(r.action.split()),

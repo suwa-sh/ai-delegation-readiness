@@ -52,7 +52,7 @@ WIDE_OK = [
 
 def test_single_csv_normalizes_like_yaml(tmp_path):
     p = _write_csv(tmp_path, SINGLE_OK)
-    data, fmt = ii.load_input(p, "four-layer")
+    data, fmt, _rowids = ii.load_input(p, "four-layer")
     assert fmt == "csv"
     assert data == {
         "target": "テスト業務",
@@ -62,7 +62,7 @@ def test_single_csv_normalizes_like_yaml(tmp_path):
 
 def test_wide_csv_normalizes_entities_in_column_order(tmp_path):
     p = _write_csv(tmp_path, WIDE_OK)
-    data, fmt = ii.load_input(p, "transition")
+    data, fmt, _rowids = ii.load_input(p, "transition")
     assert fmt == "csv"
     assert data == {
         "task_groups": [
@@ -75,7 +75,7 @@ def test_wide_csv_normalizes_entities_in_column_order(tmp_path):
 
 
 def test_yaml_path_returns_yaml_format():
-    data, fmt = ii.load_input(sample_business_yaml_twin_path(), "four-layer")
+    data, fmt, _rowids = ii.load_input(sample_business_yaml_twin_path(), "four-layer")
     assert fmt == "yaml"
     assert "answers" in data
 
@@ -83,20 +83,20 @@ def test_yaml_path_returns_yaml_format():
 @pytest.mark.parametrize("encoding", ["utf-8", "utf-8-sig", "cp932"])
 def test_encodings_accepted(tmp_path, encoding):
     p = _write_csv(tmp_path, SINGLE_OK, encoding=encoding)
-    data, _ = ii.load_input(p, "four-layer")
+    data, _, _rowids = ii.load_input(p, "four-layer")
     assert data["target"] == "テスト業務"
 
 
 def test_uppercase_csv_extension(tmp_path):
     p = _write_csv(tmp_path, SINGLE_OK, name="IN.CSV")
-    _, fmt = ii.load_input(p, "four-layer")
+    _, fmt, _rowids = ii.load_input(p, "four-layer")
     assert fmt == "csv"
 
 
 def test_trailing_blank_rows_and_columns_ignored(tmp_path):
     rows = [r + [""] for r in WIDE_OK] + [["", "", "", "", ""]]
     p = _write_csv(tmp_path, rows)
-    data, _ = ii.load_input(p, "transition")
+    data, _, _rowids = ii.load_input(p, "transition")
     assert [g["id"] for g in data["task_groups"]] == ["g1", "g2"]
 
 
@@ -107,7 +107,7 @@ def test_quoted_comma_quote_and_newline_roundtrip(tmp_path):
         ["L1.Q1", "問", "yes", ""],
     ]
     p = _write_csv(tmp_path, rows)
-    data, _ = ii.load_input(p, "four-layer")
+    data, _, _rowids = ii.load_input(p, "four-layer")
     assert data["target"] == 'カンマ,と"引用"と\n改行'
 
 
@@ -222,18 +222,18 @@ def test_all_csv_samples_match_pre_conversion_snapshot():
                 "sample-expense-approval-after.csv",
                 "sample-expense-approval-after-with-overlay.csv",
             )
-            data, _ = ii.load_input(with_path, kind)
+            data, _, _rowids = ii.load_input(with_path, kind)
             got = _canon(data)
             exp = _canon(expected)
             got["target"] = exp["target"] = ""  # with-overlay 版は対象名だけ変えている
             assert got == exp, rel
-            base_data, _ = ii.load_input(REPO_ROOT / rel, kind)
+            base_data, _, _rowids = ii.load_input(REPO_ROOT / rel, kind)
             base_answers = _canon(base_data)["answers"]
             assert base_answers == {
                 k: v for k, v in exp["answers"].items() if k not in midori
             }, rel
             continue
-        data, _ = ii.load_input(REPO_ROOT / rel, kind)
+        data, _, _rowids = ii.load_input(REPO_ROOT / rel, kind)
         assert _canon(data) == _canon(expected), rel
 
 
@@ -266,9 +266,12 @@ def test_report_csv_record_types_check_readiness():
     )
     text = out.stdout.decode("utf-8-sig")
     rows = list(csv.reader(io.StringIO(text, newline="")))
-    kinds = [r[0] for r in rows[1:]]
-    assert kinds[0] == "target"
-    assert "axis" in kinds and "summary" in kinds
+    assert rows[0][:2] == ["record_type", "target"]
+    kinds = {r[0] for r in rows[1:]}
+    assert kinds == {"axis", "summary"}
+    # 明細行(axis)単体で対象を識別できる(連結集計に耐える)
+    axis_targets = {r[1] for r in rows[1:] if r[0] == "axis"}
+    assert axis_targets == {"経費精算承認(ミドリ精機・経理部、FY2026 初回診断)"}
 
 
 def test_formula_cells_neutralized(tmp_path):
@@ -280,8 +283,75 @@ def test_formula_cells_neutralized(tmp_path):
     p = _write_csv(tmp_path, rows)
     result = cr.check(p)
     out = cr.render_csv_rows(result)
-    target_row = next(r for r in out if r[0] == "target")
-    assert target_row[2].startswith("'=")
+    # target 列(全行)で中和されている
+    assert all(r[1].startswith("'=") for r in out[1:])
+
+
+def test_entity_id_and_description_neutralized_in_wide_report(tmp_path):
+    """横持ち入力のエンティティ id も formula 中和される(レポート側)。"""
+    from adr import screen_transition as st
+
+    rows = [
+        ["id", "質問", "=1+1"],
+        ["description", "説明", "+SUM(A1)"],
+    ] + [[qid, "", "no"] for qid in (
+        "technical_exposure.E1", "technical_exposure.E2", "technical_exposure.E3",
+        "human_necessity.H1", "human_necessity.H2", "human_necessity.H3",
+        "demand_elasticity.D1", "demand_elasticity.D2", "demand_elasticity.D3",
+    )]
+    p = _write_csv(tmp_path, rows)
+    result = st.screen(p)
+    out = st.render_csv_rows(result)
+    row = out[1]
+    assert row[2].startswith("'=")   # id 列
+    assert row[3].startswith("'+")   # description 列
+
+
+def test_matrix_csv_ratio_denominator_is_question_total(tmp_path):
+    """未回答があっても CSV の分母は質問総数(1/1 で low の矛盾を作らない)。"""
+    from adr import score_delegation as sd
+
+    rows = [
+        ["id", "質問", "j1"],
+        ["description", "説明", "判定1"],
+        ["verifiability.V1", "", "yes"],
+        ["verifiability.V2", "", ""],
+        ["verifiability.V3", "", ""],
+        ["answer_definability.A1", "", ""],
+        ["answer_definability.A2", "", ""],
+        ["answer_definability.A3", "", ""],
+    ]
+    p = _write_csv(tmp_path, rows)
+    result = sd.score(p)
+    out = sd.render_csv_rows(result)
+    row = out[1]
+    assert row[4] == "low" and row[5] == "1/3"
+    assert row[6] == "low" and row[7] == "0/3"
+
+
+def test_unknown_id_with_empty_answer_rejected(tmp_path):
+    """回答が空でも、未知 id の行は strict 検証で拒否される(typo の見逃し防止)。"""
+    rows = [
+        ["id", "質問", "回答", "メモ"],
+        ["target", "対象業務名", "t", ""],
+        ["L1.Q1", "", "yes", ""],
+        ["L1.TYPO_Q9", "", "", ""],  # 回答セルは空
+    ]
+    p = _write_csv(tmp_path, rows)
+    with pytest.raises(ii.InputFormatError) as e:
+        cr.check(p)
+    assert "L1.TYPO_Q9" in str(e.value)
+
+
+def test_wide_missing_description_row_rejected(tmp_path):
+    rows = [
+        ["id", "質問", "g1"],
+        ["technical_exposure.E1", "", "yes"],
+    ]
+    p = _write_csv(tmp_path, rows)
+    with pytest.raises(ii.InputFormatError) as e:
+        ii.load_input(p, "transition")
+    assert "description" in str(e.value)
 
 
 def test_iruler_accepts_hai(tmp_path):
@@ -321,7 +391,7 @@ def test_init_csv_template_roundtrips(tmp_path):
     assert out.stdout.startswith(b"\xef\xbb\xbf")
     p = tmp_path / "template.csv"
     p.write_bytes(out.stdout)
-    data, fmt = ii.load_input(p, "four-layer")
+    data, fmt, _rowids = ii.load_input(p, "four-layer")
     assert fmt == "csv"
     assert data["answers"] == {}  # 全問未回答のテンプレート
     text = out.stdout.decode("utf-8-sig")

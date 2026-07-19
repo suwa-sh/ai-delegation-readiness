@@ -60,18 +60,24 @@ KINDS = tuple(_SINGLE_KINDS) + tuple(_WIDE_KINDS)
 _DESCRIPTION_ROW = "description"
 
 
-def load_input(path: str | Path, kind: str) -> tuple[dict, str]:
-    """入力を読み、(正規化 dict, 形式 "csv"|"yaml") を返す。
+def load_input(path: str | Path, kind: str) -> tuple[dict, str, list[str] | None]:
+    """入力を読み、(正規化 dict, 形式 "csv"|"yaml", CSV の質問行 id) を返す。
 
     正規化 dict は既存の YAML 入力とまったく同じ形なので、呼び出し側の
     採点ロジック・バリデーションは形式を意識しない。
+
+    第 3 要素は CSV のときのみ: 予約行を除く**全質問行の id**(回答が空の行も
+    含む)。strict 検証はこれを定義と照合する — 回答済み id だけを照合すると、
+    「typo した行に回答したが空欄のまま」のような未知 id 行が素通りするため。
+    YAML のときは None(後方互換の寛容契約)。
     """
     if kind not in KINDS:
         raise ValueError(f"unknown input kind: {kind} (choose from {', '.join(KINDS)})")
     path = Path(path)
     if path.suffix.lower() == ".csv":
-        return _load_csv(path, kind), "csv"
-    return overlay_mod.load_yaml(path), "yaml"
+        data, row_ids = _load_csv(path, kind)
+        return data, "csv", row_ids
+    return overlay_mod.load_yaml(path), "yaml", None
 
 
 def collect_question_ids(defn: dict, non_question_groups: set[str]) -> set[str]:
@@ -130,7 +136,7 @@ def _pad(row: list[str], width: int) -> list[str]:
     return row + [""] * (width - len(row)) if len(row) < width else row
 
 
-def _load_csv(path: Path, kind: str) -> dict:
+def _load_csv(path: Path, kind: str) -> tuple[dict, list[str]]:
     rows = _read_csv_rows(path)
     header = rows[0]
     if not header or header[0] != "id":
@@ -142,7 +148,7 @@ def _load_csv(path: Path, kind: str) -> dict:
     return _load_wide(path, rows, kind)
 
 
-def _load_single(path: Path, rows: list[list[str]], kind: str) -> dict:
+def _load_single(path: Path, rows: list[list[str]], kind: str) -> tuple[dict, list[str]]:
     reserved, out_key = _SINGLE_KINDS[kind]
     header = rows[0]
     if len(header) < 3 or header[2] != "回答":
@@ -152,6 +158,7 @@ def _load_single(path: Path, rows: list[list[str]], kind: str) -> dict:
     answers: dict[str, str] = {}
     meta: list[str] = []
     seen: set[str] = set()
+    row_ids: list[str] = []
     for lineno, row in enumerate(rows[1:], 2):
         row = _pad(row, 3)
         rid, answer = row[0], row[2]
@@ -165,16 +172,17 @@ def _load_single(path: Path, rows: list[list[str]], kind: str) -> dict:
         if rid == reserved:
             meta.append(answer)
             continue
+        row_ids.append(rid)
         if answer != "":
             answers[rid] = answer
     if len(meta) != 1:
         raise InputFormatError(
             f"{path.name}: expected exactly one '{reserved}' row, found {len(meta)}"
         )
-    return {out_key: meta[0], "answers": answers}
+    return {out_key: meta[0], "answers": answers}, row_ids
 
 
-def _load_wide(path: Path, rows: list[list[str]], kind: str) -> dict:
+def _load_wide(path: Path, rows: list[list[str]], kind: str) -> tuple[dict, list[str]]:
     out_key = _WIDE_KINDS[kind]
     header = rows[0]
     # 末尾の空ヘッダ列(Excel の余剰列)は落とす。内部の空ヘッダ列はエラー。
@@ -197,6 +205,7 @@ def _load_wide(path: Path, rows: list[list[str]], kind: str) -> dict:
     answers: dict[str, dict[str, str]] = {e: {} for e in entity_ids}
     desc_rows = 0
     seen: set[str] = set()
+    row_ids: list[str] = []
     for lineno, row in enumerate(rows[1:], 2):
         row = _pad(row, width)
         if any(row[width:]):
@@ -216,16 +225,21 @@ def _load_wide(path: Path, rows: list[list[str]], kind: str) -> dict:
             for e, cell in zip(entity_ids, row[2:width]):
                 descriptions[e] = cell
             continue
+        row_ids.append(rid)
         for e, cell in zip(entity_ids, row[2:width]):
             if cell != "":
                 answers[e][rid] = cell
-    if desc_rows > 1:
-        raise InputFormatError(f"{path.name}: at most one 'description' row is allowed")
+    if desc_rows != 1:
+        # init テンプレートは必ず description 行を出す。0 件 = 行の消し込み事故の
+        # 可能性が高いので、Excel 事故に厳格の方針どおりちょうど 1 件を要求する。
+        raise InputFormatError(
+            f"{path.name}: expected exactly one 'description' row, found {desc_rows}"
+        )
     entries = [
         {"id": e, "description": descriptions.get(e, e), "answers": answers[e]}
         for e in entity_ids
     ]
-    return {out_key: entries}
+    return {out_key: entries}, row_ids
 
 
 # ---------------------------------------------------------------- CSV 書出

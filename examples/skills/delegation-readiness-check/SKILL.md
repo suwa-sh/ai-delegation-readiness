@@ -6,9 +6,9 @@ description: Walk a user through the 4-layer readiness check for AI delegation. 
 # delegation-readiness-check
 
 対象業務を 4 層 + 効果測定 + 組織 readiness のフレームワークで対話的に採点します。
-`aidr check-readiness` CLI の薄いラッパーです: 対話で回答を集め、business YAML を
-書き出し、CLI を JSON モードで実行し、判定と「最初に直すべきゲート」を読みやすい
-要約に翻訳します。
+`aidr check-readiness` CLI の薄いラッパーです: 対話で回答を集め、問い付きの
+CSV(`aidr init --format csv` のテンプレート)に書き込み、CLI を JSON モードで
+実行し、判定と「最初に直すべきゲート」を読みやすい要約に翻訳します。
 
 ## いつ使うか
 

@@ -117,10 +117,12 @@ items:
   - id: "scorer.type"
     kind: data
     label: "scorer type (required). one of: human | ai_judge | two_stage"
+    label_ja: "採点者の種類(必須): human | ai_judge | two_stage"
     enum: [human, ai_judge, two_stage]
   - id: "scorer.iruler_double_eval"
     kind: data
     label: "is an iRULER-style rubric-of-rubric double-evaluation in place? (yes/no)"
+    label_ja: "AI 採点者(ai_judge)のとき、iRULER 二重評価があるか(yes/no)"
 
   # --- gates: 要素の present/partial/absent と iRULER ゲートから region を決める ---
   # region 解決は上から順に最初にマッチした when を採る (score_delegation の region walk と同型)。

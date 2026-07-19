@@ -253,16 +253,14 @@ def score(
 
     from . import io_input
 
-    input_data, input_format = io_input.load_input(contract_path, "task-contract")
+    input_data, input_format, row_ids = io_input.load_input(contract_path, "task-contract")
     if not isinstance(input_data, dict):
         raise InputError("task contract must be a mapping with 'task' and 'answers'")
     if input_format == "csv":
         known = io_input.collect_question_ids(
             defn, non_question_groups={"gates", "examples"}
         )
-        io_input.validate_known_ids(
-            (input_data.get("answers") or {}).keys(), known, Path(contract_path).name
-        )
+        io_input.validate_known_ids(row_ids, known, Path(contract_path).name)
     task = input_data.get("task") or str(contract_path)
     answers = input_data.get("answers", {}) or {}
     if not isinstance(answers, dict):
@@ -341,20 +339,33 @@ def _level_marker(level: str) -> str:
 
 
 def render_csv_rows(result: ContractResult) -> list[list[str]]:
+    """レポートの CSV 行列。task 列を全行に持たせ、連結集計に耐える形にする。
+
+    summary 行の notes に推奨アクション、active_conditions 行に発火した
+    ゲート条件を残す — CSV だけを受け取った担当者が「要素欠落」か
+    「AI 採点者の二重評価不足」かを判別して直せるように。
+    """
     from .io_input import sanitize_cell
 
-    rows = [["record_type", "id", "name", "level", "score", "threshold", "no"]]
-    rows.append(["task", "task", sanitize_cell(result.task), "", "", "", ""])
+    task = sanitize_cell(result.task)
+    rows = [["record_type", "task", "id", "name", "level", "score", "threshold", "no", "notes"]]
     for e in result.elements:
         rows.append([
-            "element", e.id, e.name, e.level, str(e.score), str(e.threshold),
-            "; ".join(e.no_ids),
+            "element", task, e.id, e.name, e.level, str(e.score), str(e.threshold),
+            "; ".join(e.no_ids), "",
         ])
     iruler = (
         "yes" if result.iruler_double_eval is True
         else ("no" if result.iruler_double_eval is False else "unset")
     )
-    rows.append(["scorer", "type", result.scorer_type, "", "", "", ""])
-    rows.append(["scorer", "iruler_double_eval", iruler, "", "", "", ""])
-    rows.append(["summary", "region", result.region, result.region_name, "", "", ""])
+    rows.append(["scorer", task, "type", result.scorer_type, "", "", "", "", ""])
+    rows.append(["scorer", task, "iruler_double_eval", iruler, "", "", "", "", ""])
+    rows.append([
+        "summary", task, "region", result.region_name, result.region, "", "", "",
+        " ".join(result.rationale.split()),
+    ])
+    rows.append([
+        "summary", task, "active_conditions", "; ".join(result.active_conditions),
+        "", "", "", "", "",
+    ])
     return rows

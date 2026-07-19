@@ -159,13 +159,13 @@ def check(
 
     from . import io_input
 
-    target, input_format = io_input.load_input(target_path, "four-layer")
+    target, input_format, row_ids = io_input.load_input(target_path, "four-layer")
     answers = target.get("answers", {}) or {}
     if input_format == "csv":
-        # CSV は Excel 経由の typo が起きやすいので、回答 id を定義と照合する
-        # (YAML は後方互換のため従来どおり未知キーを無視する)。
+        # CSV は Excel 経由の typo が起きやすいので、質問行の id(回答が空の行も
+        # 含む)を定義と照合する(YAML は後方互換のため従来どおり未知キーを無視する)。
         known = io_input.collect_question_ids(defn, non_question_groups=set())
-        io_input.validate_known_ids(answers.keys(), known, Path(target_path).name)
+        io_input.validate_known_ids(row_ids, known, Path(target_path).name)
 
     # group を role で振り分ける: ゲート層 (L1..L4) と 並列軸 (efficacy, organization, ...)。
     # source order を保つ (group_items() のキー順)。leaf 0 個の並列軸は overlay 前提の
@@ -279,20 +279,24 @@ def _axis_to_dict(axis: AxisResult) -> dict:
 
 
 def render_csv_rows(result: CheckResult) -> list[list[str]]:
-    """レポートの CSV 行列(record_type 列で行の種類を機械判別できる)。"""
+    """レポートの CSV 行列。
+
+    先頭の record_type 列で行の種類を、target 列で診断対象を機械判別できる —
+    複数対象のレポートを連結しても、明細行(axis)単体で対象を識別できる。
+    """
     from .io_input import sanitize_cell
 
-    rows = [["record_type", "id", "name", "role", "verdict", "score_pct", "no", "unknown"]]
-    rows.append(["target", "target", sanitize_cell(result.target), "", "", "", "", ""])
+    target = sanitize_cell(result.target)
+    rows = [["record_type", "target", "id", "name", "role", "verdict", "score_pct", "no", "unknown"]]
     for role, axes in (("layer", result.layers), ("parallel", result.parallel_axes)):
         for a in axes:
             rows.append([
-                "axis", a.id, a.name, role, a.verdict, str(int(a.score * 100)),
+                "axis", target, a.id, a.name, role, a.verdict, str(int(a.score * 100)),
                 "; ".join(a.no_ids), "; ".join(a.unknown_ids),
             ])
-    rows.append(["summary", "conclusion", result.conclusion, "", "", "", "", ""])
+    rows.append(["summary", target, "conclusion", result.conclusion, "", "", "", "", ""])
     if result.blocked_from:
-        rows.append(["summary", "first_gate_to_fix", result.blocked_from, "", "", "", "", ""])
+        rows.append(["summary", target, "first_gate_to_fix", result.blocked_from, "", "", "", "", ""])
     return rows
 
 

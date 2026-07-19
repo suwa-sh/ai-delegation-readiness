@@ -45,6 +45,9 @@ class AxisScore:
     level: str  # high | low
     yes_ids: list[str] = field(default_factory=list)
     no_ids: list[str] = field(default_factory=list)
+    # 軸の質問総数(未回答も含む)。CSV レポートの分母に使う — 回答済み数を
+    # 分母にすると「1/1 なのに low」のような矛盾した集計データになるため。
+    total: int = 0
 
 
 @dataclass
@@ -95,6 +98,7 @@ def _score_axis(axis_id: str, questions: list[dict], header: dict, answers: dict
         level=level,
         yes_ids=yes_ids,
         no_ids=no_ids,
+        total=len(questions),
     )
 
 
@@ -143,16 +147,12 @@ def score(
     from . import io_input
 
     try:
-        input_data, input_format = io_input.load_input(judgments_path, "matrix")
+        input_data, input_format, row_ids = io_input.load_input(judgments_path, "matrix")
     except yaml.YAMLError as e:
         raise InputError(f"input is not valid YAML/JSON: {e}") from e
     if input_format == "csv":
         known = io_input.collect_question_ids(defn, non_question_groups=_NON_AXIS_GROUPS)
-        for j in input_data.get("judgments", []):
-            io_input.validate_known_ids(
-                (j.get("answers") or {}).keys(), known,
-                f"{Path(judgments_path).name} [{j.get('id')}]",
-            )
+        io_input.validate_known_ids(row_ids, known, Path(judgments_path).name)
     if not isinstance(input_data, dict):
         raise InputError("input must be a mapping with a 'judgments' list")
     if "judgments" not in input_data or input_data["judgments"] is None:
@@ -241,7 +241,7 @@ def render_csv_rows(result: ScoreResult) -> list[list[str]]:
         v = j.axes.get("verifiability")
         a = j.axes.get("answer_definability")
         rows.append([
-            "judgment", j.id, sanitize_cell(j.description), j.region,
+            "judgment", sanitize_cell(j.id), sanitize_cell(j.description), j.region,
             v.level if v else "", _axis_ratio(v), a.level if a else "", _axis_ratio(a),
             " ".join(j.rationale.split()),
         ])
@@ -249,7 +249,8 @@ def render_csv_rows(result: ScoreResult) -> list[list[str]]:
 
 
 def _axis_ratio(s: AxisScore | None) -> str:
+    """CSV 用の比率。分母は軸の質問総数(未回答も含む)。"""
     if s is None:
         return ""
-    total = len(s.yes_ids) + len(s.no_ids) or s.threshold
+    total = s.total or (len(s.yes_ids) + len(s.no_ids)) or s.threshold
     return f"{s.score}/{total}"

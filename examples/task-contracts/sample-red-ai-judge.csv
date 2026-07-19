@@ -11,5 +11,5 @@ evidence.E2,判定ごとに Who/When/What/Why/Result を記録しているか,ye
 evidence.E3,記録は決定的なステップで生成されるか(長時間実行で省略されうる後付け処理でないか),yes,
 scorer.S1,採点者が割り付けられているか(特定の人間・AI 採点者・二段審査のいずれか),yes,
 scorer.S2,採点ルーブリック自体が明文化されているか(暗黙のままにしていないか),yes,
-scorer.type,human | ai_judge | two_stage(必須),ai_judge,
-scorer.iruler_double_eval,AI 採点者(ai_judge)のとき、二重評価があるか(yes/no),no,二重評価のない AI 採点者 → RED
+scorer.type,採点者の種類(必須): human | ai_judge | two_stage,ai_judge,
+scorer.iruler_double_eval,AI 採点者(ai_judge)のとき、iRULER 二重評価があるか(yes/no),no,二重評価のない AI 採点者 → RED

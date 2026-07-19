@@ -6,10 +6,10 @@ description: Screen a user's task groups into the four AI-transition types (grow
 # transition-screening
 
 ユーザーのタスク群を AI 移行 4 類型に対話的に分類します。
-`aidr screen-transition` CLI の薄いラッパーです: 対話で回答を集め、
-task-groups YAML を書き出し、CLI を JSON モードで実行し、結果を
-「どこから委任設計を始めるか」の地図 — headcount を最後に置く意思決定順序つき —
-に翻訳します。
+`aidr screen-transition` CLI の薄いラッパーです: 対話で回答を集め、問い付きの
+横持ち CSV(`aidr init --format csv` のテンプレート)に書き込み、CLI を JSON
+モードで実行し、結果を「どこから委任設計を始めるか」の地図 — headcount を
+最後に置く意思決定順序つき — に翻訳します。
 
 ## いつ使うか
 

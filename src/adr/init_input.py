@@ -61,7 +61,7 @@ def _question_lines(group: dict, indent: str) -> list[str]:
             q = _one_line(leaf.get("text_ja") or leaf.get("text") or "")
             lines.append(f"{indent}{leaf['id']}:     # 問: {q}")
         elif kind == "data":
-            label = _one_line(leaf.get("label", ""))
+            label = _one_line(leaf.get("label_ja") or leaf.get("label") or "")
             lines.append(f"{indent}{leaf['id']}:     # {label}")
     return lines
 
@@ -183,7 +183,7 @@ def generate_csv(target: str, overlay_paths: list | None = None) -> list[list[st
                 if kind == "question":
                     q = _one_line(leaf.get("text_ja") or leaf.get("text") or "")
                 elif kind == "data":
-                    q = _one_line(leaf.get("label", ""))
+                    q = _one_line(leaf.get("label_ja") or leaf.get("label") or "")
                 else:
                     continue
                 rows.append([leaf["id"], q] + [""] * prefix_cols)
