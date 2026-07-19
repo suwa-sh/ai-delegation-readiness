@@ -110,9 +110,9 @@ aidr() { docker run --rm -v "$PWD:/data" -w /data \
   ghcr.io/suwa-sh/ai-delegation-readiness:v0.9.0 "$@"; }
 ```
 
-Grab a sample from [`examples/`](examples/) as a template, edit it with your own
-values, then run the commands in this order. Question texts carry both English
-(`text`) and Japanese (`text_ja`) in `definitions/*.yaml`.
+Generate your input files with `aidr init` (step 1 below), then run the
+commands in this order. Question texts carry both English (`text`) and
+Japanese (`text_ja`) in `definitions/*.yaml`.
 
 1. **Prepare** — generate templates with question comments via
    `aidr init --target transition|four-layer|matrix|task-contract > my-file.yaml`

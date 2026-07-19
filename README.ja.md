@@ -125,8 +125,8 @@ aidr() { docker run --rm -v "$PWD:/data" -w /data \
   ghcr.io/suwa-sh/ai-delegation-readiness:v0.9.0 "$@"; }
 ```
 
-[`examples/`](examples/) の各サンプルをひな型として書き換え、自社の値を入れてから
-実行します。各ステップの詳しい読み方は学習パスの doc を参照してください。
+入力ファイルは `aidr init` でテンプレートを生成して埋めます(ステップ 0)。
+各ステップの詳しい読み方は学習パスの doc を参照してください。
 
 ### ステップ 0 — 準備(`aidr init` でテンプレート生成)
 

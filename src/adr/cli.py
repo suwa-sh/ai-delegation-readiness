@@ -77,9 +77,13 @@ def _cmd_check_readiness(args: argparse.Namespace) -> int:
 
 
 def _cmd_init(args: argparse.Namespace) -> int:
+    import yaml as _yaml
+
     try:
         print(_init.generate(args.target, overlay_paths=args.overlay), end="")
-    except _check_readiness.OverlayError as e:
+    except (_check_readiness.OverlayError, FileNotFoundError, _yaml.YAMLError) as e:
+        # Missing/broken overlay files follow the CLI-wide input-error
+        # contract: [ERROR] + exit 3, never a traceback.
         sys.stderr.write(f"[ERROR] {e}\n")
         return 3
     return 0

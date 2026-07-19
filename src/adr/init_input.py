@@ -44,6 +44,11 @@ def _merged_definition(target: str, overlay_paths: list) -> dict:
     return base
 
 
+def _one_line(text) -> str:
+    """コメント文を 1 行に正規化する(複数行 text_ja でも不正 YAML を作らない)。"""
+    return " ".join(str(text).split())
+
+
 def _question_lines(group: dict, indent: str) -> list[str]:
     """1 group 分の質問行(問いコメント付き・値は空 = 未回答)を作る。"""
     lines: list[str] = []
@@ -53,10 +58,10 @@ def _question_lines(group: dict, indent: str) -> list[str]:
     for leaf in group["leaves"]:
         kind = leaf.get("kind", "question")
         if kind == "question":
-            q = leaf.get("text_ja") or leaf.get("text") or ""
+            q = _one_line(leaf.get("text_ja") or leaf.get("text") or "")
             lines.append(f"{indent}{leaf['id']}:     # 問: {q}")
         elif kind == "data":
-            label = leaf.get("label", "")
+            label = _one_line(leaf.get("label", ""))
             lines.append(f"{indent}{leaf['id']}:     # {label}")
     return lines
 
@@ -64,7 +69,18 @@ def _question_lines(group: dict, indent: str) -> list[str]:
 def _axis_groups(target: str, defn: dict) -> dict:
     _, non_question = TARGETS[target]
     groups = overlay_mod.group_items(defn)
-    return {gid: g for gid, g in groups.items() if gid not in non_question}
+    selected = {gid: g for gid, g in groups.items() if gid not in non_question}
+    if target != "four-layer":
+        return selected
+    # four-layer はゲート層(role 未指定)を先、並列軸(role: parallel)を後に並べる。
+    # overlay で追加されたゲート層(例: 高責任 overlay の L5)がマージ順のまま
+    # 並列軸の後ろに出ると、積み上げを先に読む構成が崩れるため。
+    gating = {
+        gid: g for gid, g in selected.items()
+        if (g["header"] or {}).get("role") != "parallel"
+    }
+    parallel = {gid: g for gid, g in selected.items() if gid not in gating}
+    return {**gating, **parallel}
 
 
 def generate(target: str, overlay_paths: list | None = None) -> str:

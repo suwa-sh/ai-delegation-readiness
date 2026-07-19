@@ -52,6 +52,19 @@ def test_subcommand_help(subcommand):
     assert "usage" in r.stdout.lower()
 
 
+def test_init_template_exits_0():
+    r = _run("init", "--target", "four-layer")
+    assert r.returncode == 0
+    assert "# 問:" in r.stdout
+
+
+def test_init_missing_overlay_exits_3(tmp_path):
+    r = _run("init", "--target", "four-layer", "--overlay", str(tmp_path / "nope.yaml"))
+    assert r.returncode == 3
+    assert "[ERROR]" in r.stderr
+    assert "Traceback" not in r.stderr
+
+
 def test_screen_transition_sample_exits_0():
     from conftest import sample_task_groups_path
 
