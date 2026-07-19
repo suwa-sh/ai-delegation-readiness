@@ -25,6 +25,7 @@ from . import (
     check_readiness as _check_readiness,
     check_task_contract as _task,
     init_input as _init,
+    io_input as _io,
     list_definitions as _list,
     score_delegation as _score,
     screen_transition as _screen,
@@ -45,7 +46,12 @@ def _version_string() -> str:
     return f"aidr {app} (overlay-scoring-skeleton {overlay_scoring.__version__})"
 
 
-def _shared_overlay_args(parser: argparse.ArgumentParser) -> None:
+def _shared_overlay_args(
+    parser: argparse.ArgumentParser,
+    formats: tuple[str, ...] = ("text", "json"),
+) -> None:
+    # formats はコマンドごとに指定する: レポートの CSV 対応は採点系 + validate の
+    # 5 コマンドのみ(list-definitions 等の階層構造出力に csv を漏らさない)。
     parser.add_argument(
         "--overlay",
         action="append",
@@ -55,24 +61,32 @@ def _shared_overlay_args(parser: argparse.ArgumentParser) -> None:
     )
     parser.add_argument(
         "--format",
-        choices=["text", "json"],
+        choices=list(formats),
         default="text",
         help="Output format (default: text)",
     )
 
 
+_REPORT_FORMATS = ("text", "json", "csv")
+
+
+def _emit(result, args, module) -> None:
+    """text / json / csv の共通出力(csv は BOM 付き bytes で stdout へ)。"""
+    if args.format == "csv":
+        _io.write_csv_stdout(module.render_csv_rows(result))
+    elif args.format == "json":
+        print(module.render_json(result))
+    else:
+        print(module.render_text(result))
+
+
 def _cmd_check_readiness(args: argparse.Namespace) -> int:
     try:
         result = _check_readiness.check(args.business, overlay_paths=args.overlay)
-    except _check_readiness.OverlayError as e:
+    except (_check_readiness.OverlayError, _io.InputFormatError) as e:
         sys.stderr.write(f"[ERROR] {e}\n")
         return 3
-    output = (
-        _check_readiness.render_json(result)
-        if args.format == "json"
-        else _check_readiness.render_text(result)
-    )
-    print(output)
+    _emit(result, args, _check_readiness)
     return _check_readiness.exit_code_for(result)
 
 
@@ -80,7 +94,10 @@ def _cmd_init(args: argparse.Namespace) -> int:
     import yaml as _yaml
 
     try:
-        print(_init.generate(args.target, overlay_paths=args.overlay), end="")
+        if args.format == "csv":
+            _io.write_csv_stdout(_init.generate_csv(args.target, overlay_paths=args.overlay))
+        else:
+            print(_init.generate(args.target, overlay_paths=args.overlay), end="")
     except (_check_readiness.OverlayError, FileNotFoundError, _yaml.YAMLError) as e:
         # Missing/broken overlay files follow the CLI-wide input-error
         # contract: [ERROR] + exit 3, never a traceback.
@@ -92,54 +109,30 @@ def _cmd_init(args: argparse.Namespace) -> int:
 def _cmd_screen_transition(args: argparse.Namespace) -> int:
     try:
         result = _screen.screen(args.task_groups, overlay_paths=args.overlay)
-    except _check_readiness.OverlayError as e:
+    except (_check_readiness.OverlayError, _screen.InputError, _io.InputFormatError) as e:
         sys.stderr.write(f"[ERROR] {e}\n")
         return 3
-    except _screen.InputError as e:
-        sys.stderr.write(f"[ERROR] {e}\n")
-        return 3
-    output = (
-        _screen.render_json(result)
-        if args.format == "json"
-        else _screen.render_text(result)
-    )
-    print(output)
+    _emit(result, args, _screen)
     return result.exit_code
 
 
 def _cmd_score_delegation(args: argparse.Namespace) -> int:
     try:
         result = _score.score(args.judgments, overlay_paths=args.overlay)
-    except _check_readiness.OverlayError as e:
+    except (_check_readiness.OverlayError, _score.InputError, _io.InputFormatError) as e:
         sys.stderr.write(f"[ERROR] {e}\n")
         return 3
-    except _score.InputError as e:
-        sys.stderr.write(f"[ERROR] {e}\n")
-        return 3
-    output = (
-        _score.render_json(result)
-        if args.format == "json"
-        else _score.render_text(result)
-    )
-    print(output)
+    _emit(result, args, _score)
     return result.conclusion_exit_code
 
 
 def _cmd_check_task_contract(args: argparse.Namespace) -> int:
     try:
         result = _task.score(args.contract, overlay_paths=args.overlay)
-    except _check_readiness.OverlayError as e:
+    except (_check_readiness.OverlayError, _task.InputError, _io.InputFormatError) as e:
         sys.stderr.write(f"[ERROR] {e}\n")
         return 3
-    except _task.InputError as e:
-        sys.stderr.write(f"[ERROR] {e}\n")
-        return 3
-    output = (
-        _task.render_json(result)
-        if args.format == "json"
-        else _task.render_text(result)
-    )
-    print(output)
+    _emit(result, args, _task)
     return result.exit_code
 
 
@@ -153,12 +146,7 @@ def _cmd_validate_audit_log(args: argparse.Namespace) -> int:
         # "invalid log" verdict (exit 1) — and never a raw traceback.
         sys.stderr.write(f"[ERROR] {e}\n")
         return 3
-    output = (
-        _validate.render_json(result)
-        if args.format == "json"
-        else _validate.render_text(result)
-    )
-    print(output)
+    _emit(result, args, _validate)
     return 0 if result.ok else 1
 
 
@@ -222,7 +210,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Score a business against the 4-layer + efficacy framework",
     )
     p_check.add_argument("business", help="Path to the business answers YAML")
-    _shared_overlay_args(p_check)
+    _shared_overlay_args(p_check, formats=_REPORT_FORMATS)
     p_check.set_defaults(func=_cmd_check_readiness)
 
     p_init = sub.add_parser(
@@ -242,6 +230,12 @@ def build_parser() -> argparse.ArgumentParser:
         metavar="PATH",
         help="Overlay file to include (repeatable; added questions appear in the template)",
     )
+    p_init.add_argument(
+        "--format",
+        choices=["yaml", "csv"],
+        default="yaml",
+        help="Template format (default: yaml; csv is the spreadsheet-friendly form)",
+    )
     p_init.set_defaults(func=_cmd_init)
 
     p_screen = sub.add_parser(
@@ -249,7 +243,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Screen task groups into the 4 AI-transition types (pre-delegation planning map)",
     )
     p_screen.add_argument("task_groups", help="Path to the task-groups YAML")
-    _shared_overlay_args(p_screen)
+    _shared_overlay_args(p_screen, formats=_REPORT_FORMATS)
     p_screen.set_defaults(func=_cmd_screen_transition)
 
     p_score = sub.add_parser(
@@ -257,7 +251,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Score per-judgment delegation regions (green/yellow/red)",
     )
     p_score.add_argument("judgments", help="Path to the judgments YAML")
-    _shared_overlay_args(p_score)
+    _shared_overlay_args(p_score, formats=_REPORT_FORMATS)
     p_score.set_defaults(func=_cmd_score_delegation)
 
     p_task = sub.add_parser(
@@ -265,7 +259,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Score a delegated task's execution contract (intent/boundary/evidence/scorer)",
     )
     p_task.add_argument("contract", help="Path to the task-contract YAML")
-    _shared_overlay_args(p_task)
+    _shared_overlay_args(p_task, formats=_REPORT_FORMATS)
     p_task.set_defaults(func=_cmd_check_task_contract)
 
     p_val = sub.add_parser(
@@ -281,7 +275,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_val.add_argument(
         "--format",
-        choices=["text", "json"],
+        choices=list(_REPORT_FORMATS),
         default="text",
     )
     p_val.set_defaults(func=_cmd_validate_audit_log)

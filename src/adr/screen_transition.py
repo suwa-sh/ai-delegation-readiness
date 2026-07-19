@@ -174,10 +174,19 @@ def screen(
     type_evidence = (groups["types"]["header"] or {}).get("case_evidence", []) or []
     human_control_ids = _flagged_question_ids(axis_groups, _HUMAN_CONTROL_FLAG)
 
+    from . import io_input
+
     try:
-        input_data = overlay_mod.load_yaml(task_groups_path)
+        input_data, input_format = io_input.load_input(task_groups_path, "transition")
     except yaml.YAMLError as e:
         raise InputError(f"input is not valid YAML: {e}") from e
+    if input_format == "csv":
+        known = io_input.collect_question_ids(defn, non_question_groups=_NON_AXIS_GROUPS)
+        for g in input_data.get("task_groups", []):
+            io_input.validate_known_ids(
+                (g.get("answers") or {}).keys(), known,
+                f"{Path(task_groups_path).name} [{g.get('id')}]",
+            )
     if not isinstance(input_data, dict):
         raise InputError("input must be a YAML mapping with a 'task_groups' list")
     if "task_groups" not in input_data or input_data["task_groups"] is None:
@@ -284,6 +293,25 @@ def render_text(result: ScreenResult) -> str:
         "derived from OpenAI's EU AI Jobs Transition Framework). Decide headcount last."
     )
     return "\n".join(lines)
+
+
+def render_csv_rows(result: ScreenResult) -> list[list[str]]:
+    from .io_input import sanitize_cell
+
+    rows = [[
+        "record_type", "priority", "id", "description", "type",
+        "human_control_required", "technical_exposure", "human_necessity",
+        "demand_elasticity", "action",
+    ]]
+    for r in result.task_groups:
+        levels = {aid: s.level for aid, s in r.axes.items()}
+        rows.append([
+            "task_group", str(r.delegation_priority), r.id, sanitize_cell(r.description),
+            r.type, "true" if r.human_control_required else "false",
+            levels.get("technical_exposure", ""), levels.get("human_necessity", ""),
+            levels.get("demand_elasticity", ""), " ".join(r.action.split()),
+        ])
+    return rows
 
 
 def render_json(result: ScreenResult) -> str:

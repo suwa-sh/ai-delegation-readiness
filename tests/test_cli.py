@@ -97,16 +97,21 @@ def test_screen_transition_broken_yaml_exits_3(tmp_path):
 
 
 def test_check_readiness_after_sample_passes():
-    """The story's re-diagnosis must stay PASS, with and without the
-    company overlay (its extra answers are pre-filled in the sample)."""
-    from conftest import sample_business_after_path, sample_overlay_path
+    """The story's re-diagnosis must stay PASS — plain, and with the company
+    overlay (the with-overlay twin carries the extra answers; CSV rejects
+    unknown ids, so overlay answers live in a separate file)."""
+    from conftest import (
+        sample_business_after_overlay_path,
+        sample_business_after_path,
+        sample_overlay_path,
+    )
 
     r = _run("check-readiness", str(sample_business_after_path()))
     assert r.returncode == 0
     assert "Conclusion: PASS" in r.stdout
 
     r2 = _run(
-        "check-readiness", str(sample_business_after_path()),
+        "check-readiness", str(sample_business_after_overlay_path()),
         "--overlay", str(sample_overlay_path()),
     )
     assert r2.returncode == 0

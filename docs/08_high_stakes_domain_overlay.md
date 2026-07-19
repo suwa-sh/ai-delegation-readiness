@@ -36,16 +36,16 @@ BLOCK)として足し、委任マトリクスの閾値も慎重側(満点でな�
 
 ```bash
 # 業務全体の readiness(成立条件ゲート込み)
-bin/aidr check-readiness examples/business/sample-ip-agent-readiness.yaml \
+bin/aidr check-readiness examples/business/sample-ip-agent-readiness.csv \
   --overlay examples/overlays/high-stakes-domain/four-layer.yaml
 
 # 工程(判定)単位の委任領域(慎重側の閾値)
-bin/aidr score-delegation examples/judgments/sample-ip-judgments.yaml \
+bin/aidr score-delegation examples/judgments/sample-ip-judgments.csv \
   --overlay examples/overlays/high-stakes-domain/delegation-matrix.yaml
 ```
 
-入力: [`examples/business/sample-ip-agent-readiness.yaml`](../examples/business/sample-ip-agent-readiness.yaml) /
-[`examples/judgments/sample-ip-judgments.yaml`](../examples/judgments/sample-ip-judgments.yaml)
+入力: [`examples/business/sample-ip-agent-readiness.csv`](../examples/business/sample-ip-agent-readiness.csv) /
+[`examples/judgments/sample-ip-judgments.csv`](../examples/judgments/sample-ip-judgments.csv)
 
 readiness サンプルは「業務プロセスは整っている(L1〜L4 全 PASS)が、
 HITL がコンプレイセンシー前提で設計されていない(L5.Q3: no)」架空の知財部門です。
@@ -172,8 +172,8 @@ flowchart TD
 
 - 正本: [`examples/overlays/high-stakes-domain/four-layer.yaml`](../examples/overlays/high-stakes-domain/four-layer.yaml) /
   [`examples/overlays/high-stakes-domain/delegation-matrix.yaml`](../examples/overlays/high-stakes-domain/delegation-matrix.yaml)
-- サンプル: [`examples/business/sample-ip-agent-readiness.yaml`](../examples/business/sample-ip-agent-readiness.yaml) /
-  [`examples/judgments/sample-ip-judgments.yaml`](../examples/judgments/sample-ip-judgments.yaml)
+- サンプル: [`examples/business/sample-ip-agent-readiness.csv`](../examples/business/sample-ip-agent-readiness.csv) /
+  [`examples/judgments/sample-ip-judgments.csv`](../examples/judgments/sample-ip-judgments.csv)
 - 関連 doc: [`02_four_layer_framework.md`](02_four_layer_framework.md)(4 層フレーム)/
   [`04_delegation_matrix.md`](04_delegation_matrix.md)(委任マトリクス)/
   [`03_organization_axis.md`](03_organization_axis.md)(並列軸とゲート層の振り分け)

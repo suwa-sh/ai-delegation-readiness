@@ -140,10 +140,19 @@ def score(
     # key or a non-list value is an input error (exit 3), not a silent
     # zero-judgment success — a mistyped path/format in CI must not pass as
     # "scored everything". An explicitly empty list is still allowed.
+    from . import io_input
+
     try:
-        input_data = overlay_mod.load_yaml(judgments_path)
+        input_data, input_format = io_input.load_input(judgments_path, "matrix")
     except yaml.YAMLError as e:
         raise InputError(f"input is not valid YAML/JSON: {e}") from e
+    if input_format == "csv":
+        known = io_input.collect_question_ids(defn, non_question_groups=_NON_AXIS_GROUPS)
+        for j in input_data.get("judgments", []):
+            io_input.validate_known_ids(
+                (j.get("answers") or {}).keys(), known,
+                f"{Path(judgments_path).name} [{j.get('id')}]",
+            )
     if not isinstance(input_data, dict):
         raise InputError("input must be a mapping with a 'judgments' list")
     if "judgments" not in input_data or input_data["judgments"] is None:
@@ -218,3 +227,29 @@ def render_json(result: ScoreResult) -> str:
 
 def _region_marker(region: str) -> str:
     return {"green": "[GREEN ]", "yellow": "[YELLOW]", "red": "[RED   ]"}.get(region, "[?     ]")
+
+
+def render_csv_rows(result: ScoreResult) -> list[list[str]]:
+    from .io_input import sanitize_cell
+
+    rows = [[
+        "record_type", "id", "description", "region",
+        "verifiability_level", "verifiability_score",
+        "answer_definability_level", "answer_definability_score", "action",
+    ]]
+    for j in result.judgments:
+        v = j.axes.get("verifiability")
+        a = j.axes.get("answer_definability")
+        rows.append([
+            "judgment", j.id, sanitize_cell(j.description), j.region,
+            v.level if v else "", _axis_ratio(v), a.level if a else "", _axis_ratio(a),
+            " ".join(j.rationale.split()),
+        ])
+    return rows
+
+
+def _axis_ratio(s: AxisScore | None) -> str:
+    if s is None:
+        return ""
+    total = len(s.yes_ids) + len(s.no_ids) or s.threshold
+    return f"{s.score}/{total}"

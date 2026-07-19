@@ -12,7 +12,7 @@ from conftest import sample_business_path, four_layer_path, EXAMPLES_DIR
 
 
 def ajinomoto_discovery_team_path():
-    return EXAMPLES_DIR / "business" / "ajinomoto-discovery-team.yaml"
+    return EXAMPLES_DIR / "business" / "ajinomoto-discovery-team.csv"
 
 
 def _write(tmp_path, text, name="biz.yaml"):

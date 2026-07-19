@@ -66,30 +66,30 @@ No setup — pull the published image and run it. The bundled samples (the
 Midori Seiki story) work out of the box:
 
 ```bash
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.9.0 --version
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.10.0 --version
 
 # The 5 main-line steps, in story order
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.9.0 \
-  screen-transition examples/task-groups/sample-task-groups.yaml
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.9.0 \
-  check-readiness examples/business/sample-expense-approval.yaml          # first diagnosis -> BLOCK
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.9.0 \
-  check-readiness examples/business/sample-expense-approval-after.yaml    # after fixes -> PASS
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.9.0 \
-  score-delegation examples/judgments/sample-judgments.yaml
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.9.0 \
-  check-task-contract examples/task-contracts/sample-green.yaml
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.9.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.10.0 \
+  screen-transition examples/task-groups/sample-task-groups.csv
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.10.0 \
+  check-readiness examples/business/sample-expense-approval.csv          # first diagnosis -> BLOCK
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.10.0 \
+  check-readiness examples/business/sample-expense-approval-after.csv    # after fixes -> PASS
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.10.0 \
+  score-delegation examples/judgments/sample-judgments.csv
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.10.0 \
+  check-task-contract examples/task-contracts/sample-green.csv
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.10.0 \
   validate-audit-log examples/audit-log-sample.json --level extended
 
 # Extension (optional) and definition inspection
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.9.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.10.0 \
   check-overlay examples/overlays/sample-company/extra-rules.yaml
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.9.0 list-definitions
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.10.0 list-definitions
 ```
 
 `--version` prints the app version and the bundled overlay engine version, e.g.
-`aidr 0.9.0 (overlay-scoring-skeleton 0.1.0)`.
+`aidr 0.10.0 (overlay-scoring-skeleton 0.1.0)`.
 
 Every command returns a deterministic exit code so you can gate CI on it:
 
@@ -100,6 +100,10 @@ Every command returns a deterministic exit code so you can gate CI on it:
 | validate-audit-log | valid | invalid (schema violations) | — | input error (malformed JSON, missing file) |
 | check-overlay | merges cleanly | violations (rejected) | — | — |
 
+Reports are also available as **CSV** via `--format csv` (the 5 commands in the
+table above; the leading `record_type` column distinguishes row kinds so
+spreadsheets can aggregate them directly).
+
 ## Usage workflow
 
 The commands run against *your* data. Mount the directory that holds your files
@@ -107,18 +111,22 @@ into the container. A shell function keeps the rest of this guide readable:
 
 ```bash
 aidr() { docker run --rm -v "$PWD:/data" -w /data \
-  ghcr.io/suwa-sh/ai-delegation-readiness:v0.9.0 "$@"; }
+  ghcr.io/suwa-sh/ai-delegation-readiness:v0.10.0 "$@"; }
 ```
 
 Generate your input files with `aidr init` (step 1 below), then run the
 commands in this order. Question texts carry both English (`text`) and
 Japanese (`text_ja`) in `definitions/*.yaml`.
 
-1. **Prepare** — generate templates with question comments via
-   `aidr init --target transition|four-layer|matrix|task-contract > my-file.yaml`
-   (add `--overlay` to include your company's extra questions). The bundled
-   [`examples/`](examples/) are these templates filled with Midori Seiki's answers.
-2. **Map where to start** — `aidr screen-transition my-task-groups.yaml` sorts
+1. **Prepare** — generate a question-annotated CSV template via
+   `aidr init --target transition|four-layer|matrix|task-contract --format csv > my-file.csv`
+   (add `--overlay` to include your company's extra questions), open it in
+   Google Sheets / Excel (UTF-8 BOM included), and fill the 回答 (answer) cells
+   with yes/no (はい/いいえ also accepted). Duplicate columns to add task
+   groups / judgments in the wide format. The bundled [`examples/`](examples/)
+   are these templates filled with Midori Seiki's answers; YAML input still
+   works (one YAML example is kept as a twin).
+2. **Map where to start** — `aidr screen-transition my-task-groups.csv` sorts
    task groups into the four AI-transition types in delegation-design priority
    order: *reorganization* first (role redesign needed), *high automation*
    feeds the next steps. Groups touching rights / finances / health / regulated
@@ -126,18 +134,18 @@ Japanese (`text_ja`) in `definitions/*.yaml`.
    answered — missing answers are an input error. See
    [docs/01](docs/01_transition_screening.md).
 3. **Diagnose the process and the organization** —
-   `aidr check-readiness my-business.yaml` scores the four layers
+   `aidr check-readiness my-business.csv` scores the four layers
    (standardization → structuring → scope → control) plus the efficacy and
    organization axes. **BLOCK is a gate, not a score**: fix the layer named by
    `First gate to fix`, then re-check. The bundled story runs first-BLOCK
-   ([`sample-expense-approval.yaml`](examples/business/sample-expense-approval.yaml))
+   ([`sample-expense-approval.csv`](examples/business/sample-expense-approval.csv))
    then PASS
-   ([`sample-expense-approval-after.yaml`](examples/business/sample-expense-approval-after.yaml)).
+   ([`sample-expense-approval-after.csv`](examples/business/sample-expense-approval-after.csv)).
    See [docs/02](docs/02_four_layer_framework.md) / [docs/03](docs/03_organization_axis.md).
-4. **Score the judgments** — `aidr score-delegation my-judgments.yaml` places
+4. **Score the judgments** — `aidr score-delegation my-judgments.csv` places
    each judgment into GREEN (delegate), YELLOW (LLM-assist, a human decides), or
    RED (human-only). See [docs/04](docs/04_delegation_matrix.md).
-5. **Check the task contract** — `aidr check-task-contract my-contract.yaml`
+5. **Check the task contract** — `aidr check-task-contract my-contract.csv`
    checks intent / boundary / evidence / scorer. An AI judge with no iRULER
    double-evaluation blocks (RED). See
    [docs/05](docs/05_task_contract_execution_rubric.md).
@@ -151,15 +159,15 @@ Japanese (`text_ja`) in `definitions/*.yaml`.
    responsibility ([docs/09](docs/09_insourcing_judgment_overlay.md)):
 
    ```bash
-   aidr check-readiness examples/business/sample-ip-agent-readiness.yaml \
+   aidr check-readiness examples/business/sample-ip-agent-readiness.csv \
      --overlay examples/overlays/high-stakes-domain/four-layer.yaml
    # => L1-L4 all PASS, yet one missing prerequisite blocks at L5
 
-   aidr score-delegation examples/judgments/sample-ip-judgments.yaml \
+   aidr score-delegation examples/judgments/sample-ip-judgments.csv \
      --overlay examples/overlays/high-stakes-domain/delegation-matrix.yaml
    # => boundary cases (2/3 on an axis) drop from green to yellow / red
 
-   aidr check-readiness examples/business/sample-insourcing-readiness.yaml \
+   aidr check-readiness examples/business/sample-insourcing-readiness.csv \
      --overlay examples/overlays/insourcing-judgment/four-layer.yaml
    # => L1-L4 and organization all PASS, yet a missing in-house owner is REVISE/BLOCK
    ```
@@ -227,7 +235,7 @@ The framework is reused in three ways:
   `schemas/audit-log.schema.json` into the system prompt or tool context.
   See [`examples/skills/`](examples/skills/) for three ready-to-adapt Claude
   Code skill wrappers.
-- **CI pipelines**: run `docker run --rm -v "$PWD:/data" -w /data ghcr.io/suwa-sh/ai-delegation-readiness:v0.9.0 validate-audit-log <log>` on each emitted log; gate
+- **CI pipelines**: run `docker run --rm -v "$PWD:/data" -w /data ghcr.io/suwa-sh/ai-delegation-readiness:v0.10.0 validate-audit-log <log>` on each emitted log; gate
   on exit code.
 - **Internal overlays**: keep your company-specific overlay in a private repo and
   apply with `--overlay`. The framework stays a clean upstream you can pull from.

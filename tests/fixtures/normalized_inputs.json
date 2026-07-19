@@ -1,0 +1,380 @@
+{
+  "examples/business/ajinomoto-discovery-team.csv": {
+    "answers": {
+      "L1.Q1": true,
+      "L1.Q2": true,
+      "L1.Q3": true,
+      "L1.Q4": true,
+      "L2.Q1": true,
+      "L2.Q2": true,
+      "L2.Q3": true,
+      "L3.Q1": true,
+      "L3.Q2": true,
+      "L3.Q3": true,
+      "L3.Q4": true,
+      "L4.Q1": true,
+      "L4.Q2": true,
+      "L4.Q3": true,
+      "L4.Q4": true,
+      "L4.Q5": true,
+      "efficacy.E1": true,
+      "efficacy.E2": true,
+      "efficacy.E3": true,
+      "efficacy.E4": true,
+      "organization.C1": true,
+      "organization.C2": false,
+      "organization.C3": true,
+      "organization.C4": false,
+      "organization.C5": false,
+      "organization.C6": false
+    },
+    "target": "新規事業の探索チーム(小規模フルスタック・探索フェーズ)"
+  },
+  "examples/business/sample-expense-approval-after.csv": {
+    "answers": {
+      "L1.MIDORI_Q5": true,
+      "L1.Q1": true,
+      "L1.Q2": true,
+      "L1.Q3": true,
+      "L1.Q4": true,
+      "L2.Q1": true,
+      "L2.Q2": true,
+      "L2.Q3": true,
+      "L3.Q1": true,
+      "L3.Q2": true,
+      "L3.Q3": true,
+      "L3.Q4": true,
+      "L4.MIDORI_Q6": true,
+      "L4.Q1": true,
+      "L4.Q2": true,
+      "L4.Q3": true,
+      "L4.Q4": true,
+      "L4.Q5": true,
+      "efficacy.E1": true,
+      "efficacy.E2": true,
+      "efficacy.E3": true,
+      "efficacy.E4": true,
+      "organization.C1": true,
+      "organization.C2": true,
+      "organization.C3": true,
+      "organization.C4": true,
+      "organization.C5": true,
+      "organization.C6": true
+    },
+    "target": "経費精算承認(ミドリ精機・経理部、FY2026 下期 改善後の再診断)"
+  },
+  "examples/business/sample-expense-approval.csv": {
+    "answers": {
+      "L1.Q1": true,
+      "L1.Q2": true,
+      "L1.Q3": true,
+      "L1.Q4": false,
+      "L2.Q1": true,
+      "L2.Q2": false,
+      "L2.Q3": false,
+      "L3.Q1": true,
+      "L3.Q2": true,
+      "L3.Q3": true,
+      "L3.Q4": false,
+      "L4.Q1": false,
+      "L4.Q2": false,
+      "L4.Q3": false,
+      "L4.Q4": false,
+      "L4.Q5": false,
+      "efficacy.E1": true,
+      "efficacy.E2": true,
+      "efficacy.E3": false,
+      "efficacy.E4": true
+    },
+    "target": "経費精算承認(ミドリ精機・経理部、FY2026 初回診断)"
+  },
+  "examples/business/sample-insourcing-readiness.csv": {
+    "answers": {
+      "L1.Q1": true,
+      "L1.Q2": true,
+      "L1.Q3": true,
+      "L1.Q4": true,
+      "L2.Q1": true,
+      "L2.Q2": true,
+      "L2.Q3": true,
+      "L3.Q1": true,
+      "L3.Q2": true,
+      "L3.Q3": true,
+      "L3.Q4": true,
+      "L4.Q1": true,
+      "L4.Q2": true,
+      "L4.Q3": true,
+      "L4.Q4": true,
+      "L4.Q5": true,
+      "L_insourcing.I0": true,
+      "L_insourcing.I1": true,
+      "L_insourcing.I2": false,
+      "L_insourcing.I3": true,
+      "L_insourcing.I4": true,
+      "efficacy.E1": true,
+      "efficacy.E2": true,
+      "efficacy.E3": true,
+      "efficacy.E4": true,
+      "organization.C1": true,
+      "organization.C2": true,
+      "organization.C3": true,
+      "organization.C4": true,
+      "organization.C5": true,
+      "organization.C6": true
+    },
+    "target": "AI 開発ワークフローを内製化する中堅企業(例示)"
+  },
+  "examples/business/sample-ip-agent-readiness.csv": {
+    "answers": {
+      "L1.Q1": true,
+      "L1.Q2": true,
+      "L1.Q3": true,
+      "L1.Q4": true,
+      "L2.Q1": true,
+      "L2.Q2": true,
+      "L2.Q3": true,
+      "L3.HS_Q5": true,
+      "L3.HS_Q6": true,
+      "L3.Q1": true,
+      "L3.Q2": true,
+      "L3.Q3": true,
+      "L3.Q4": true,
+      "L4.Q1": true,
+      "L4.Q2": true,
+      "L4.Q3": true,
+      "L4.Q4": true,
+      "L4.Q5": true,
+      "L5.Q1": true,
+      "L5.Q2": true,
+      "L5.Q3": false,
+      "L5.Q4": true,
+      "efficacy.E1": true,
+      "efficacy.E2": true,
+      "efficacy.E3": false,
+      "efficacy.E4": true,
+      "organization.C1": true,
+      "organization.C2": true,
+      "organization.C3": true,
+      "organization.C4": true,
+      "organization.C5": true,
+      "organization.C6": false
+    },
+    "target": "先行技術調査エージェント(架空の知財部門・FY2026 評価)"
+  },
+  "examples/judgments/sample-ip-judgments.csv": {
+    "judgments": [
+      {
+        "answers": {
+          "answer_definability.A1": true,
+          "answer_definability.A2": true,
+          "answer_definability.A3": true,
+          "verifiability.V1": true,
+          "verifiability.V2": true,
+          "verifiability.V3": true
+        },
+        "description": "特許分類コードの付与(有限のラベル集合・正解ラベルの大量な蓄積あり)",
+        "id": "patent_classification"
+      },
+      {
+        "answers": {
+          "answer_definability.A1": true,
+          "answer_definability.A2": true,
+          "answer_definability.A3": false,
+          "verifiability.V1": true,
+          "verifiability.V2": true,
+          "verifiability.V3": true
+        },
+        "description": "クレームに対する先行技術候補の抽出(「該当なし」の確定は含まない)",
+        "id": "prior_art_candidate_retrieval"
+      },
+      {
+        "answers": {
+          "answer_definability.A1": true,
+          "answer_definability.A2": true,
+          "answer_definability.A3": true,
+          "verifiability.V1": true,
+          "verifiability.V2": true,
+          "verifiability.V3": false
+        },
+        "description": "発明提案書を課題・手段・効果に再構成する明細書ドラフト作成",
+        "id": "patent_spec_draft"
+      },
+      {
+        "answers": {
+          "answer_definability.A1": true,
+          "answer_definability.A2": true,
+          "answer_definability.A3": false,
+          "verifiability.V1": true,
+          "verifiability.V2": true,
+          "verifiability.V3": false
+        },
+        "description": "無効資料調査の「該当する資料は存在しない」という確定判断",
+        "id": "invalidity_search_final"
+      }
+    ]
+  },
+  "examples/judgments/sample-judgments.csv": {
+    "judgments": [
+      {
+        "answers": {
+          "answer_definability.A1": true,
+          "answer_definability.A2": true,
+          "answer_definability.A3": true,
+          "verifiability.V1": true,
+          "verifiability.V2": true,
+          "verifiability.V3": true
+        },
+        "description": "領収書の必須項目チェック(日付・宛名・金額・発行者が揃っているか)",
+        "id": "receipt_mandatory_items_check"
+      },
+      {
+        "answers": {
+          "answer_definability.A1": true,
+          "answer_definability.A2": true,
+          "answer_definability.A3": true,
+          "verifiability.V1": true,
+          "verifiability.V2": true,
+          "verifiability.V3": true
+        },
+        "description": "インボイス制度(適格請求書)の要件充足チェック",
+        "id": "invoice_scheme_compliance"
+      },
+      {
+        "answers": {
+          "answer_definability.A1": true,
+          "answer_definability.A2": true,
+          "answer_definability.A3": false,
+          "verifiability.V1": true,
+          "verifiability.V2": true,
+          "verifiability.V3": false
+        },
+        "description": "税務上の交際費該当判定(金額・人数の閾値で機械化できるがグレーケースあり)",
+        "id": "entertainment_expense_judgment"
+      },
+      {
+        "answers": {
+          "answer_definability.A1": false,
+          "answer_definability.A2": false,
+          "answer_definability.A3": false,
+          "verifiability.V1": false,
+          "verifiability.V2": false,
+          "verifiability.V3": false
+        },
+        "description": "採用面接の最終合否判定(境界比較例。正解を定義できず人間に残す)",
+        "id": "new_hire_decision"
+      },
+      {
+        "answers": {
+          "answer_definability.A1": false,
+          "answer_definability.A2": false,
+          "answer_definability.A3": true,
+          "verifiability.V1": true,
+          "verifiability.V2": true,
+          "verifiability.V3": false
+        },
+        "description": "社内文書の差別表現チェック(境界比較例。LLM が候補を出し人間が最終判定)",
+        "id": "discriminatory_language_detection"
+      }
+    ]
+  },
+  "examples/task-contracts/sample-green.csv": {
+    "answers": {
+      "boundary.B1": true,
+      "boundary.B2": true,
+      "boundary.B3": true,
+      "evidence.E1": true,
+      "evidence.E2": true,
+      "evidence.E3": true,
+      "intent.I1": true,
+      "intent.I2": true,
+      "intent.I3": true,
+      "scorer.S1": true,
+      "scorer.S2": true,
+      "scorer.iruler_double_eval": true,
+      "scorer.type": "ai_judge"
+    },
+    "task": "経費チェックエージェントへの経費精算チェック委任(ミドリ精機・経理部)"
+  },
+  "examples/task-contracts/sample-red-ai-judge.csv": {
+    "answers": {
+      "boundary.B1": true,
+      "boundary.B2": true,
+      "boundary.B3": true,
+      "evidence.E1": true,
+      "evidence.E2": true,
+      "evidence.E3": true,
+      "intent.I1": true,
+      "intent.I2": true,
+      "intent.I3": true,
+      "scorer.S1": true,
+      "scorer.S2": true,
+      "scorer.iruler_double_eval": false,
+      "scorer.type": "ai_judge"
+    },
+    "task": "経費チェックエージェントへの経費精算チェック委任(採点者が安全でない例)"
+  },
+  "examples/task-groups/sample-task-groups.csv": {
+    "task_groups": [
+      {
+        "answers": {
+          "demand_elasticity.D1": false,
+          "demand_elasticity.D2": false,
+          "demand_elasticity.D3": true,
+          "human_necessity.H1": true,
+          "human_necessity.H2": true,
+          "human_necessity.H3": false,
+          "technical_exposure.E1": true,
+          "technical_exposure.E2": false,
+          "technical_exposure.E3": true
+        },
+        "description": "決算開示資料のドラフト作成(経理部・四半期ごと)",
+        "id": "financial_disclosure_draft"
+      },
+      {
+        "answers": {
+          "demand_elasticity.D1": false,
+          "demand_elasticity.D2": false,
+          "demand_elasticity.D3": false,
+          "human_necessity.H1": false,
+          "human_necessity.H2": false,
+          "human_necessity.H3": false,
+          "technical_exposure.E1": true,
+          "technical_exposure.E2": true,
+          "technical_exposure.E3": true
+        },
+        "description": "経費精算の申請チェック(領収書・インボイス・勘定科目)",
+        "id": "expense_entry_check"
+      },
+      {
+        "answers": {
+          "demand_elasticity.D1": true,
+          "demand_elasticity.D2": true,
+          "demand_elasticity.D3": true,
+          "human_necessity.H1": false,
+          "human_necessity.H2": true,
+          "human_necessity.H3": false,
+          "technical_exposure.E1": true,
+          "technical_exposure.E2": true,
+          "technical_exposure.E3": true
+        },
+        "description": "見積・提案書のドラフト作成(営業事務)",
+        "id": "sales_proposal_draft"
+      },
+      {
+        "answers": {
+          "demand_elasticity.D1": true,
+          "demand_elasticity.D2": false,
+          "demand_elasticity.D3": false,
+          "human_necessity.H1": false,
+          "human_necessity.H2": false,
+          "human_necessity.H3": true,
+          "technical_exposure.E1": false,
+          "technical_exposure.E2": false,
+          "technical_exposure.E3": true
+        },
+        "description": "工場設備の点検・修理(設備保全課)",
+        "id": "equipment_maintenance"
+      }
+    ]
+  }
+}

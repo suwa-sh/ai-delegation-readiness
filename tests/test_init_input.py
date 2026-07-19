@@ -136,36 +136,71 @@ _ANSWER_LINE_RE = re.compile(r"^\s*([\w.]+): \S")
 
 
 def test_example_question_comments_match_definitions():
-    """examples の回答行は「問: <text_ja>」コメントを持ち、正本と一致すること。
-
-    問いの正本は definitions/overlay に一元化されているので、examples 側の
-    コメントは複製 — このテストが 3 種のドリフトを検出する:
-    ①コメント本文の改変・改定漏れ ②コメントの削除・書式崩れ(既知 id の
-    回答行にコメントが無い)③コメント行の id タイプミス(未知 id に問いコメント)。
-    """
+    """残す YAML 記入例(双子 1 本)の「問:」コメントが正本と一致すること。"""
     text_ja = _all_text_ja()
+    from conftest import sample_business_yaml_twin_path
+
+    path = sample_business_yaml_twin_path()
     checked = 0
     problems: list[str] = []
-    for path in list(EXAMPLES_DIR.rglob("*.yaml")):
-        if "overlays" in path.parts:
-            continue  # overlay ファイル自身は正本側
-        for lineno, line in enumerate(path.read_text().splitlines(), 1):
-            loc = f"{path.relative_to(EXAMPLES_DIR)}:{lineno}"
-            qm = _QUESTION_COMMENT_RE.match(line)
-            if qm:
-                qid, comment = qm.group(1), qm.group(2).strip()
-                if qid not in text_ja:
-                    problems.append(f"{loc}: unknown id with 問 comment: {qid}")
-                    continue
-                checked += 1
-                if comment != text_ja[qid]:
-                    problems.append(
-                        f"{loc}: drifted comment for {qid}\n"
-                        f"    comment: {comment}\n    text_ja: {text_ja[qid]}"
-                    )
+    for lineno, line in enumerate(path.read_text().splitlines(), 1):
+        loc = f"{path.name}:{lineno}"
+        qm = _QUESTION_COMMENT_RE.match(line)
+        if qm:
+            qid, comment = qm.group(1), qm.group(2).strip()
+            if qid not in text_ja:
+                problems.append(f"{loc}: unknown id with 問 comment: {qid}")
                 continue
-            am = _ANSWER_LINE_RE.match(line)
-            if am and am.group(1) in text_ja and "# 問:" not in line:
-                problems.append(f"{loc}: answer line for {am.group(1)} lacks 問 comment")
-    assert checked > 50, f"question comments not found in examples (checked={checked})"
-    assert not problems, "example/definition drift:\n" + "\n".join(problems)
+            checked += 1
+            if comment != text_ja[qid]:
+                problems.append(
+                    f"{loc}: drifted comment for {qid}\n"
+                    f"    comment: {comment}\n    text_ja: {text_ja[qid]}"
+                )
+            continue
+        am = _ANSWER_LINE_RE.match(line)
+        if am and am.group(1) in text_ja and "# 問:" not in line:
+            problems.append(f"{loc}: answer line for {am.group(1)} lacks 問 comment")
+    assert checked >= 20, f"question comments not found (checked={checked})"
+    assert not problems, "yaml twin drift:\n" + "\n".join(problems)
+
+
+def test_example_csv_question_column_matches_definitions():
+    """全 CSV サンプルの質問列が正本(text_ja)と一致すること。
+
+    問いの正本は definitions/overlay に一元化されているので、CSV 側の質問列は
+    複製 — このテストが改変・改定漏れ・id タイプミスを検出する。
+    """
+    import csv as _csv
+    import io as _io
+
+    text_ja = _all_text_ja()
+    reserved = {"target", "task", "description"}
+    checked = 0
+    problems: list[str] = []
+    csv_files = sorted(EXAMPLES_DIR.rglob("*.csv"))
+    assert len(csv_files) >= 10, "expected the bundled CSV samples"
+    for path in csv_files:
+        text = path.read_bytes().decode("utf-8-sig")
+        for lineno, row in enumerate(_csv.reader(_io.StringIO(text, newline="")), 1):
+            if lineno == 1 or not row or not row[0]:
+                continue
+            rid = row[0].strip()
+            if rid in reserved:
+                continue
+            loc = f"{path.relative_to(EXAMPLES_DIR)}:{lineno}"
+            question = (row[1] if len(row) > 1 else "").strip()
+            if rid not in text_ja:
+                # data leaf(scorer.type 等)はラベル列なので text_ja 照合対象外
+                if rid in ("scorer.type", "scorer.iruler_double_eval"):
+                    continue
+                problems.append(f"{loc}: unknown question id: {rid}")
+                continue
+            checked += 1
+            if question != text_ja[rid]:
+                problems.append(
+                    f"{loc}: drifted question column for {rid}\n"
+                    f"    csv:     {question}\n    text_ja: {text_ja[rid]}"
+                )
+    assert checked > 50, f"question rows not found in CSVs (checked={checked})"
+    assert not problems, "csv/definition drift:\n" + "\n".join(problems)

@@ -89,3 +89,13 @@ def render_json(result: ValidationResult) -> str:
         indent=2,
         ensure_ascii=False,
     )
+
+
+def render_csv_rows(result: ValidationResult) -> list[list[str]]:
+    from .io_input import sanitize_cell
+
+    rows = [["record_type", "level", "ok", "path", "message"]]
+    rows.append(["summary", result.level, "true" if result.ok else "false", "", ""])
+    for v in result.violations:
+        rows.append(["violation", "", "", v.path, sanitize_cell(v.message)])
+    return rows

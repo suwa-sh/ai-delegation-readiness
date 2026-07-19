@@ -1,0 +1,11 @@
+﻿id,質問,financial_disclosure_draft,expense_entry_check,sales_proposal_draft,equipment_maintenance
+description,説明,決算開示資料のドラフト作成(経理部・四半期ごと),経費精算の申請チェック(領収書・インボイス・勘定科目),見積・提案書のドラフト作成(営業事務),工場設備の点検・修理(設備保全課)
+technical_exposure.E1,タスク時間の過半が(物理作業や対面でなく)情報処理(文書・データ・コード)か,yes,yes,yes,no
+technical_exposure.E2,主要タスクの入出力がデジタルデータだけで完結するか(物理的な取り扱いが不要か),no,yes,yes,no
+technical_exposure.E3,現行の AI ツールで品質を保ったまま、中核タスクの所要時間を半減できるか(Eloundou らの exposure 基準),yes,yes,yes,yes
+human_necessity.H1,権利・財務・健康・規制のいずれかに影響し、法令・規制・監査上、人間の判断や署名が要求されるか(HITL 既定固定域),yes,no,no,no
+human_necessity.H2,対人関係そのもの(信頼・交渉・ケア)が、この仕事が提供する価値の中核か,yes,no,yes,no
+human_necessity.H3,現場での物理作業や身体的スキルが不可欠か,no,no,no,yes
+demand_elasticity.D1,コストや納期が大きく下がれば、顧客や社内からの依頼件数が増える見込みがあるか,no,no,yes,yes
+demand_elasticity.D2,価格や速度がボトルネックで、満たされていない潜在需要が今あるか,no,no,yes,no
+demand_elasticity.D3,需要の伸びを止める上限(規制枠・固定予算など)が無いか,yes,no,yes,no

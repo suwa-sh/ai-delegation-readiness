@@ -33,10 +33,10 @@
 経理部は、経費精算の 3 判定に境界比較の 2 判定を加えて採点しました。
 
 ```bash
-bin/aidr score-delegation examples/judgments/sample-judgments.yaml
+bin/aidr score-delegation examples/judgments/sample-judgments.csv
 ```
 
-入力: [`examples/judgments/sample-judgments.yaml`](../examples/judgments/sample-judgments.yaml)
+入力: [`examples/judgments/sample-judgments.csv`](../examples/judgments/sample-judgments.csv)
 
 ```text
 [GREEN ] receipt_mandatory_items_check: GREEN  (verifiability=high(3/3), answer_definability=high(3/3))
@@ -56,7 +56,7 @@ bin/aidr score-delegation examples/judgments/sample-judgments.yaml
 | 差別表現チェック → 🟡 | 検証はできるが正解が文脈依存。**LLM が候補を出し、人間が最終判定**(境界比較の例) |
 
 各判定には推奨アクション(監査ログにどう記録するか)が併記されます。
-自社の判定リストを採点するときは `bin/aidr init --target matrix > my-judgments.yaml` で
+自社の判定リストを採点するときは `bin/aidr init --target matrix --format csv > my-judgments.csv` で
 テンプレートを生成して埋めてください。
 
 ## Concept
@@ -139,7 +139,7 @@ bin/aidr score-delegation examples/judgments/sample-judgments.yaml
 ## References
 
 - 正本: [`definitions/delegation-matrix.yaml`](../definitions/delegation-matrix.yaml)
-- サンプル入力: [`examples/judgments/sample-judgments.yaml`](../examples/judgments/sample-judgments.yaml)
-- CLI: `bin/aidr score-delegation --help` / テンプレート生成は `bin/aidr init --target matrix`
+- サンプル入力: [`examples/judgments/sample-judgments.csv`](../examples/judgments/sample-judgments.csv)
+- CLI: `bin/aidr score-delegation --help` / テンプレート生成は `bin/aidr init --target matrix --format csv`
 - 次のステップ: [05 タスク契約](05_task_contract_execution_rubric.md)
 - 関連 doc: [`06_audit_log_schema.md`](06_audit_log_schema.md) / [`08_high_stakes_domain_overlay.md`](08_high_stakes_domain_overlay.md)(知財/法務/薬事向けに両軸の閾値を 3/3 へ強化するドメイン overlay。base の閾値 2/3 は変わりません)

@@ -38,25 +38,40 @@
 
 | 物語のステップ | コマンド | サンプル |
 |---|---|---|
-| 1 スクリーニング | `aidr screen-transition` | [`task-groups/sample-task-groups.yaml`](task-groups/sample-task-groups.yaml) |
-| 2 初回診断(BLOCK) | `aidr check-readiness` | [`business/sample-expense-approval.yaml`](business/sample-expense-approval.yaml) |
-| 2' 再診断(PASS) | `aidr check-readiness` | [`business/sample-expense-approval-after.yaml`](business/sample-expense-approval-after.yaml) |
-| 3 判定の振り分け | `aidr score-delegation` | [`judgments/sample-judgments.yaml`](judgments/sample-judgments.yaml) |
-| 4 タスク契約(充足 / 委任不可) | `aidr check-task-contract` | [`task-contracts/sample-green.yaml`](task-contracts/sample-green.yaml) / [`task-contracts/sample-red-ai-judge.yaml`](task-contracts/sample-red-ai-judge.yaml) |
+| 1 スクリーニング | `aidr screen-transition` | [`task-groups/sample-task-groups.csv`](task-groups/sample-task-groups.csv) |
+| 2 初回診断(BLOCK) | `aidr check-readiness` | [`business/sample-expense-approval.csv`](business/sample-expense-approval.csv) |
+| 2' 再診断(PASS) | `aidr check-readiness` | [`business/sample-expense-approval-after.csv`](business/sample-expense-approval-after.csv) |
+| 3 判定の振り分け | `aidr score-delegation` | [`judgments/sample-judgments.csv`](judgments/sample-judgments.csv) |
+| 4 タスク契約(充足 / 委任不可) | `aidr check-task-contract` | [`task-contracts/sample-green.csv`](task-contracts/sample-green.csv) / [`task-contracts/sample-red-ai-judge.csv`](task-contracts/sample-red-ai-judge.csv) |
 | 5 監査ログ | `aidr validate-audit-log` | [`audit-log-sample.json`](audit-log-sample.json) |
 | 拡張(任意) | `aidr check-overlay` → 各コマンド `--overlay` | [`overlays/sample-company/extra-rules.yaml`](overlays/sample-company/extra-rules.yaml) |
 
-補足: 改善後サンプル(2')には、ミドリ精機の自社ルール overlay を適用する場合の
-追加回答(`L1.MIDORI_Q5` / `L4.MIDORI_Q6`)も入っています。overlay あり・なしの
-どちらで再診断しても PASS になります。
-
 補足:
 
+- 自社ルール overlay を適用して再診断する場合は、追加質問への回答込みの
+  [`business/sample-expense-approval-after-with-overlay.csv`](business/sample-expense-approval-after-with-overlay.csv)
+  を使います(CSV は typo 防止のため、適用していない overlay の質問 id を
+  受け付けません。overlay あり・なしで入力ファイルを分けています)
 - ステップ 3 のサンプルには、経費の 3 判定に加えて **境界比較のための 2 判定**
   (採用面接の合否・差別表現の検出)が入っています。経費以外の判定にも同じ物差しが
   使えることを示す比較例です。
 - AI エージェントからサンプルと同じ流れを使う例は [`skills/`](skills/) にあります
   (Claude Code skill のラッパー 3 種)。
+
+## スプレッドシートで記入する
+
+サンプルはすべて CSV(UTF-8 BOM 付き。Excel でそのまま開けます)です。
+自社の記入は次の流れが最短です。
+
+1. `aidr init --target <対象> --format csv > my-<対象>.csv` でテンプレートを生成する
+2. Google Sheets(ファイル → インポート)か Excel で開く
+3. 問いの隣の 回答 セルに `yes` / `no`(はい / いいえ でも可)を記入する。
+   タスク群・判定を増やすときは**列を複製**する(横持ち形式)
+4. CSV 形式でエクスポートし、`aidr <コマンド> my-<対象>.csv` に渡す
+
+**YAML でも同じ内容を書けます**(エンジニア / CI 向け)。記入例は
+[`business/sample-expense-approval.yaml`](business/sample-expense-approval.yaml)
+(CSV 版との双子。同値性はテストで固定)の 1 本だけ残しています。
 
 ## 応用例(ミドリ精機の物語とは別)
 
@@ -64,9 +79,9 @@
 
 | 応用例 | 題材 | サンプル |
 |---|---|---|
-| 組織 readiness の実事例 | 味の素グループの分析記事由来。業務は整っているが組織が未成熟なチーム | [`business/ajinomoto-discovery-team.yaml`](business/ajinomoto-discovery-team.yaml) / [`overlays/organization-readiness-ajinomoto.yaml`](overlays/organization-readiness-ajinomoto.yaml) |
-| 高責任ドメイン(知財/法務/薬事) | 成立条件 4 つのハードゲート層 L5 + 慎重側の閾値強化 | [`business/sample-ip-agent-readiness.yaml`](business/sample-ip-agent-readiness.yaml) / [`judgments/sample-ip-judgments.yaml`](judgments/sample-ip-judgments.yaml) / [`overlays/high-stakes-domain/`](overlays/high-stakes-domain/) |
-| 内製化の判断責任 | 「どの判断責任を社内に残すか」を並列軸で採点 | [`business/sample-insourcing-readiness.yaml`](business/sample-insourcing-readiness.yaml) / [`overlays/insourcing-judgment/`](overlays/insourcing-judgment/) |
+| 組織 readiness の実事例 | 味の素グループの分析記事由来。業務は整っているが組織が未成熟なチーム | [`business/ajinomoto-discovery-team.csv`](business/ajinomoto-discovery-team.csv) / [`overlays/organization-readiness-ajinomoto.yaml`](overlays/organization-readiness-ajinomoto.yaml) |
+| 高責任ドメイン(知財/法務/薬事) | 成立条件 4 つのハードゲート層 L5 + 慎重側の閾値強化 | [`business/sample-ip-agent-readiness.csv`](business/sample-ip-agent-readiness.csv) / [`judgments/sample-ip-judgments.csv`](judgments/sample-ip-judgments.csv) / [`overlays/high-stakes-domain/`](overlays/high-stakes-domain/) |
+| 内製化の判断責任 | 「どの判断責任を社内に残すか」を並列軸で採点 | [`business/sample-insourcing-readiness.csv`](business/sample-insourcing-readiness.csv) / [`overlays/insourcing-judgment/`](overlays/insourcing-judgment/) |
 
 ## definitions/ 内の examples について
 

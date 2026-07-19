@@ -58,10 +58,10 @@ flowchart LR
 タスク群が **AI 移行 4 類型**(成長 / 高自動化 / 再編 / 変化小)に振り分けられます。
 
 ```bash
-bin/aidr screen-transition examples/task-groups/sample-task-groups.yaml
+bin/aidr screen-transition examples/task-groups/sample-task-groups.csv
 ```
 
-入力: [`examples/task-groups/sample-task-groups.yaml`](../examples/task-groups/sample-task-groups.yaml)
+入力: [`examples/task-groups/sample-task-groups.csv`](../examples/task-groups/sample-task-groups.csv)
 
 ミドリ精機では、決算開示資料ドラフトが「再編」(最優先で役割再設計が要る)、
 経費精算チェックが「高自動化」(次のステップに進む候補)になりました。
@@ -74,10 +74,10 @@ bin/aidr screen-transition examples/task-groups/sample-task-groups.yaml
 **第 1 幕 — 初回診断は BLOCK でした**:
 
 ```bash
-bin/aidr check-readiness examples/business/sample-expense-approval.yaml
+bin/aidr check-readiness examples/business/sample-expense-approval.csv
 ```
 
-入力: [`examples/business/sample-expense-approval.yaml`](../examples/business/sample-expense-approval.yaml)
+入力: [`examples/business/sample-expense-approval.csv`](../examples/business/sample-expense-approval.csv)
 
 ```text
 Target: 経費精算承認(ミドリ精機・経理部、FY2026 初回診断)
@@ -98,11 +98,11 @@ Conclusion: BLOCK
 **第 2 幕 — 改善後の再診断で PASS**:
 
 ```bash
-bin/aidr check-readiness examples/business/sample-expense-approval-after.yaml
+bin/aidr check-readiness examples/business/sample-expense-approval-after.csv
 # => Conclusion: PASS
 ```
 
-入力: [`examples/business/sample-expense-approval-after.yaml`](../examples/business/sample-expense-approval-after.yaml)
+入力: [`examples/business/sample-expense-approval-after.csv`](../examples/business/sample-expense-approval-after.csv)
 
 PASS になって初めて、次のステップに進めます。→ 詳細は [docs/02](02_four_layer_framework.md)(4 層)と [docs/03](03_organization_axis.md)(組織の受け皿)
 
@@ -113,10 +113,10 @@ PASS になって初めて、次のステップに進めます。→ 詳細は [
 に振り分けられます。
 
 ```bash
-bin/aidr score-delegation examples/judgments/sample-judgments.yaml
+bin/aidr score-delegation examples/judgments/sample-judgments.csv
 ```
 
-入力: [`examples/judgments/sample-judgments.yaml`](../examples/judgments/sample-judgments.yaml)
+入力: [`examples/judgments/sample-judgments.csv`](../examples/judgments/sample-judgments.csv)
 
 ミドリ精機では、領収書チェックとインボイスチェックが 🟢、採用面接の合否(境界比較の例)は
 🔴 になりました。→ 詳細は [docs/04](04_delegation_matrix.md)
@@ -127,14 +127,14 @@ bin/aidr score-delegation examples/judgments/sample-judgments.yaml
 (意図 = 合格条件 / 境界 = 禁止とエスカレーション / 証跡 = 記録範囲 / 採点者)で点検します。
 
 ```bash
-bin/aidr check-task-contract examples/task-contracts/sample-green.yaml
+bin/aidr check-task-contract examples/task-contracts/sample-green.csv
 # => Region: GREEN — 契約充足
 ```
 
-入力: [`examples/task-contracts/sample-green.yaml`](../examples/task-contracts/sample-green.yaml)
+入力: [`examples/task-contracts/sample-green.csv`](../examples/task-contracts/sample-green.csv)
 
 AI が AI を単一の基準で採点する構成は、ここで 🔴 として止まります
-([`sample-red-ai-judge.yaml`](../examples/task-contracts/sample-red-ai-judge.yaml) が失敗例)。→ 詳細は [docs/05](05_task_contract_execution_rubric.md)
+([`sample-red-ai-judge.csv`](../examples/task-contracts/sample-red-ai-judge.csv) が失敗例)。→ 詳細は [docs/05](05_task_contract_execution_rubric.md)
 
 ### ステップ 5: 記録は残っているか(監査ログ検証)
 
@@ -156,7 +156,7 @@ overlay で追加しました。正本ファイルは書き換えません。
 
 ```bash
 bin/aidr check-overlay examples/overlays/sample-company/extra-rules.yaml
-bin/aidr check-readiness my-business.yaml --overlay examples/overlays/sample-company/extra-rules.yaml
+bin/aidr check-readiness my-business.csv --overlay examples/overlays/sample-company/extra-rules.yaml
 ```
 
 ## 学習パス(どの順で読むか)

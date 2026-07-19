@@ -61,30 +61,30 @@ AI エージェントや CI からも直接使えます。
 (ミドリ精機の物語)がそのまま動きます。
 
 ```bash
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.9.0 --version
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.10.0 --version
 
 # 本線 5 ステップを物語の順に
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.9.0 \
-  screen-transition examples/task-groups/sample-task-groups.yaml
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.9.0 \
-  check-readiness examples/business/sample-expense-approval.yaml          # 初回診断 → BLOCK
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.9.0 \
-  check-readiness examples/business/sample-expense-approval-after.yaml    # 改善後 → PASS
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.9.0 \
-  score-delegation examples/judgments/sample-judgments.yaml
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.9.0 \
-  check-task-contract examples/task-contracts/sample-green.yaml
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.9.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.10.0 \
+  screen-transition examples/task-groups/sample-task-groups.csv
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.10.0 \
+  check-readiness examples/business/sample-expense-approval.csv          # 初回診断 → BLOCK
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.10.0 \
+  check-readiness examples/business/sample-expense-approval-after.csv    # 改善後 → PASS
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.10.0 \
+  score-delegation examples/judgments/sample-judgments.csv
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.10.0 \
+  check-task-contract examples/task-contracts/sample-green.csv
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.10.0 \
   validate-audit-log examples/audit-log-sample.json --level extended
 
 # 拡張(任意)と定義の確認
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.9.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.10.0 \
   check-overlay examples/overlays/sample-company/extra-rules.yaml
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.9.0 list-definitions
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.10.0 list-definitions
 ```
 
 `--version` はアプリのバージョンと同梱の overlay エンジンのバージョンを表示します。例:
-`aidr 0.9.0 (overlay-scoring-skeleton 0.1.0)`。
+`aidr 0.10.0 (overlay-scoring-skeleton 0.1.0)`。
 
 各コマンドは決定的な終了コードを返すので、CI のゲートに使えます。
 
@@ -94,6 +94,9 @@ docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.9.0 list-definitions
 | screen-transition | 成功(分類はゲートでないため類型によらず 0) | — | — | 未回答の欠落・不正値・overlay 違反 |
 | validate-audit-log | valid | invalid(スキーマ違反) | — | 入力エラー(JSON 構文不正・ファイルなし) |
 | check-overlay | マージ規則を満たす | 違反あり(却下) | — | — |
+
+レポートは `--format csv` で **CSV でも受け取れます**(上表の 5 コマンド。
+先頭列 `record_type` で行の種類を判別でき、スプレッドシートでそのまま集計できます)。
 
 ## 学習パス(どの順で読むか)
 
@@ -120,35 +123,40 @@ docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.9.0 list-definitions
 
 ```bash
 aidr() { docker run --rm -v "$PWD:/data" -w /data \
-  ghcr.io/suwa-sh/ai-delegation-readiness:v0.9.0 "$@"; }
+  ghcr.io/suwa-sh/ai-delegation-readiness:v0.10.0 "$@"; }
 ```
 
 入力ファイルは `aidr init` でテンプレートを生成して埋めます(ステップ 0)。
 各ステップの詳しい読み方は学習パスの doc を参照してください。
 
-### ステップ 0 — 準備(`aidr init` でテンプレート生成)
+### ステップ 0 — 準備(`aidr init` でテンプレート生成 → スプレッドシートで記入)
 
-自社用の入力ファイルは、**問いのコメント付きテンプレート**を生成して埋めます。
-問いの正本は `definitions/*.yaml` に一元管理されており、生成されるコメントは
-常に定義と一致します。
+自社用の入力ファイルは、**問い付きの CSV テンプレート**を生成し、
+スプレッドシート(Google Sheets / Excel)で開いて 回答 セルに `yes` / `no`
+(はい / いいえ でも可)を埋めます。問いの正本は `definitions/*.yaml` に
+一元管理されており、生成される質問列は常に定義と一致します。
 
 ```bash
-aidr init --target transition    > my-task-groups.yaml   # ステップ 1 用
-aidr init --target four-layer    > my-business.yaml      # ステップ 2 用
-aidr init --target matrix        > my-judgments.yaml     # ステップ 3 用
-aidr init --target task-contract > my-contract.yaml      # ステップ 4 用
+aidr init --target transition    --format csv > my-task-groups.csv   # ステップ 1 用
+aidr init --target four-layer    --format csv > my-business.csv      # ステップ 2 用
+aidr init --target matrix        --format csv > my-judgments.csv     # ステップ 3 用
+aidr init --target task-contract --format csv > my-contract.csv      # ステップ 4 用
 
 # 自社 overlay の追加質問も含めて生成
-aidr init --target four-layer --overlay our-rules.yaml > my-business.yaml
+aidr init --target four-layer --format csv --overlay our-rules.yaml > my-business.csv
 ```
 
-記入例は [`examples/`](examples/) にあります(同じテンプレートに
-ミドリ精機の回答を書き込んだものです)。
+- CSV は UTF-8 BOM 付きで、Excel でそのまま開けます。タスク群・判定を増やすときは
+  **列を複製**します(行 = 質問、列 = タスク群/判定の横持ち形式)
+- 記入例は [`examples/`](examples/) にあります(同じテンプレートにミドリ精機の回答を
+  書き込んだもの。記入の流れは [`examples/README.md`](examples/README.md) 参照)
+- YAML でも同じ内容を書けます(`--format` 省略時は YAML テンプレート。記入例は
+  [`examples/business/sample-expense-approval.yaml`](examples/business/sample-expense-approval.yaml))
 
 ### ステップ 1 — どのタスク群から手を付けるかを地図にする
 
 ```bash
-aidr screen-transition my-task-groups.yaml
+aidr screen-transition my-task-groups.csv
 ```
 
 タスク群が AI 移行 4 類型(成長 / 高自動化 / 再編 / 変化小)に、委任設計の優先度順で
@@ -161,21 +169,21 @@ aidr screen-transition my-task-groups.yaml
 ### ステップ 2 — 業務が委任に耐えるかを診断する(BLOCK なら改善して再診断)
 
 ```bash
-aidr check-readiness my-business.yaml
+aidr check-readiness my-business.csv
 ```
 
 4 層(標準化 → 構造化 → 委任範囲 → 統制)+ 効果測定 + 組織 readiness で採点します。
 `[OK]` pass / `[..]` revise / `[NG]` block を層・軸ごとに示し、最後に総合判定を返します。
 **BLOCK は参考スコアではなくゲートです** — `First gate to fix` が示す最下層から改善し、
 PASS になってから次へ進みます。ミドリ精機のサンプルは初回 BLOCK
-([`sample-expense-approval.yaml`](examples/business/sample-expense-approval.yaml))→
-改善後 PASS([`sample-expense-approval-after.yaml`](examples/business/sample-expense-approval-after.yaml))の
+([`sample-expense-approval.csv`](examples/business/sample-expense-approval.csv))→
+改善後 PASS([`sample-expense-approval-after.csv`](examples/business/sample-expense-approval-after.csv))の
 2 幕構成です。→ [docs/02](docs/02_four_layer_framework.md) / [docs/03](docs/03_organization_axis.md)
 
 ### ステップ 3 — 判定単位の委任領域を決める
 
 ```bash
-aidr score-delegation my-judgments.yaml
+aidr score-delegation my-judgments.csv
 ```
 
 検証可能性 × 正解定義可能性の 2 軸で、各判定を 🟢 委任 OK / 🟡 LLM 補助(人間が最終判定)/
@@ -185,7 +193,7 @@ aidr score-delegation my-judgments.yaml
 ### ステップ 4 — 委任するタスクの契約を点検する
 
 ```bash
-aidr check-task-contract my-contract.yaml
+aidr check-task-contract my-contract.csv
 ```
 
 委任する 1 タスクの実行契約を、意図 / 境界 / 証跡 / 採点者の 4 要素で点検します。
@@ -209,7 +217,7 @@ enum・エスカレーション先必須化)です。→ [docs/06](docs/06_audit
 
 ```bash
 aidr check-overlay examples/overlays/sample-company/extra-rules.yaml
-aidr check-readiness my-business.yaml --overlay examples/overlays/sample-company/extra-rules.yaml
+aidr check-readiness my-business.csv --overlay examples/overlays/sample-company/extra-rules.yaml
 ```
 
 ```yaml
@@ -231,16 +239,16 @@ strengthen:
 
 ```bash
 # 高責任専門業務(知財/法務/薬事): 成立条件 4 つのハードゲート層 L5 + 慎重側の閾値
-aidr check-readiness examples/business/sample-ip-agent-readiness.yaml \
+aidr check-readiness examples/business/sample-ip-agent-readiness.csv \
   --overlay examples/overlays/high-stakes-domain/four-layer.yaml
 # => L1-L4 が全 PASS でも、成立条件が 1 つ欠ければ L5 で BLOCK
 
-aidr score-delegation examples/judgments/sample-ip-judgments.yaml \
+aidr score-delegation examples/judgments/sample-ip-judgments.csv \
   --overlay examples/overlays/high-stakes-domain/delegation-matrix.yaml
 # => base では green の境界例(2/3)が yellow / red に落ちる
 
 # 内製化の判断責任: 並列軸 L_insourcing(5 問)を追加
-aidr check-readiness examples/business/sample-insourcing-readiness.yaml \
+aidr check-readiness examples/business/sample-insourcing-readiness.csv \
   --overlay examples/overlays/insourcing-judgment/four-layer.yaml
 # => L1-L4・組織が全 PASS でも、上流判断に社内の固有名が欠ければ L_insourcing が REVISE/BLOCK
 ```
@@ -292,7 +300,7 @@ overlay で可能なのは、次の 2 つだけです。
   system prompt や tool context にロードします。
   [`examples/skills/`](examples/skills/) に Claude Code skill のラッパー 3 種を用意しています
 - **CI パイプライン**: 出力ログ 1 件ごとに
-  `docker run --rm -v "$PWD:/data" -w /data ghcr.io/suwa-sh/ai-delegation-readiness:v0.9.0 validate-audit-log <log>`
+  `docker run --rm -v "$PWD:/data" -w /data ghcr.io/suwa-sh/ai-delegation-readiness:v0.10.0 validate-audit-log <log>`
   を呼び、exit code でゲートします
 - **社内 overlay**: 自社固有の overlay をプライベートリポで管理し、`--overlay` で
   適用します。本リポはクリーンな upstream として pull できます

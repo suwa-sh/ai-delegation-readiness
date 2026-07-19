@@ -33,10 +33,10 @@
 独立した、味の素の分析記事由来のサンプルです)。
 
 ```bash
-bin/aidr check-readiness examples/business/ajinomoto-discovery-team.yaml
+bin/aidr check-readiness examples/business/ajinomoto-discovery-team.csv
 ```
 
-入力: [`examples/business/ajinomoto-discovery-team.yaml`](../examples/business/ajinomoto-discovery-team.yaml)
+入力: [`examples/business/ajinomoto-discovery-team.csv`](../examples/business/ajinomoto-discovery-team.csv)
 
 ```text
 Target: 新規事業の探索チーム(小規模フルスタック・探索フェーズ)
@@ -153,7 +153,7 @@ classDiagram
 
 - 正本: [`definitions/four-layer.yaml`](../definitions/four-layer.yaml) の `organization` group / `extension_points`
 - 採点: [`src/adr/check_readiness.py`](../src/adr/check_readiness.py)(`axis_role` / 層と並列軸の振り分け)
-- サンプル: [`examples/business/ajinomoto-discovery-team.yaml`](../examples/business/ajinomoto-discovery-team.yaml) /
+- サンプル: [`examples/business/ajinomoto-discovery-team.csv`](../examples/business/ajinomoto-discovery-team.csv) /
   [`examples/overlays/organization-readiness-ajinomoto.yaml`](../examples/overlays/organization-readiness-ajinomoto.yaml)
 - 関連: [`02_four_layer_framework.md`](02_four_layer_framework.md)(4 層 + 効果測定)
 - 次のステップ: [04 委任マトリクス](04_delegation_matrix.md)

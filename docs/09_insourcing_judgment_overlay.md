@@ -31,7 +31,7 @@
 
 ```bash
 # 内製化判断責任を並列軸として採点(業務・組織の採点はそのまま)
-bin/aidr check-readiness examples/business/sample-insourcing-readiness.yaml \
+bin/aidr check-readiness examples/business/sample-insourcing-readiness.csv \
   --overlay examples/overlays/insourcing-judgment/four-layer.yaml
 
 # 軸の構成を確認(parallel_axes に L_insourcing が出る)
@@ -39,7 +39,7 @@ bin/aidr list-definitions --target four-layer \
   --overlay examples/overlays/insourcing-judgment/four-layer.yaml
 ```
 
-入力: [`examples/business/sample-insourcing-readiness.yaml`](../examples/business/sample-insourcing-readiness.yaml)
+入力: [`examples/business/sample-insourcing-readiness.csv`](../examples/business/sample-insourcing-readiness.csv)
 
 サンプルは、業務(L1〜L4)も組織(organization)も整っているが、
 アーキテクチャの最終判断に社内の固有名がつかない(`I2: no`)架空企業です。
@@ -145,7 +145,7 @@ flowchart TD
 ## References
 
 - 正本: [`examples/overlays/insourcing-judgment/four-layer.yaml`](../examples/overlays/insourcing-judgment/four-layer.yaml)
-- サンプル: [`examples/business/sample-insourcing-readiness.yaml`](../examples/business/sample-insourcing-readiness.yaml)
+- サンプル: [`examples/business/sample-insourcing-readiness.csv`](../examples/business/sample-insourcing-readiness.csv)
 - 関連 doc: [`02_four_layer_framework.md`](02_four_layer_framework.md)(4 層フレーム)/
   [`03_organization_axis.md`](03_organization_axis.md)(並列軸とゲート層の振り分け・データモデル)/
   [`08_high_stakes_domain_overlay.md`](08_high_stakes_domain_overlay.md)(ドメイン overlay の実例)

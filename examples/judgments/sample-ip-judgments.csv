@@ -1,0 +1,8 @@
+﻿id,質問,patent_classification,prior_art_candidate_retrieval,patent_spec_draft,invalidity_search_final
+description,説明,特許分類コードの付与(有限のラベル集合・正解ラベルの大量な蓄積あり),クレームに対する先行技術候補の抽出(「該当なし」の確定は含まない),発明提案書を課題・手段・効果に再構成する明細書ドラフト作成,無効資料調査の「該当する資料は存在しない」という確定判断
+verifiability.V1,第三者が同一入力で同じ判定を採点できるか,yes,yes,yes,yes
+verifiability.V2,正誤判定に必要な情報が入力データと規定文書だけで揃うか(個人の経験に依存しないか),yes,yes,yes,yes
+verifiability.V3,判定結果を機械的に再実行できるテストに落とせるか,yes,yes,no,no
+answer_definability.A1,判定根拠を規定の条番号(または SOP のステップ番号)に紐付けられるか,yes,yes,yes,yes
+answer_definability.A2,判定の妥当性がケース個別の文脈でなく規定で決まるか,yes,yes,yes,yes
+answer_definability.A3,ベテランの暗黙知に頼らず判定理由を文書化できるか,yes,no,yes,no

@@ -31,10 +31,10 @@
 経理部は、自部門とその周辺のタスク群 4 つを並べて実行しました。
 
 ```bash
-bin/aidr screen-transition examples/task-groups/sample-task-groups.yaml
+bin/aidr screen-transition examples/task-groups/sample-task-groups.csv
 ```
 
-入力: [`examples/task-groups/sample-task-groups.yaml`](../examples/task-groups/sample-task-groups.yaml)
+入力: [`examples/task-groups/sample-task-groups.csv`](../examples/task-groups/sample-task-groups.csv)
 
 ```text
 [REORG ] priority 1: financial_disclosure_draft: REORGANIZATION [HITL]  (technical_exposure=high(2/3), human_necessity=high(2/3), demand_elasticity=low(1/3))
@@ -62,7 +62,7 @@ readiness 診断([docs/02](02_four_layer_framework.md))へ進みます。
 - 成功時の exit code は**常に 0** です。分類は合否ゲートではないため、
   類型は exit code に写しません
 
-自社のタスク群でやるときは `bin/aidr init --target transition > my-task-groups.yaml` で
+自社のタスク群でやるときは `bin/aidr init --target transition --format csv > my-task-groups.csv` で
 テンプレートを生成して埋めてください。
 
 ## Concept
@@ -241,7 +241,7 @@ overlay で可能なのは 3 軸 + examples への `add` のみです。**thresh
 ## References
 
 - 正本: [`definitions/transition-screening.yaml`](../definitions/transition-screening.yaml)
-- サンプル: [`examples/task-groups/sample-task-groups.yaml`](../examples/task-groups/sample-task-groups.yaml)
+- サンプル: [`examples/task-groups/sample-task-groups.csv`](../examples/task-groups/sample-task-groups.csv)
 - 次のステップ: [02 4 層フレーム](02_four_layer_framework.md)
 - 出典: [Mapping Europe's AI Workforce Opportunity (OpenAI EU)](https://openai.com/index/mapping-ai-jobs-transition-eu/) /
   [The AI Jobs Transition Framework for the EU (PDF)](https://cdn.openai.com/pdf/the-ai-jobs-transition-framework-for-the-eu.pdf) /

@@ -1,0 +1,8 @@
+﻿id,質問,receipt_mandatory_items_check,invoice_scheme_compliance,entertainment_expense_judgment,new_hire_decision,discriminatory_language_detection
+description,説明,領収書の必須項目チェック(日付・宛名・金額・発行者が揃っているか),インボイス制度(適格請求書)の要件充足チェック,税務上の交際費該当判定(金額・人数の閾値で機械化できるがグレーケースあり),採用面接の最終合否判定(境界比較例。正解を定義できず人間に残す),社内文書の差別表現チェック(境界比較例。LLM が候補を出し人間が最終判定)
+verifiability.V1,第三者が同一入力で同じ判定を採点できるか,yes,yes,yes,no,yes
+verifiability.V2,正誤判定に必要な情報が入力データと規定文書だけで揃うか(個人の経験に依存しないか),yes,yes,yes,no,yes
+verifiability.V3,判定結果を機械的に再実行できるテストに落とせるか,yes,yes,no,no,no
+answer_definability.A1,判定根拠を規定の条番号(または SOP のステップ番号)に紐付けられるか,yes,yes,yes,no,no
+answer_definability.A2,判定の妥当性がケース個別の文脈でなく規定で決まるか,yes,yes,yes,no,no
+answer_definability.A3,ベテランの暗黙知に頼らず判定理由を文書化できるか,yes,yes,no,no,yes

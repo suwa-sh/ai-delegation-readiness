@@ -149,3 +149,53 @@ def generate(target: str, overlay_paths: list | None = None) -> str:
     while out and out[-1] == "":
         out.pop()
     return "\n".join(out) + "\n"
+
+
+# ---------------------------------------------------------------- CSV テンプレート
+
+_SINGLE_META = {
+    "four-layer": ("target", "対象業務名", "<対象業務名を書く>"),
+    "task-contract": ("task", "委任するタスク名", "<委任するタスク名を書く>"),
+}
+_WIDE_PLACEHOLDER = {
+    "transition": "<タスク群の名前を書く>",
+    "matrix": "<判定の名前を書く>",
+}
+
+
+def generate_csv(target: str, overlay_paths: list | None = None) -> list[list[str]]:
+    """CSV テンプレートの行列を生成する(書き出しは io_input.rows_to_csv_bytes)。
+
+    質問列は定義の text_ja(無ければ text)から作るので定義とドリフトしない。
+    横持ち(transition / matrix)はエンティティ列 1 本(entity_1)で生成し、
+    利用者はスプレッドシート上で列を複製してエンティティを増やす。
+    """
+    if target not in TARGETS:
+        raise ValueError(f"unknown target: {target} (choose from {', '.join(TARGETS)})")
+    defn = _merged_definition(target, overlay_paths or [])
+    groups = _axis_groups(target, defn)
+
+    def question_rows(prefix_cols: int) -> list[list[str]]:
+        rows: list[list[str]] = []
+        for group in groups.values():
+            for leaf in group["leaves"]:
+                kind = leaf.get("kind", "question")
+                if kind == "question":
+                    q = _one_line(leaf.get("text_ja") or leaf.get("text") or "")
+                elif kind == "data":
+                    q = _one_line(leaf.get("label", ""))
+                else:
+                    continue
+                rows.append([leaf["id"], q] + [""] * prefix_cols)
+        return rows
+
+    if target in _SINGLE_META:
+        reserved, label, placeholder = _SINGLE_META[target]
+        rows = [["id", "質問", "回答", "メモ"], [reserved, label, placeholder, ""]]
+        rows += [r[:2] + ["", ""] for r in question_rows(0)]
+        return rows
+
+    placeholder = _WIDE_PLACEHOLDER[target]
+    rows = [["id", "質問", "entity_1"], ["description", "説明", placeholder]]
+    rows += question_rows(1)
+    return rows

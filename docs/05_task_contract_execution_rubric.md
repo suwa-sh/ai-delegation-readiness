@@ -35,15 +35,15 @@
 ミドリ精機が、委任 OK と判定した経費チェックをエージェントに渡す前の契約点検です。
 
 ```bash
-bin/aidr check-task-contract examples/task-contracts/sample-green.yaml
+bin/aidr check-task-contract examples/task-contracts/sample-green.csv
 # => Region: GREEN — 契約充足(exit 0)
 
-bin/aidr check-task-contract examples/task-contracts/sample-red-ai-judge.yaml
+bin/aidr check-task-contract examples/task-contracts/sample-red-ai-judge.csv
 # => Region: RED — 委任不可(exit 2)
 ```
 
-入力: [`examples/task-contracts/sample-green.yaml`](../examples/task-contracts/sample-green.yaml) /
-[`sample-red-ai-judge.yaml`](../examples/task-contracts/sample-red-ai-judge.yaml)
+入力: [`examples/task-contracts/sample-green.csv`](../examples/task-contracts/sample-green.csv) /
+[`sample-red-ai-judge.csv`](../examples/task-contracts/sample-red-ai-judge.csv)
 
 | 例 | 読み方 |
 |---|---|
@@ -55,11 +55,11 @@ bin/aidr check-task-contract examples/task-contracts/sample-red-ai-judge.yaml
 
 ## 想定ワークフロー(準備 → 実行 → 解釈)
 
-1. **準備**: `bin/aidr init --target task-contract > my-contract.yaml` で
+1. **準備**: `bin/aidr init --target task-contract --format csv > my-contract.csv` で
    問いコメント付きテンプレートを生成し、各質問に yes/no で答えます。
    `scorer.type` は必須(`human` / `ai_judge` / `two_stage`)、AI 採点なら
    `scorer.iruler_double_eval` も答えます。
-2. **実行**: `bin/aidr check-task-contract my-contract.yaml` を走らせます。
+2. **実行**: `bin/aidr check-task-contract my-contract.csv` を走らせます。
 3. **解釈**: 🔴 なら「欠落した要素を宣言」または「AI 採点者に二重評価 / 人の二段目を足す」まで
    委任しません。🟡 なら穴の要素を埋めます。🟢 で回します。
 
@@ -125,7 +125,7 @@ partial、0 で absent です。**absent が 1 つでもあれば 🔴**、absen
 ## References
 
 - 正本: [`definitions/task-contract.yaml`](../definitions/task-contract.yaml)
-- サンプル入力: [`examples/task-contracts/sample-green.yaml`](../examples/task-contracts/sample-green.yaml) / [`sample-red-ai-judge.yaml`](../examples/task-contracts/sample-red-ai-judge.yaml)
+- サンプル入力: [`examples/task-contracts/sample-green.csv`](../examples/task-contracts/sample-green.csv) / [`sample-red-ai-judge.csv`](../examples/task-contracts/sample-red-ai-judge.csv)
 - CLI: `bin/aidr check-task-contract --help`
 - 次のステップ: [06 監査ログスキーマ](06_audit_log_schema.md)
 - 出典: iRULER(CHI 2026)/ OpenAI「How agents are transforming work」(2026-06-25)

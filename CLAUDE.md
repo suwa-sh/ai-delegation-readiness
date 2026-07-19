@@ -95,10 +95,13 @@ self-documenting** であると同時に、**マージ規則の実体**でもあ
   (各分類の判定基準の例示)であり、物語統一・日本語化の対象外
 - **質問文は `text`(英)と `text_ja`(日)を併記する**。text_ja の完全性は
   `tests/test_definitions_i18n.py` が検証する
-- **同梱 examples の入力ファイルは「`aidr init` で生成した体」で書く**: 各回答行に
-  `# 問: <text_ja>`(必要なら ` → <回答の背景>`)のコメントを付ける。問いの正本は
-  definitions / overlay の text_ja であり、examples 側コメントとのドリフトは
-  `tests/test_init_input.py::test_example_question_comments_match_definitions` が検出する
+- **同梱 examples の入力は CSV が主、YAML は 1 例だけ**(`business/sample-expense-approval.yaml`
+  = CSV 版との双子。結果同値は `tests/test_io_input.py` が固定): CSV は
+  「`aidr init --format csv` で生成した体」で書き、質問列 = text_ja の複製。ドリフトは
+  `tests/test_init_input.py::test_example_csv_question_column_matches_definitions` が検出する。
+  **CSV は未知の質問 id を拒否する**(typo 防止)ため、overlay の追加質問に回答する例は
+  別ファイル(`*-with-overlay.csv`)に分ける。変換の同値性は
+  `tests/fixtures/normalized_inputs.json`(変換前 YAML の正規化 dict)が正本
 
 ## 更新運用
 

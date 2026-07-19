@@ -34,10 +34,10 @@ BLOCK は参考スコアではなくゲートです — 直してから再診断
 経理部は、経費精算承認業務を初めて診断しました。
 
 ```bash
-bin/aidr check-readiness examples/business/sample-expense-approval.yaml
+bin/aidr check-readiness examples/business/sample-expense-approval.csv
 ```
 
-入力: [`examples/business/sample-expense-approval.yaml`](../examples/business/sample-expense-approval.yaml)
+入力: [`examples/business/sample-expense-approval.csv`](../examples/business/sample-expense-approval.csv)
 
 ```text
 Target: 経費精算承認(ミドリ精機・経理部、FY2026 初回診断)
@@ -74,14 +74,14 @@ Conclusion: BLOCK
 監査ログと補正フローの設計・組織の受け皿整備を行い、再診断で PASS になりました。
 
 ```bash
-bin/aidr check-readiness examples/business/sample-expense-approval-after.yaml
+bin/aidr check-readiness examples/business/sample-expense-approval-after.csv
 # => Conclusion: PASS
 ```
 
-入力: [`examples/business/sample-expense-approval-after.yaml`](../examples/business/sample-expense-approval-after.yaml)
+入力: [`examples/business/sample-expense-approval-after.csv`](../examples/business/sample-expense-approval-after.csv)
 
 PASS になって初めて、次のステップ(判定単位の振り分け → [docs/04](04_delegation_matrix.md))へ進みます。
-自社業務を診断するときは `bin/aidr init --target four-layer > my-business.yaml` で
+自社業務を診断するときは `bin/aidr init --target four-layer --format csv > my-business.csv` で
 テンプレートを生成して埋めてください。
 
 ## Concept
@@ -215,9 +215,9 @@ AI 起因の誤承認の独立集計。
 ## References
 
 - 正本: [`definitions/four-layer.yaml`](../definitions/four-layer.yaml)
-- サンプル: [`examples/business/sample-expense-approval.yaml`](../examples/business/sample-expense-approval.yaml)(初回 BLOCK)/
-  [`sample-expense-approval-after.yaml`](../examples/business/sample-expense-approval-after.yaml)(改善後 PASS)
-- CLI: `bin/aidr check-readiness --help` / テンプレート生成は `bin/aidr init --target four-layer`
+- サンプル: [`examples/business/sample-expense-approval.csv`](../examples/business/sample-expense-approval.csv)(初回 BLOCK)/
+  [`sample-expense-approval-after.csv`](../examples/business/sample-expense-approval-after.csv)(改善後 PASS)
+- CLI: `bin/aidr check-readiness --help` / テンプレート生成は `bin/aidr init --target four-layer --format csv`
 - 次のステップ: [03 組織 readiness 軸](03_organization_axis.md) → [04 委任マトリクス](04_delegation_matrix.md)
 - 関連 doc: [`06_audit_log_schema.md`](06_audit_log_schema.md) / [`07_audit_log_gap_check.md`](07_audit_log_gap_check.md) / [`08_high_stakes_domain_overlay.md`](08_high_stakes_domain_overlay.md)(知財/法務/薬事向けに L5 ゲート層を足すドメイン overlay)
 - 出典:

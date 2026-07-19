@@ -90,9 +90,9 @@ def _normalize_yes(value: Any) -> bool | None:
         return bool(value)
     if isinstance(value, str):
         normalized = value.strip().lower()
-        if normalized in {"yes", "y", "true", "1"}:
+        if normalized in {"yes", "y", "true", "1", "はい"}:
             return True
-        if normalized in {"no", "n", "false", "0"}:
+        if normalized in {"no", "n", "false", "0", "いいえ"}:
             return False
     return None
 
@@ -157,8 +157,15 @@ def check(
     else:
         defn = base
 
-    target = overlay_mod.load_yaml(target_path)
+    from . import io_input
+
+    target, input_format = io_input.load_input(target_path, "four-layer")
     answers = target.get("answers", {}) or {}
+    if input_format == "csv":
+        # CSV は Excel 経由の typo が起きやすいので、回答 id を定義と照合する
+        # (YAML は後方互換のため従来どおり未知キーを無視する)。
+        known = io_input.collect_question_ids(defn, non_question_groups=set())
+        io_input.validate_known_ids(answers.keys(), known, Path(target_path).name)
 
     # group を role で振り分ける: ゲート層 (L1..L4) と 並列軸 (efficacy, organization, ...)。
     # source order を保つ (group_items() のキー順)。leaf 0 個の並列軸は overlay 前提の
@@ -269,6 +276,24 @@ def _axis_to_dict(axis: AxisResult) -> dict:
         "no": axis.no_ids,
         "unknown": axis.unknown_ids,
     }
+
+
+def render_csv_rows(result: CheckResult) -> list[list[str]]:
+    """レポートの CSV 行列(record_type 列で行の種類を機械判別できる)。"""
+    from .io_input import sanitize_cell
+
+    rows = [["record_type", "id", "name", "role", "verdict", "score_pct", "no", "unknown"]]
+    rows.append(["target", "target", sanitize_cell(result.target), "", "", "", "", ""])
+    for role, axes in (("layer", result.layers), ("parallel", result.parallel_axes)):
+        for a in axes:
+            rows.append([
+                "axis", a.id, a.name, role, a.verdict, str(int(a.score * 100)),
+                "; ".join(a.no_ids), "; ".join(a.unknown_ids),
+            ])
+    rows.append(["summary", "conclusion", result.conclusion, "", "", "", "", ""])
+    if result.blocked_from:
+        rows.append(["summary", "first_gate_to_fix", result.blocked_from, "", "", "", "", ""])
+    return rows
 
 
 def exit_code_for(result: CheckResult) -> int:
