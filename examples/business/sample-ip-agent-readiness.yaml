@@ -1,68 +1,67 @@
-# Sample input for `aidr check-readiness` with the high-stakes domain overlay:
+# `aidr check-readiness` + 高責任ドメイン overlay のサンプル入力(応用例):
 #
-#   ./bin/aidr check-readiness examples/business/sample-ip-agent-readiness.yaml \
+#   bin/aidr check-readiness examples/business/sample-ip-agent-readiness.yaml \
 #     --overlay examples/overlays/high-stakes-domain/four-layer.yaml
 #
-# Models a hypothetical IP department evaluating whether to delegate
-# prior-art search (candidate retrieval + analysis-report drafting) to an
-# in-house AI agent. The answers are illustrative, not from any real
-# organization.
+# 先行技術調査(候補抽出 + 分析レポートドラフト)を社内 AI エージェントに
+# 委任しようとしている架空の知財部門の例です(回答は例示で、実在組織の
+# 実データではありません)。ミドリ精機の物語とは独立した応用例です。
 #
-# The story this sample tells: the process itself is well prepared — L1
-# through L4 all pass, including the overlay's reversibility questions
-# (L3.HS_Q5 / HS_Q6). What blocks the delegation is the high-stakes
-# prerequisite gate: HITL procedures exist but are not designed against
-# complacency (L5.Q3: no). One missing prerequisite is enough — the L5 gate
-# has no revise band, so the conclusion is BLOCK with blocked_from: L5.
+# このサンプルが語る物語: 業務プロセス自体はよく整っています — overlay が足す
+# 可逆性の質問(L3.HS_Q5 / HS_Q6)を含めて L1〜L4 は全て PASS です。
+# 委任を止めるのは高責任ドメインの成立条件ゲートです: HITL の手順はあるが、
+# 形骸化(コンプレイセンシー)を前提にした設計・訓練がされていません(L5.Q3: no)。
+# 成立条件は 1 つ欠けるだけで足ります — L5 ゲートに revise 帯はないため、
+# 結論は BLOCK(blocked_from: L5)になります。
 #
-# Answer keys are the full item id from definitions/four-layer.yaml plus the
-# overlay's added items. Unanswered questions count as unknown (treated as no).
+# 回答キーは definitions/four-layer.yaml の item id + overlay の追加項目です。
+# 未回答の質問は unknown(採点上は no 扱い)になります。
 
-target: Prior-art search agent (hypothetical IP department, FY2026 assessment)
+target: 先行技術調査エージェント(架空の知財部門・FY2026 評価)
 
 answers:
-  # L1 Business standardization — search SOP and report templates are mature
+  # L1 業務標準化層 — 調査 SOP とレポートのテンプレートは成熟している
   L1.Q1: yes
   L1.Q2: yes
   L1.Q3: yes
   L1.Q4: yes
 
-  # L2 Judgment structuring — retrieval/rerank rules map to (input, condition, decision)
+  # L2 判断構造化層 — 検索・再ランクの規則は「入力・条件・判定」に落ちている
   L2.Q1: yes
   L2.Q2: yes
   L2.Q3: yes
 
-  # L3 Delegation scope — including the overlay's reversibility / error-cost questions
+  # L3 委任範囲層 — overlay の可逆性・誤りコストの質問を含む
   L3.Q1: yes
   L3.Q2: yes
   L3.Q3: yes
   L3.Q4: yes
-  L3.HS_Q5: yes   # "no prior art found" finalization stays with humans
-  L3.HS_Q6: yes   # human final decision at asymmetric-error steps
+  L3.HS_Q5: yes   # 「先行技術なし」の確定は人間に残している
+  L3.HS_Q6: yes   # 誤りコストが非対称な工程は人間が最終判断する
 
-  # L4 Control & traceability
+  # L4 統制・追跡層
   L4.Q1: yes
   L4.Q2: yes
   L4.Q3: yes
   L4.Q4: yes
   L4.Q5: yes
 
-  # L5 High-stakes prerequisites (overlay hard gate: all four must be yes)
-  L5.Q1: yes      # closed network for pre-filing inventions
-  L5.Q2: yes      # high-recall human verification loop designed
-  L5.Q3: no       # HITL exists but is NOT designed/trained against complacency
-  L5.Q4: yes      # yearly model-migration cost budgeted
+  # L5 高責任ドメイン成立条件(overlay のハードゲート: 4 条件すべて yes が必要)
+  L5.Q1: yes      # 出願前発明は閉域ネットワークで扱っている
+  L5.Q2: yes      # 高 recall の人間検証ループを設計済み
+  L5.Q3: no       # HITL はあるが、形骸化を前提にした設計・訓練がない
+  L5.Q4: yes      # 毎年の基盤モデル移行コストを予算化済み
 
-  # Efficacy measurement — measurement design still partial
+  # 効果測定 — 測定設計はまだ部分的
   efficacy.E1: yes
   efficacy.E2: yes
-  efficacy.E3: no    # all-of-process vs part-of-process scope not yet stated
+  efficacy.E3: no    # 対象範囲(業務全体か一部か)を明示していない
   efficacy.E4: yes
 
-  # Organization readiness — receiving side mostly ready, bus factor open
+  # 組織 readiness — 受け皿はほぼ整っているが bus factor が未対策
   organization.C1: yes
   organization.C2: yes
   organization.C3: yes
   organization.C4: yes
   organization.C5: yes
-  organization.C6: no   # no bus-factor countermeasure in operation yet
+  organization.C6: no   # bus factor 対策がまだ運用されていない

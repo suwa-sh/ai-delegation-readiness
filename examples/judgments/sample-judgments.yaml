@@ -1,28 +1,35 @@
-# Sample input for `aidr score-delegation`.
+# `aidr score-delegation` のサンプル入力(物語ステップ 3: 判定単位の振り分け)。
 #
-# A short list of business judgments scored against the delegation matrix.
-# Each entry needs the per-question answers for both axes, keyed by the
-# full item id from definitions/delegation-matrix.yaml:
-#   verifiability:        verifiability.V1, verifiability.V2, verifiability.V3
-#   answer_definability:  answer_definability.A1, answer_definability.A2, answer_definability.A3
+# ミドリ精機株式会社(架空。examples/README.md 参照)の経理部が、再診断 PASS を受けて
+# 経費精算承認の中の判定単位を 委任 OK / LLM 補助 / 人間に残す に振り分ける場面です。
+#
+# 前半 3 件が経費精算の判定です。後半 2 件(採用面接・差別表現)は経費ではなく、
+# 「経費以外の判定にも同じ物差しが使える」ことを示す境界比較の例です。
+#
+# 回答キーは definitions/delegation-matrix.yaml の item id です。
+# 質問の日本語文は同ファイルの text_ja を参照してください。
+#   検証可能性:      verifiability.V1-V3(2/3 yes で high)
+#   正解定義可能性:  answer_definability.A1-A3(2/3 yes で high)
 
 judgments:
+  # --- 経費精算の判定(本線) ---
   - id: receipt_mandatory_items_check
-    description: Verify that a receipt has all statutory items (date, payee, amount, issuer)
+    description: 領収書の必須項目チェック(日付・宛名・金額・発行者が揃っているか)
     answers: { verifiability.V1: yes, verifiability.V2: yes, verifiability.V3: yes, answer_definability.A1: yes, answer_definability.A2: yes, answer_definability.A3: yes }
 
   - id: invoice_scheme_compliance
-    description: Check that a receipt meets the invoice scheme (適格請求書) requirements
+    description: インボイス制度(適格請求書)の要件充足チェック
     answers: { verifiability.V1: yes, verifiability.V2: yes, verifiability.V3: yes, answer_definability.A1: yes, answer_definability.A2: yes, answer_definability.A3: yes }
 
   - id: entertainment_expense_judgment
-    description: Decide whether an expense falls under the tax category of entertainment expenses
+    description: 税務上の交際費該当判定(金額・人数の閾値で機械化できるがグレーケースあり)
     answers: { verifiability.V1: yes, verifiability.V2: yes, verifiability.V3: no,  answer_definability.A1: yes, answer_definability.A2: yes, answer_definability.A3: no }
 
+  # --- 境界比較の例(経費以外でも同じ物差しが使える) ---
   - id: new_hire_decision
-    description: Make a final hiring decision after an interview
+    description: 採用面接の最終合否判定(境界比較例。正解を定義できず人間に残す)
     answers: { verifiability.V1: no,  verifiability.V2: no,  verifiability.V3: no,  answer_definability.A1: no,  answer_definability.A2: no,  answer_definability.A3: no  }
 
   - id: discriminatory_language_detection
-    description: Decide whether an internal document contains discriminatory expressions
+    description: 社内文書の差別表現チェック(境界比較例。LLM が候補を出し人間が最終判定)
     answers: { verifiability.V1: yes, verifiability.V2: yes, verifiability.V3: no,  answer_definability.A1: no,  answer_definability.A2: no,  answer_definability.A3: yes }

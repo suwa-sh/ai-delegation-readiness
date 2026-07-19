@@ -1,8 +1,11 @@
-# Same contract, but the AI judge scores against a single rubric with no
-# iRULER double-evaluation. The safety gate fires -> RED (exit 2), even though
-# every element is otherwise declared. Fix by adding a second-order rubric
-# check or a human second stage (scorer.type: two_stage).
-task: Expense approval delegated to the accounting agent (unsafe scorer)
+# `aidr check-task-contract` のサンプル入力(物語ステップ 4: 委任不可の例)。
+#
+# sample-green.yaml と同じ契約ですが、AI 採点者が単一ルーブリックで採点し、
+# iRULER 二重評価がありません。安全ゲートが作動して RED(exit 2)になります —
+# 他の要素がすべて宣言済みでも、です。
+# 直すには、二重評価を実装する(scorer.iruler_double_eval: yes)か、
+# 人間の二段目審査を置きます(scorer.type: two_stage)。
+task: 経費チェックエージェントへの経費精算チェック委任(採点者が安全でない例)
 answers:
   intent.I1: yes
   intent.I2: yes
@@ -16,4 +19,4 @@ answers:
   scorer.S1: yes
   scorer.S2: yes
   scorer.type: ai_judge
-  scorer.iruler_double_eval: no    # -> RED: AI judge without double-eval
+  scorer.iruler_double_eval: no    # -> RED: 二重評価のない AI 採点者

@@ -10,6 +10,16 @@
 正本は [`definitions/delegation-matrix.yaml`](../definitions/delegation-matrix.yaml)
 です。
 
+## 前提(これだけ知っていれば読めます)
+
+- 全体像([docs/00](00_overview.md))の本線 5 ステップのうち、本書は
+  **ステップ 3(どの判定を任せるか)** を扱います
+- **判定単位** = 業務の中の 1 つの判断(例: 「領収書の必須項目が揃っているか」)。
+  業務まるごとではなく、この単位で任せる範囲を決めます
+- 前のステップ(readiness 診断)が PASS であることが前提です。
+  物語上の位置: ミドリ精機の経理部が、再診断 PASS を受けて経費精算の中の
+  判定を振り分ける場面です
+
 ## When to use this
 
 - 業務リストの 1 判定単位を、AI 委任 / LLM 補助 / 人間最終 のどれに割り当てるか決めたい
@@ -22,9 +32,9 @@
 bin/aidr score-delegation examples/judgments/sample-judgments.yaml
 ```
 
-サンプル 5 判定の出力です(抜粋)。
+ミドリ精機の経費 3 判定 + 境界比較 2 判定の出力です(抜粋)。
 
-```
+```text
 [GREEN ] receipt_mandatory_items_check: GREEN  (verifiability=high(3/3), answer_definability=high(3/3))
 [GREEN ] invoice_scheme_compliance:     GREEN  (verifiability=high(3/3), answer_definability=high(3/3))
 [GREEN ] entertainment_expense_judgment:GREEN  (verifiability=high(2/3), answer_definability=high(2/3))
@@ -32,8 +42,11 @@ bin/aidr score-delegation examples/judgments/sample-judgments.yaml
 [YELLOW] discriminatory_language_detection: YELLOW (verifiability=high(2/3), answer_definability=low(1/3))
 ```
 
+後半 2 件(採用面接の合否・差別表現の検出)は経費の判定ではありません。
+「経費以外の判定にも同じ物差しが使える」ことを示す**境界比較の例**です。
 自社判定リストを採点する場合は、`examples/judgments/sample-judgments.yaml` を
-複製してください。
+複製してください。質問の日本語文は
+[`definitions/delegation-matrix.yaml`](../definitions/delegation-matrix.yaml) の `text_ja` にあります。
 
 ## The 2 axes
 
@@ -74,10 +87,12 @@ bin/aidr score-delegation examples/judgments/sample-judgments.yaml
 | 🟡 LLM 推論補助 | LLM が候補を出し、**人間が最終判定**します。最終判定者を Who に記録し、LLM の貢献は Why に「補助証拠」として記録します(権威ではありません) |
 | 🔴 人間に残す | 人間が判定します。LLM 出力は参考のみで、決定権限ではありません。LLM 使用も透明性のため Why に残します |
 
-## Worked examples
+## Worked examples(定義内のリファレンスケース)
 
 `definitions/delegation-matrix.yaml` の `examples` に 9 件登録済みです。
 味の素事例 3 件 + コーディング委任 2 件 + 倫理・採用・ポリシー策定 などです。
+これらは**各象限の判定基準を例示するリファレンスケース**で、ミドリ精機の物語
+(examples/ 配下のサンプル)とは独立しています。
 
 | 判定 | 検証可能性 | 正解定義可能性 | 領域 |
 |---|---|---|---|
@@ -113,4 +128,6 @@ bin/aidr score-delegation examples/judgments/sample-judgments.yaml
 - 正本: [`definitions/delegation-matrix.yaml`](../definitions/delegation-matrix.yaml)
 - サンプル入力: [`examples/judgments/sample-judgments.yaml`](../examples/judgments/sample-judgments.yaml)
 - CLI: `bin/aidr score-delegation --help`
-- 関連 doc: [`01_four_layer_framework.md`](01_four_layer_framework.md) の③委任範囲層 / [`02_audit_log_schema.md`](02_audit_log_schema.md) / [`07_high_stakes_domain_overlay.md`](07_high_stakes_domain_overlay.md)(知財/法務/薬事向けに両軸の閾値を 3/3 へ強化するドメイン overlay。base の閾値 2/3 は変わりません)
+- 物語の前後: 前のステップは [01 4 層フレーム](01_four_layer_framework.md)(readiness 診断)、
+  次のステップは [06 タスク契約](06_task_contract_execution_rubric.md)(委任タスクの与え方)
+- 関連 doc: [`02_audit_log_schema.md`](02_audit_log_schema.md) / [`07_high_stakes_domain_overlay.md`](07_high_stakes_domain_overlay.md)(知財/法務/薬事向けに両軸の閾値を 3/3 へ強化するドメイン overlay。base の閾値 2/3 は変わりません)

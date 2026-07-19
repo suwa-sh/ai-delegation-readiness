@@ -5,80 +5,75 @@ description: Walk a user through the 4-layer readiness check for AI delegation. 
 
 # delegation-readiness-check
 
-Interactively score a business process against the 4-layer + efficacy
-framework from this repository. The skill is a thin wrapper around the
-`aidr check-readiness` CLI: it gathers answers via dialogue, writes a
-business YAML, runs the CLI in JSON mode, and translates the verdict
-back into a readable summary plus the first gate to fix.
+対象業務を 4 層 + 効果測定 + 組織 readiness のフレームワークで対話的に採点します。
+`aidr check-readiness` CLI の薄いラッパーです: 対話で回答を集め、business YAML を
+書き出し、CLI を JSON モードで実行し、判定と「最初に直すべきゲート」を読みやすい
+要約に翻訳します。
 
-## When to use this skill
+## いつ使うか
 
-- The user names a business process and wants to know whether it can be
-  delegated to an AI agent (e.g. "expense approval", "vendor onboarding")
-- The user asks to run a readiness check / 4-layer check / governance gate
-- The user wants to evaluate a process against an overlay (their own
-  company's strengthened rules)
+- ユーザーが業務名を挙げて、AI エージェントに委任できるか知りたいとき
+  (例: 「経費精算承認」「取引先登録」)
+- readiness チェック / 4 層チェック / ガバナンスゲートの実行を求められたとき
+- overlay(自社の強化ルール)を当てた診断をしたいとき
 
-## What this skill needs from the user
+## ユーザーから受け取るもの
 
-- The name of the target business process (free text)
-- Optionally: a path to one or more overlay YAML files to apply
+- 対象業務の名前(自由記述)
+- 任意: 適用する overlay YAML のパス(複数可)
 
-## Workflow
+## 手順
 
-1. Ask the user for the target process name. Confirm scope (single
-   approval type vs end-to-end process) if it is ambiguous.
+1. 対象業務の名前を聞く。範囲が曖昧なら確認する
+   (単一の承認種別か、エンドツーエンドのプロセスか)。
 
-2. Read `definitions/four-layer.yaml` to retrieve the questions. Do not
-   hard-code the questions in this skill — always read from the
-   definition file so overlays and version bumps stay in sync.
+2. `definitions/four-layer.yaml` を読んで質問を取得する。質問をこの skill に
+   ハードコードしない — 必ず定義ファイルから読む(overlay やバージョンアップと
+   同期を保つため)。**ユーザーに質問を提示するときは `text_ja` を優先し、
+   無ければ `text` を使う**。
 
-3. Pose each layer's questions in order. Ask one layer at a time and
-   record `yes` / `no` / `unknown` per question id. If the user is
-   unsure, mark `unknown` (the CLI treats unknown as no for scoring but
-   surfaces it separately in the report).
+3. 層ごとに質問を出す。1 層ずつまとめて聞き、質問 id ごとに
+   `yes` / `no` / `unknown` を記録する。ユーザーが判断できないときは
+   `unknown` にする(CLI は採点上 no として扱い、レポートでは unknown として
+   区別して表示する)。
 
-4. Pose the efficacy axis questions after L4.
+4. L4 の後に効果測定(efficacy)の質問を出す。
 
-5. Write the collected answers to a temporary YAML at
-   `/tmp/aidr-readiness-<timestamp>.yaml` with the shape:
+5. 集めた回答を `/tmp/aidr-readiness-<timestamp>.yaml` に書き出す。形式:
 
    ```yaml
-   target: <process name>
+   target: <業務名>
    answers:
      L1.Q1: yes
      L1.Q2: no
      ...
    ```
 
-6. Run `bin/aidr check-readiness <tmp.yaml> --format json` (add
-   `--overlay <path>` for each overlay the user provided). Capture
-   stdout and the exit code.
+6. `bin/aidr check-readiness <tmp.yaml> --format json` を実行する
+   (overlay があれば `--overlay <path>` を追加)。stdout と exit code を取得する。
 
-7. Translate the JSON output for the user. Lead with the conclusion
-   (PASS / REVISE / BLOCK), then for each layer with verdict != pass:
-   - which questions failed
-   - whether the layer is the first gate (`blocked_from`)
-   - a one-sentence next action drawn from the layer's `purpose` field
+7. JSON 出力をユーザー向けに翻訳する。結論(PASS / REVISE / BLOCK)を先頭に、
+   verdict が pass でない層ごとに:
+   - どの質問が no / unknown だったか
+   - その層が最初のゲートか(`blocked_from`)
+   - 層の `purpose` から導いた次の一手を 1 文
 
-8. If the conclusion is BLOCK or REVISE, recommend the next concrete
-   step: "fix layer L<N> first, then re-run the check." Do not
-   recommend delegating to AI yet.
+8. 結論が BLOCK / REVISE なら、次の具体行動を勧める:
+   「まず層 L<N> を直して、チェックを再実行してください」。
+   この段階では AI への委任を勧めない。
 
-## Output etiquette
+## 出力の作法
 
-- Keep the per-question dialogue tight. Group questions by layer so the
-  user can answer in a short batch rather than one-by-one.
-- Show the structured verdict before the narrative explanation.
-- Quote the source case-evidence (Ajinomoto example) only when the user
-  asks for context. The framework is the artifact, not the case study.
+- 質問のやりとりは短く。層ごとにまとめて聞き、1 問ずつのラリーにしない。
+- 構造化された判定を先に、説明の文章を後に。
+- 出典事例(味の素)の引用はユーザーが文脈を求めたときだけ。
+  成果物はフレームワークであり、事例研究ではない。
 
-## Failure modes to handle
+## 失敗時の扱い
 
-- If `bin/aidr` is not on PATH, fall back to
-  `python -m adr.cli check-readiness ...` with `PYTHONPATH` set to the
-  repo's `src/` directory.
-- If the overlay fails `check-overlay`, surface the violation and stop
-  rather than scoring with a half-applied overlay.
-- If the user answers in a free-form way ("kind of", "depends"), prompt
-  for a binary yes/no and capture the nuance in a note for the report.
+- `bin/aidr` が PATH に無い場合は、`PYTHONPATH` にリポの `src/` を設定して
+  `python -m adr.cli check-readiness ...` にフォールバックする。
+- overlay が `check-overlay` に通らない場合は、違反を提示して止まる。
+  半端に適用した overlay で採点しない。
+- 自由回答(「たぶん」「場合による」)には yes/no の二値を促し、ニュアンスは
+  レポート用のメモに残す。

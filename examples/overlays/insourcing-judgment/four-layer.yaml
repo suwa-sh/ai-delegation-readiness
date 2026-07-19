@@ -1,46 +1,38 @@
-# Overlay: insourcing judgment-responsibility axis (extends four-layer-delegation-readiness).
+# overlay(応用例): 内製化判断責任の並列軸(four-layer-delegation-readiness を拡張)。
 #
-# Derived from the Mizuho Securities insourcing analysis
-# (「内製化の本質は採用ではなく『誰が判断責任を持つか』」).
-# The analysis reframes insourcing as *which judgment responsibility a company
-# keeps in-house*, not *which work it pulls back*. In the AI era the work layer
-# (coding) moves to agents, so the durable substance is upstream judgment
-# responsibility: who in-house decides requirement priority, architecture,
-# acceptance criteria, and exception handling.
+# みずほ証券の内製化分析(「内製化の本質は採用ではなく『誰が判断責任を持つか』」)
+# から抽出しています。この分析は内製化を「どの作業を社内に戻すか」ではなく
+# 「どの判断責任を社内に残すか」として捉え直します。AI 時代は作業層(コーディング)が
+# エージェントに移るため、残る本質は上流の判断責任 — 要件の優先順位・アーキテクチャ・
+# 受入基準・例外対応を、社内の誰が決めるか — です。
 #
-# What this overlay does:
-#   Adds ONE parallel axis "L_insourcing" (role: parallel) with five equal-weight
-#   questions — I0 (the core/non-core line) plus I1-I4 (the four upstream
-#   judgment-ownership questions). It is scored alongside `organization` and
-#   `efficacy`, and does NOT gate the delegation layers L1-L4. This encodes the
-#   article's point that insourcing judgment responsibility *complements* the
-#   delegation question rather than blocking it: "the process is delegable, but
-#   who owns the upstream judgment is unclear" surfaces as its own verdict.
+# この overlay がやること:
+#   並列軸 "L_insourcing"(role: parallel)を 1 本追加します。等重み 5 問 —
+#   I0(コア/ノンコアの線引き)+ I1〜I4(上流判断の所有 4 問)です。
+#   `organization` / `efficacy` と同じ枠で採点され、L1〜L4 をゲートしません。
+#   「業務は委任できるが、上流判断の所有者が不明確」を独立した verdict として
+#   表面化させます。
 #
-# Why the id is "L_insourcing" (not "insourcing"):
-#   The base `extension_points` only make groups matching `L*` / `efficacy` /
-#   `organization` add-able via overlay. A brand-new `insourcing` group is
-#   rejected by `aidr check-overlay`. The `L*` selector accepts any L-prefixed
-#   name, and `check_readiness.py` classifies gating-vs-parallel purely by the
-#   `role` field (not by the name), so `L_insourcing` + `role: parallel` is a
-#   non-gating axis added without touching the base definition.
+# id が "L_insourcing" である理由("insourcing" でない理由):
+#   base の extension_points が add を許すのは `L*` / `efficacy` / `organization`
+#   に合致する group だけです。新規の `insourcing` group は `aidr check-overlay` に
+#   拒否されます。`L*` セレクタは L で始まる任意の名前を受け、gating か parallel かは
+#   name でなく `role` フィールドだけで決まるため、`L_insourcing` + `role: parallel`
+#   が base 無変更で足せる非ゲート軸になります。
 #
-# Scope note (no duplication with existing axes):
-#   The article's layer 2 (talent development / role redesign / bus factor) is
-#   already covered by the `organization` axis (C2/C4/C6); its layer 3 (AI does
-#   the work, humans keep final judgment) is already covered by L3/L4. This
-#   overlay deliberately scores only the non-overlapping core — layer 0 (I0) and
-#   layer 1 (I1-I4). See docs/08 for the mapping.
+# スコープ注記(既存軸と重複させない):
+#   分析記事の層 2(育成・役割再設計・bus factor)は `organization` 軸(C2/C4/C6)が、
+#   層 3(作業は AI・最終判断は人)は L3/L4 が既にカバーします。この overlay は
+#   非重複の核心 — 層 0(I0)と層 1(I1〜I4)だけを採点します。対応表は docs/08 参照。
 #
-# How to reuse for your own framing: copy this file, keep the five-question
-# structure (one "what is core" precondition + four "who owns the judgment"
-# questions), rewrite the questions for your domain, and refresh case_evidence
-# with your own sources. Validate with `aidr check-overlay <your-file>`.
+# 自分のフレームへの再利用: このファイルをコピーし、5 問構造(「何がコアか」の
+# 前提 1 問 + 「判断を誰が持つか」4 問)を保ったまま質問を書き換え、case_evidence を
+# 自分の出典に差し替えます。`aidr check-overlay <your-file>` で検証してください。
 #
-# Merge rules (enforced by `aidr check-overlay`):
-#   add          : append new items (existing ones are read-only)
-#   strengthen   : move a declared numeric field toward the stricter direction
-# Anything else (delete, replace, weaken) fails validation.
+# マージ規則(`aidr check-overlay` が機械的に検証します):
+#   add          : 項目の追加のみ(既存項目は read-only)
+#   strengthen   : 数値閾値を厳しい方向に変えることのみ
+# それ以外(削除・置換・緩和)は検証エラーになります。
 
 version: 1
 extends: four-layer-delegation-readiness
@@ -89,16 +81,21 @@ add:
         source: https://www.soumu.go.jp/johotsusintokei/whitepaper/ja/r01/html/nd123110.html
   - id: "L_insourcing.I0"
     text: Is the core/non-core line (what counts as in-house scope) documented and decided by a named in-house owner?
+    text_ja: "コア/ノンコアの線引き(何を内製範囲と呼ぶか)が文書化され、社内の固有名で決裁されているか"
     weight: 1.0
   - id: "L_insourcing.I1"
     text: Does a named in-house owner decide requirement priority (what to build and what not to build)?
+    text_ja: "要件の優先順位(何を作り、何を作らないか)を社内の固有名が決裁しているか"
     weight: 1.0
   - id: "L_insourcing.I2"
     text: Does a named in-house owner hold the final decision on the main technical/architecture choices?
+    text_ja: "主要な技術選定(アーキテクチャ)の最終判断を社内の固有名が持っているか"
     weight: 1.0
   - id: "L_insourcing.I3"
     text: Does a named in-house owner define the acceptance criteria (the pass/fail line) and sign off on deliverables?
+    text_ja: "受入基準(合否ライン)を社内の固有名が定義し、成果物を検収しているか"
     weight: 1.0
   - id: "L_insourcing.I4"
     text: On exception/rollback, is it defined where a human intervenes and who bears responsibility?
+    text_ja: "例外・差し戻しのとき、どこで人が介入し誰が責任を負うかが定義されているか"
     weight: 1.0

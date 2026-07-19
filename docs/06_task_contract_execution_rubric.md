@@ -11,6 +11,17 @@ readiness(委任してよいか)を通したあと、**1 つのタスクをど�
 
 正本は [`definitions/task-contract.yaml`](../definitions/task-contract.yaml) です。
 
+## 前提(これだけ知っていれば読めます)
+
+- 全体像([docs/00](00_overview.md))の本線 5 ステップのうち、本書は
+  **ステップ 4(タスクをどう渡すか)** を扱います
+- **AI-as-judge(AI 採点者)** = AI の出力を別の AI が採点する構成
+- **ルーブリック** = 採点基準を明文化した表
+- **Goodhart(グッドハート)の法則** = 「指標が目標になると、指標として壊れる」。
+  AI 採点者は見える採点基準に合わせた体裁だけを整えるように最適化しがちです
+- 物語上の位置: ミドリ精機が、委任 OK と判定した領収書チェックをエージェントに
+  渡す前の契約点検の場面です
+
 ## When to use this
 
 - readiness(go/no-go)は通ったが、「では、どう回すか」の設計が曖昧なとき
@@ -99,8 +110,9 @@ partial、0 で absent です。**absent が 1 つでもあれば 🔴**、absen
 
 ## References
 
-- 正本: [`definitions/task-contract.yaml`](../definitions/task-contract.yaml)
-- サンプル入力: [`examples/task-contracts/sample-green.yaml`](../examples/task-contracts/sample-green.yaml) / [`sample-red-ai-judge.yaml`](../examples/task-contracts/sample-red-ai-judge.yaml)
+- 正本: [`definitions/task-contract.yaml`](../definitions/task-contract.yaml)(質問の日本語文は `text_ja`)
+- サンプル入力: [`examples/task-contracts/sample-green.yaml`](../examples/task-contracts/sample-green.yaml) / [`sample-red-ai-judge.yaml`](../examples/task-contracts/sample-red-ai-judge.yaml)(ミドリ精機の経費チェック委任の 2 例)
 - CLI: `bin/aidr check-task-contract --help`
-- 関連 doc: [`03_delegation_matrix.md`](03_delegation_matrix.md)(委任前の領域判定)/ [`02_audit_log_schema.md`](02_audit_log_schema.md)(証跡 evidence の schema)
+- 物語の前後: 前のステップは [03 委任マトリクス](03_delegation_matrix.md)(委任前の領域判定)、
+  次のステップは [02 監査ログスキーマ](02_audit_log_schema.md)(証跡 evidence の schema)
 - 出典: iRULER(CHI 2026)/ OpenAI「How agents are transforming work」(2026-06-25)

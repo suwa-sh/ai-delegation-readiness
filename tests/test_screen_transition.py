@@ -72,22 +72,38 @@ def test_all_eight_axis_combinations(tmp_path, exposure, necessity, elasticity, 
 
 
 def test_sample_task_groups_expected_types_and_priority_order():
+    """The Midori-Seiki sample must cover all 4 types in priority order."""
     result = st.screen(sample_task_groups_path())
     by_id = {g.id: g.type for g in result.task_groups}
     assert by_id == {
-        "accounting_entry_check": "high_automation",
-        "clinical_documentation": "reorganization",
-        "financial_advisory_reports": "growth",
-        "equipment_field_maintenance": "minimal_change",
+        "financial_disclosure_draft": "reorganization",
+        "expense_entry_check": "high_automation",
+        "sales_proposal_draft": "growth",
+        "equipment_maintenance": "minimal_change",
     }
     # Output is sorted by delegation-design priority (reorganization first).
     assert [g.id for g in result.task_groups] == [
-        "clinical_documentation",
-        "accounting_entry_check",
-        "financial_advisory_reports",
-        "equipment_field_maintenance",
+        "financial_disclosure_draft",
+        "expense_entry_check",
+        "sales_proposal_draft",
+        "equipment_maintenance",
     ]
     assert result.exit_code == 0
+
+
+def test_sample_task_groups_hitl_flags():
+    """HITL must come from H1 (regulated domains), not merely from a high
+    human_necessity axis — disclosure carries H1=yes, the others must not."""
+    result = st.screen(sample_task_groups_path())
+    hitl = {g.id: g.human_control_required for g in result.task_groups}
+    assert hitl == {
+        "financial_disclosure_draft": True,
+        "expense_entry_check": False,
+        "sales_proposal_draft": False,
+        "equipment_maintenance": False,
+    }
+    disclosure = next(g for g in result.task_groups if g.id == "financial_disclosure_draft")
+    assert disclosure.human_control_yes_ids == ["human_necessity.H1"]
 
 
 # --- human_necessity threshold=1 (any single reason keeps humans) ------------

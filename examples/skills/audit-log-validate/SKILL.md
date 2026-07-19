@@ -5,66 +5,60 @@ description: Validate an AI delegation audit log JSON against schemas/audit-log.
 
 # audit-log-validate
 
-Validate an audit log JSON file against the repository's audit log
-schema, then explain the violations in human terms. Thin wrapper around
-`aidr validate-audit-log`.
+監査ログの JSON ファイルを本リポジトリのスキーマで検証し、違反を平易な言葉で
+説明します。`aidr validate-audit-log` の薄いラッパーです。
 
-## When to use this skill
+## いつ使うか
 
-- The user supplies an audit log JSON file (or its contents) and asks
-  whether it conforms to the schema
-- The user is designing an audit log writer and wants quick feedback on
-  whether their output passes the minimum or extended schema
-- The user asks for J-SOX-grade validation (-> use `extended`)
+- ユーザーが監査ログ JSON(またはその内容)を渡して、スキーマに適合するか
+  確認したいとき
+- 監査ログの書き出し処理を設計中で、minimum / extended どちらのスキーマを
+  通るか素早く確認したいとき
+- J-SOX グレードの検証を求められたとき(→ `extended` を使う)
 
-## What this skill needs from the user
+## ユーザーから受け取るもの
 
-- The path to (or contents of) the audit log JSON
-- The intended schema level: `minimum` (default, article-aligned) or
-  `extended` (J-SOX-grade: rule version pinned, discrete decision enum,
-  escalated_to required when escalated)
+- 監査ログ JSON のパス(または内容)
+- 検証するスキーマレベル: `minimum`(既定・記事整合)または
+  `extended`(J-SOX グレード: 規定バージョン固定・離散 decision enum・
+  escalated 時の escalated_to 必須)
 
-## Workflow
+## 手順
 
-1. Confirm with the user which schema level they want to validate
-   against. If they mention J-SOX, audit, compliance, or "production",
-   default to `extended` and tell them why.
+1. どちらのスキーマレベルで検証するかをユーザーに確認する。J-SOX・監査・
+   コンプライアンス・「本番」という言葉が出たら `extended` を既定にし、
+   理由を添える。
 
-2. If the user pasted JSON content instead of a path, write it to
-   `/tmp/aidr-log-<timestamp>.json`.
+2. ユーザーがパスでなく JSON の中身を貼った場合は
+   `/tmp/aidr-log-<timestamp>.json` に書き出す。
 
-3. Run `bin/aidr validate-audit-log <path> --level <level> --format json`.
-   Capture stdout and the exit code.
+3. `bin/aidr validate-audit-log <path> --level <level> --format json` を実行し、
+   stdout と exit code を取得する。
 
-4. If exit code is 0, report a one-line success with the level used and
-   suggest the next action (e.g. "ready for ingestion" or "extend to
-   `extended` next").
+4. exit code が 0 なら、使ったレベルを添えて 1 行で成功を報告し、次の行動を
+   提案する(例: 「取り込み可能」「次は `extended` で検証」)。
 
-5. If there are violations, group them by top-level field (who / when /
-   what / why / result) and translate the JSON Schema messages into
-   plain explanations:
-   - "result.decision must be one of approved/rejected/escalated" ->
-     "the decision value must be a discrete enum; remove free-form text"
-   - "why.rule_refs[0]/version required" -> "extended schema requires
-     pinning the rule version (date or tag) at decision time"
-   - "result/escalated_to required" -> "when decision is `escalated`, the
-     escalated_to field (a human principal) is required"
+5. 違反があれば、トップレベルのフィールド(who / when / what / why / result)で
+   グループ化し、JSON Schema のメッセージを平易な説明に訳す:
+   - 「result.decision must be one of approved/rejected/escalated」→
+     「decision は離散 enum が必須。自由テキストを除去する」
+   - 「why.rule_refs[0]/version required」→「extended スキーマは判定時点の
+     規定バージョン(日付かタグ)の固定を要求する」
+   - 「result/escalated_to required」→「decision が `escalated` のときは
+     エスカレーション先(人間)の記録が必須」
 
-6. End with the next concrete action: "fix these N fields, re-run
-   `aidr validate-audit-log` to confirm."
+6. 具体的な次の一手で締める:「この N 項目を直して、`aidr validate-audit-log` を
+   再実行して確認してください」。
 
-## Output etiquette
+## 出力の作法
 
-- Lead with the verdict (`[OK]` or `[NG] N violations`).
-- Show the JSON paths verbatim so the user can grep their log.
-- Do not paraphrase the audit log content back to the user; assume they
-  can read their own JSON.
+- 結論(`[OK]` または `[NG] N violations`)を先頭に置く。
+- JSON パスは原文どおり示す(ユーザーが自分のログを grep できるように)。
+- 監査ログの中身をユーザーに言い換えて返さない(自分の JSON は読める前提)。
 
-## Failure modes to handle
+## 失敗時の扱い
 
-- File not found: tell the user the path, do not guess.
-- JSON syntax error: surface the parser error and stop. Do not try to
-  guess what the user meant.
-- The wrong schema level was requested ("minimum" for a log that has
-  free-form decision text): the validation will pass, but warn the user
-  that the schema is intentionally lax at minimum level.
+- ファイルが無い: パスを伝えて止まる。推測しない。
+- JSON 構文エラー: パーサのエラーを提示して止まる。意図を推測しない。
+- レベルの選び間違い(自由テキストの decision を `minimum` で検証など):
+  検証は通るが、minimum は意図的に緩いスキーマである旨を警告する。

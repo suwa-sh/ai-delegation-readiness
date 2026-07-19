@@ -1,69 +1,74 @@
-# Sample input for `aidr screen-transition`.
+# `aidr screen-transition` のサンプル入力(物語ステップ 1)。
 #
-# Task groups screened into the four AI-transition types before any
-# delegation scoring. Every question of every axis MUST be answered
-# (fail-closed): a missing answer is an input error, not a silent "no".
-# Question ids come from definitions/transition-screening.yaml:
-#   technical_exposure:  E1-E3 (2/3 yes => high)
-#   human_necessity:     H1-H3 (any 1 yes => high; H1 = default HITL domains)
-#   demand_elasticity:   D1-D3 (2/3 yes => high)
+# ミドリ精機株式会社(架空。examples/README.md 参照)が「経理業務に AI を活用せよ」
+# という経営指示を受け、どのタスク群から手を付けるかを 4 類型に振り分ける場面です。
+# 経理部を中心に、比較のため営業事務・設備保全のタスク群も並べています。
+#
+# 全質問への回答が必須です(fail-closed): 未回答は「no 扱い」にならず、
+# 欠落 id を列挙した入力エラー(exit 3)になります。
+# 質問の日本語文は definitions/transition-screening.yaml の text_ja を参照してください。
+#   technical_exposure:  E1-E3(2/3 yes で high = 理論 exposure 高)
+#   human_necessity:     H1-H3(1 つでも yes で high = 人間必要。H1 は HITL 既定固定域)
+#   demand_elasticity:   D1-D3(2/3 yes で high = 需要弾力的)
 
 task_groups:
-  # Digital rule-based work, capped demand, no human-necessity reason:
-  # lands in HIGH_AUTOMATION -> next step is `aidr score-delegation`.
-  - id: accounting_entry_check
-    description: Accounting entry check (receipt items, invoice scheme, account codes)
+  # 決算開示資料ドラフト: 文書作成は AI に晒されるが、財務報告は規制上
+  # 人間の最終判断が必須(H1)で、開示の量は増やせない(需要非弾力)。
+  # => 再編(priority 1)+ [HITL]。役割再設計が最も要るゾーン。
+  - id: financial_disclosure_draft
+    description: 決算開示資料のドラフト作成(経理部・四半期ごと)
+    answers:
+      technical_exposure.E1: yes   # 作業時間の大半は文書・数値の編集
+      technical_exposure.E2: no    # 監査法人との照会など紙・対面のやりとりが残る
+      technical_exposure.E3: yes   # ドラフト生成は現行 AI で半減可能
+      human_necessity.H1: yes      # 財務報告は J-SOX・開示規制上、人間の承認が必須
+      human_necessity.H2: yes      # 監査法人・IR との信頼関係が業務価値の中核
+      human_necessity.H3: no
+      demand_elasticity.D1: no     # 安くなっても開示資料の本数は増えない
+      demand_elasticity.D2: no
+      demand_elasticity.D3: yes    # 制度上の上限はない(作ろうと思えば任意開示は増やせる)
+
+  # 経費精算チェック: デジタル完結・規則ベースで、件数は業務量で決まる(非弾力)。
+  # => 高自動化(priority 2)。次のステップ(check-readiness / score-delegation)へ進む候補。
+  - id: expense_entry_check
+    description: 経費精算の申請チェック(領収書・インボイス・勘定科目)
     answers:
       technical_exposure.E1: yes
       technical_exposure.E2: yes
       technical_exposure.E3: yes
-      human_necessity.H1: no
+      human_necessity.H1: no       # 個々のチェックは規定で機械的に判定できる(最終統制は L4 で設計)
       human_necessity.H2: no
       human_necessity.H3: no
-      demand_elasticity.D1: no
+      demand_elasticity.D1: no     # 安くなっても経費申請の件数は増えない
       demand_elasticity.D2: no
       demand_elasticity.D3: no
 
-  # Exposed documentation work, but regulated (health) and relationship-centric,
-  # with capped demand: lands in REORGANIZATION (priority 1) with [HITL].
-  - id: clinical_documentation
-    description: Clinical documentation and care coordination in a ward
-    answers:
-      technical_exposure.E1: yes
-      technical_exposure.E2: no
-      technical_exposure.E3: yes
-      human_necessity.H1: yes
-      human_necessity.H2: yes
-      human_necessity.H3: yes
-      demand_elasticity.D1: no
-      demand_elasticity.D2: no
-      demand_elasticity.D3: yes
-
-  # Highly exposed and demand-elastic: lands in GROWTH. H1=yes shows the
-  # HITL flag is independent of the type (financial sign-off stays human).
-  - id: financial_advisory_reports
-    description: Financial advisory report drafting for clients
+  # 見積・提案書ドラフト: 安く速く出せるほど商談数が増える(需要弾力的)。
+  # => 成長(priority 3)。augment 投資で対応件数を増やす。
+  - id: sales_proposal_draft
+    description: 見積・提案書のドラフト作成(営業事務)
     answers:
       technical_exposure.E1: yes
       technical_exposure.E2: yes
       technical_exposure.E3: yes
-      human_necessity.H1: yes
-      human_necessity.H2: yes
+      human_necessity.H1: no
+      human_necessity.H2: yes      # 顧客との関係構築が価値の中核
       human_necessity.H3: no
-      demand_elasticity.D1: yes
-      demand_elasticity.D2: yes
+      demand_elasticity.D1: yes    # 見積が速いほど引き合いが増える
+      demand_elasticity.D2: yes    # 現状は提案が間に合わず失注がある
       demand_elasticity.D3: yes
 
-  # Physical field work with low exposure: lands in MINIMAL_CHANGE.
-  - id: equipment_field_maintenance
-    description: On-site equipment inspection and repair
+  # 設備保全: 現場の物理作業が中心で exposure が低い。
+  # => 変化小(priority 4)。監視のみ、過剰投資を避ける。
+  - id: equipment_maintenance
+    description: 工場設備の点検・修理(設備保全課)
     answers:
       technical_exposure.E1: no
       technical_exposure.E2: no
-      technical_exposure.E3: yes
+      technical_exposure.E3: yes   # 点検報告書の作成だけは AI で短縮できる
       human_necessity.H1: no
       human_necessity.H2: no
-      human_necessity.H3: yes
-      demand_elasticity.D1: yes
+      human_necessity.H3: yes      # 現場での物理作業が不可欠
+      demand_elasticity.D1: yes    # 安ければ予防保全の頻度は増やしたい
       demand_elasticity.D2: no
       demand_elasticity.D3: no

@@ -27,10 +27,13 @@ items:
     threshold: 2          # >=2 Yes => high; otherwise low
   - id: "verifiability.V1"
     text: Can a third party score the same input the same way?
+    text_ja: "第三者が同一入力で同じ判定を採点できるか"
   - id: "verifiability.V2"
     text: Does the verdict need only the input data and the rule document (no individual experience)?
+    text_ja: "正誤判定に必要な情報が入力データと規定文書だけで揃うか(個人の経験に依存しないか)"
   - id: "verifiability.V3"
     text: Can the verdict be expressed as a re-runnable test?
+    text_ja: "判定結果を機械的に再実行できるテストに落とせるか"
 
   # --- answer_definability axis ---
   - id: "answer_definability"
@@ -42,10 +45,13 @@ items:
     threshold: 2
   - id: "answer_definability.A1"
     text: Can the rationale link to a specific clause of the rule book (or SOP step number)?
+    text_ja: "判定根拠を規定の条番号(または SOP のステップ番号)に紐付けられるか"
   - id: "answer_definability.A2"
     text: Is the validity of the verdict determined by rules rather than case-specific context?
+    text_ja: "判定の妥当性がケース個別の文脈でなく規定で決まるか"
   - id: "answer_definability.A3"
     text: Can the rationale be documented without relying on tacit veteran knowledge?
+    text_ja: "ベテランの暗黙知に頼らず判定理由を文書化できるか"
 
   # --- region map: 2 軸の (high|low) の組み合わせから 3 領域へ ---
   - id: "regions"

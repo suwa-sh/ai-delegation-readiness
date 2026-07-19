@@ -1,35 +1,33 @@
-# Domain overlay: high-stakes professional work (IP / legal / pharma) —
-# per-judgment axis (extends delegation-matrix).
+# ドメイン overlay(応用例): 高責任専門業務(知財/法務/薬事)— 判定単位側
+# (delegation-matrix を拡張)。
 #
-# Derived from the Omron IP AI-agent insourcing analysis
-# (https://suwa-sh.github.io/zenn-contents/articles/omron-ip-agent-insourcing_20260629/).
+# オムロンの知財 AI エージェント内製の分析記事から抽出しています
+# (https://suwa-sh.github.io/zenn-contents/articles/omron-ip-agent-insourcing_20260629/)。
 #
-# What this overlay does:
-#   1. Strengthens both axis thresholds from 2 to 3: an axis counts as "high"
-#      only on a perfect score. This is the cautious-side discount justified
-#      by the counter-evidence recorded in the sibling four-layer overlay
-#      (self-reported savings running opposite to measured ones, ~95% of
-#      pilots without P&L impact, specialist legal tools still hallucinating).
-#   2. Adds four worked examples for patent-work process steps, scored under
-#      the strengthened thresholds. They show the aptitude ordering from the
-#      source analysis: classification -> prior-art retrieval -> spec draft
-#      -> invalidity finalization.
+# この overlay がやること:
+#   1. 両軸の threshold を 2 → 3 に強化する: 軸が「high」と数えられるのは満点の
+#      ときだけ。これは兄弟 overlay(four-layer 側)の case_evidence に記録した
+#      反証(自己申告の短縮が実測と逆・pilot の約 95% が P&L 効果なし・専門ベンダー
+#      製の法務ツールでも架空判例が残る)が正当化する慎重側の割り引きです。
+#   2. 特許業務 4 工程の worked examples を強化後の閾値で採点して追加する。
+#      分析記事の適性序列(分類 → 先行技術候補抽出 → 明細書ドラフト →
+#      無効資料の確定)を示します。
 #
-# NOTE — reading the inherited base examples under this overlay:
-# overlays cannot rewrite existing items, so the base worked examples keep
-# region values computed under the base thresholds (2/3). Read under the
-# strengthened thresholds (3/3), four of them land in a stricter region:
+# 注意 — この overlay の下で base 継承の examples を読むとき:
+# overlay は既存項目を書き換えられないため、base の worked examples の region は
+# base 閾値(2/3)時点の値のままです。強化後(3/3)で読むと 4 件がより厳しい
+# region に落ちます:
 #   entertainment_expense_determination  green  -> red
 #   coding_mechanical_refactor           green  -> yellow
 #   discriminatory_expression_detection  yellow -> red
 #   expense_account_code_suggestion      yellow -> red
-# This is the intended effect of the cautious-side discount, and it is pinned
-# by tests/test_score_delegation.py so the divergence stays explicit.
+# これは慎重側割り引きの意図した効果で、tests/test_score_delegation.py が
+# この読み替えを固定しています。
 #
-# Merge rules (enforced by `aidr check-overlay`):
-#   add          : append new items (existing ones are read-only)
-#   strengthen   : move a declared numeric field toward the stricter direction
-# Anything else (delete, replace, weaken) fails validation.
+# マージ規則(`aidr check-overlay` が機械的に検証します):
+#   add          : 項目の追加のみ(既存項目は read-only)
+#   strengthen   : 数値閾値を厳しい方向に変えることのみ
+# それ以外(削除・置換・緩和)は検証エラーになります。
 
 version: 1
 extends: delegation-matrix

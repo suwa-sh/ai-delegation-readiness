@@ -1,29 +1,28 @@
-# Sample overlay: how a company that takes the "5 refutations" seriously
-# extends the organization-readiness axis of four-layer-delegation-readiness.
+# overlay のサンプル(応用例): 「反証 5」を重く見る会社が、
+# four-layer-delegation-readiness の組織 readiness 軸を拡張する例です。
 #
-# Merge rules (enforced by `aidr check-overlay`):
-#   add          : append new items (existing ones are read-only)
-#   strengthen   : move a declared numeric field toward the stricter direction
-# Anything else (delete, replace, weaken) fails validation.
+# マージ規則(`aidr check-overlay` が機械的に検証します):
+#   add          : 項目の追加のみ(既存項目は read-only)
+#   strengthen   : 数値閾値を厳しい方向に変えることのみ
+# それ以外(削除・置換・緩和)は検証エラーになります。
 #
-# The organization axis is a first-class parallel axis in the base definition
-# (six conditions distilled from the Ajinomoto full-stack-team analysis). This
-# overlay demonstrates that add/strengthen work on the new axis just like they
-# do on L1-L4 and efficacy.
+# 組織 readiness 軸は base 定義の一級の並列軸です(味の素フルスタックチーム
+# 分析記事から抽出した 6 条件)。この overlay は、add / strengthen が
+# L1〜L4 や efficacy と同じように新しい軸にも効くことを示します。
 
 version: 1
 extends: four-layer-delegation-readiness
 
 add:
-  # This company makes withdrawal authority explicit at the board level, on top
-  # of the base "authority and culture to pull the plug" question.
+  # この会社は base の「やめる権限と文化」の質問に加えて、撤退判断の権限を
+  # 経営会議レベルの文書で明示することを求める。
   - id: "organization.AJI_C7"
     text: Is the withdrawal-decision authority written down at the executive-committee level?
+    text_ja: "撤退判断の権限が経営会議レベルの文書に明記されているか"
     weight: 1.0
 
 strengthen:
-  # The 5 refutations (skill decay, junior-hiring decline, bus-factor collapse,
-  # velocity decline at the 10->50 inflection, METR revision) argue for a high
-  # organization bar. Refuse to call organization "revise" below ~5/6.
-  # Base value was 0.66; raising it to 0.83 is allowed because it is stricter.
+  # 反証 5(技能低下・ジュニア雇用減・bus factor 崩壊・10→50 人での velocity
+  # 低下・METR 改定)は、組織軸の bar を高く置く根拠になる。約 5/6 未満を
+  # revise と呼ばない(base の 0.66 → 0.83 は厳しい方向なので許可される)。
   "organization": {pass: 1.0, revise: 0.83}

@@ -1,53 +1,53 @@
-# Sample input for `aidr check-readiness`.
+# `aidr check-readiness` のサンプル入力(応用例: 組織 readiness の実事例)。
 #
-# Models a hypothetical small full-stack "exploration phase" team that wants
-# to delegate a high-risk routine judgment to an AI agent. It has nailed the
-# PROCESS prerequisites (documented rules, structured judgments, controls,
-# defensible efficacy numbers) but has NOT built the ORGANIZATIONAL scaffolding
-# (a company-wide literacy layer, a knowledge-transfer contract, an
-# incremental-split design, a bus-factor countermeasure).
+# 味の素グループのフルスタック小規模チーム分析記事を題材にした、探索フェーズの
+# 新規事業チームの例です(回答は例示で、実在組織の実データではありません)。
+# ミドリ精機の物語(examples/README.md)とは独立した応用例です。
 #
-# Expected result: L1-L4 and efficacy PASS, but the organization axis BLOCKs.
-# This is the "process delegable, but the organization can't absorb it" case.
-# The answers are illustrative, not from any real organization.
+# このチームは「業務プロセス」の前提(規定の文書化・判断の構造化・統制・
+# 説明可能な効果数値)は満たしていますが、「組織」の受け皿(全社リテラシー層・
+# 知識移転契約・漸進分割の設計・bus factor 対策)を作れていません。
+#
+# 期待される結果: L1〜L4 と効果測定は PASS、組織 readiness 軸が BLOCK。
+# 「業務は委任できるが、組織が受け止められない」を表面化させるケースです。
 
-target: New-business discovery team (small full-stack, exploration phase)
+target: 新規事業の探索チーム(小規模フルスタック・探索フェーズ)
 
 answers:
-  # L1 Business standardization -> all yes (documented, versioned, reproducible)
+  # L1 業務標準化層 → 全て yes(文書化・版管理・再現可能)
   L1.Q1: yes
   L1.Q2: yes
   L1.Q3: yes
   L1.Q4: yes
 
-  # L2 Judgment structuring -> all yes (mapped, layered, regression-tested)
+  # L2 判断構造化層 → 全て yes(三つ組への対応付け・線引き・回帰テスト)
   L2.Q1: yes
   L2.Q2: yes
   L2.Q3: yes
 
-  # L3 Delegation scope -> all yes (verifiable, clause-linked, reproducible)
+  # L3 委任範囲層 → 全て yes(検証可能・条番号に紐付け・再現可能)
   L3.Q1: yes
   L3.Q2: yes
   L3.Q3: yes
   L3.Q4: yes
 
-  # L4 Control & traceability -> all yes (SoD, structured log, pinned version, correction flow)
+  # L4 統制・追跡層 → 全て yes(職務分掌・構造化ログ・版固定・補正フロー)
   L4.Q1: yes
   L4.Q2: yes
   L4.Q3: yes
   L4.Q4: yes
   L4.Q5: yes
 
-  # Efficacy measurement -> all yes (denominator, baseline, scope, error tracking)
+  # 効果測定 → 全て yes(分母・基準値・範囲・誤り集計)
   efficacy.E1: yes
   efficacy.E2: yes
   efficacy.E3: yes
   efficacy.E4: yes
 
-  # Organization readiness -> mostly no (the real gap for this team)
-  organization.C1: yes   # withdrawal authority exists (small team can pull the plug fast)
-  organization.C2: no    # no company-wide literacy layer to receive the tool
-  organization.C3: yes   # individual-level AI tooling is established
-  organization.C4: no    # no knowledge-transfer contract (internalization not a KPI)
-  organization.C5: no    # no incremental-split design for the scaling phase
-  organization.C6: no    # no bus-factor countermeasure (pairing / ADR / KT Day)
+  # 組織 readiness → ほぼ no(このチームの本当の穴)
+  organization.C1: yes   # 撤退権限はある(小規模チームなのですぐやめられる)
+  organization.C2: no    # 受け皿となる全社リテラシー層がない
+  organization.C3: yes   # 個人レベルの AI ツール利用は定着している
+  organization.C4: no    # 知識移転契約がない(内面化が KPI になっていない)
+  organization.C5: no    # 拡大期の漸進分割が未設計
+  organization.C6: no    # bus factor 対策(ペアプロ・ADR・KT Day)がない

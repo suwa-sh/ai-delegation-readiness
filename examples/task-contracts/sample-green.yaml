@@ -1,21 +1,26 @@
-# A fully-declared task contract: all four elements present, and the AI judge
-# carries an iRULER double-evaluation. check-task-contract -> GREEN (exit 0).
-task: Expense approval delegated to the accounting agent
+# `aidr check-task-contract` のサンプル入力(物語ステップ 4: 契約充足の例)。
+#
+# ミドリ精機株式会社(架空。examples/README.md 参照)が、委任 OK と判定した
+# 「領収書必須項目チェック」を経費チェックエージェントに渡す前の実行契約です。
+# 4 要素(意図・境界・証跡・採点者)がすべて宣言済みで、AI 採点者には
+# iRULER 二重評価があるため GREEN(exit 0)になります。
+# 質問の日本語文は definitions/task-contract.yaml の text_ja を参照してください。
+task: 経費チェックエージェントへの経費精算チェック委任(ミドリ精機・経理部)
 answers:
-  # 意図 (intent)
-  intent.I1: yes    # pass condition written (statutory items + amount thresholds)
-  intent.I2: yes    # mechanically checkable (rule references + re-runnable check)
-  intent.I3: yes    # primary deliverable named (approved / rejected / escalated verdict)
-  # 境界 (boundary)
-  boundary.B1: yes  # prohibited: never auto-approve above the escalation amount
-  boundary.B2: yes  # escalate when receipt is missing or amount exceeds threshold
-  boundary.B3: yes  # least privilege: read the expense DB row + rulebook only
-  # 証跡 (evidence)
-  evidence.E1: yes  # record input row, rule refs, verdict
-  evidence.E2: yes  # Who/When/What/Why/Result captured per decision
-  evidence.E3: yes  # written by the deterministic scoring step, not a tail hook
-  # 採点者 (scorer)
-  scorer.S1: yes    # scorer assigned
-  scorer.S2: yes    # scoring rubric written down
+  # 意図 (intent): 何を満たせば合格か
+  intent.I1: yes    # 合格条件を明文化(必須項目の充足 + 金額閾値)
+  intent.I2: yes    # 機械検証可能(規定参照 + 再実行可能なチェック)
+  intent.I3: yes    # 主成果物を明示(approved / rejected / escalated の判定)
+  # 境界 (boundary): やってはいけないこと・いつ止めるか
+  boundary.B1: yes  # 禁止事項: エスカレーション金額を超える申請を自動承認しない
+  boundary.B2: yes  # エスカレーション条件: 領収書欠落・閾値超過は人間へ
+  boundary.B3: yes  # 最小権限: 経費 DB の該当行と経費規程のみ読み取り可
+  # 証跡 (evidence): どの入出力を残すか
+  evidence.E1: yes  # 記録範囲を定義(入力行・参照規定・判定)
+  evidence.E2: yes  # 判定ごとに Who/When/What/Why/Result を記録
+  evidence.E3: yes  # 記録は決定的な採点ステップが生成(後付け処理でない)
+  # 採点者 (scorer): 誰が採点するか
+  scorer.S1: yes    # 採点者を割付済み
+  scorer.S2: yes    # 採点ルーブリックを明文化済み
   scorer.type: ai_judge
-  scorer.iruler_double_eval: yes   # rubric-of-rubric double-eval in place
+  scorer.iruler_double_eval: yes   # ルーブリック自体を別ルーブリックで評価する二重評価あり

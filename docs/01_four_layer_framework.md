@@ -12,6 +12,15 @@
 確認できます)/ **【設計提案】**(本リポでの一般化です)。④統制層は事例記事
 自身が「公開情報が薄い」と明言しているため、設計提案ラベルが大半を占めます。
 
+## 前提(これだけ知っていれば読めます)
+
+- 全体像([docs/00](00_overview.md))の本線 5 ステップのうち、本書は
+  **ステップ 2(業務が委任に耐えるか)** を扱います
+- **SOP** = 標準作業手順書。誰がやっても同じ結果になるよう手順を書いたもの
+- **エスカレーション** = AI が判断に迷うケースを人間に引き渡すこと
+- 物語上の位置: ミドリ精機(架空。[`examples/README.md`](../examples/README.md))の
+  経理部が、スクリーニングで選んだ経費精算承認業務を診断する場面です
+
 ## When to use this
 
 - 対象業務がある(経費承認 / ベンダー登録 / 与信判定 など)
@@ -20,20 +29,26 @@
 
 ## Quick check
 
-3 分で動かせます。
+3 分で動かせます。ミドリ精機の経費精算承認業務の**初回診断**です。
 
 ```bash
 bin/aidr check-readiness examples/business/sample-expense-approval.yaml
 ```
 
-サンプルの結果です(L4 統制層が未着手の中規模企業を想定しています)。
+```text
+Target: 経費精算承認(ミドリ精機・経理部、FY2026 初回診断)
 
-```
 [..] L1 業務標準化層: REVISE (75%)
+    no: L1.Q4
+    -> upper layers are gated by this verdict
 [NG] L2 判断構造化層: BLOCK (33%)
-[..] L3 委任範囲層:   REVISE (75%)
+    no: L2.Q2, L2.Q3
+[..] L3 委任範囲層: REVISE (75%)
+    no: L3.Q4
 [NG] L4 統制・追跡層: BLOCK (0%)
+    no: L4.Q1, L4.Q2, L4.Q3, L4.Q4, L4.Q5
 [..] efficacy 効果測定: REVISE (75%)
+    no: efficacy.E3
 [NG] organization 組織 readiness層: BLOCK (0%)
     unknown: organization.C1, organization.C2, organization.C3, organization.C4, organization.C5, organization.C6
 
@@ -41,10 +56,22 @@ Conclusion: BLOCK
   First gate to fix: layer L1
 ```
 
-このサンプルは業務プロセス(4 層 + 効果測定)の記入例です。組織 readiness 軸は未記入なので
-`unknown` = BLOCK になります(組織軸の詳細は [`05_organization_axis.md`](05_organization_axis.md))。
+規定はあるが、SOP の粒度・判定ロジックの構造化・統制層が足りない状態です。
+組織 readiness 軸は未記入なので `unknown` = BLOCK になります
+(組織軸の詳細は [`05_organization_axis.md`](05_organization_axis.md))。
+
+**BLOCK はゲートです**。ミドリ精機の物語では、ここから半年の改善を経て
+再診断([`examples/business/sample-expense-approval-after.yaml`](../examples/business/sample-expense-approval-after.yaml))で
+PASS になり、次のステップ(判定単位の振り分け)へ進みます。
+
+```bash
+bin/aidr check-readiness examples/business/sample-expense-approval-after.yaml
+# => Conclusion: PASS
+```
+
 自社業務を採点する場合は、`examples/business/sample-expense-approval.yaml` を
-コピーして各問いに Yes/No を埋めてください。
+コピーして各問いに Yes/No を埋めてください。質問の日本語文は
+[`definitions/four-layer.yaml`](../definitions/four-layer.yaml) の `text_ja` にあります。
 
 ## The 4 layers
 
@@ -174,6 +201,8 @@ block になります。
 - 正本: [`definitions/four-layer.yaml`](../definitions/four-layer.yaml)(問い・閾値・拡張ポイントの正本です)
 - 関連 doc: [`02_audit_log_schema.md`](02_audit_log_schema.md) / [`03_delegation_matrix.md`](03_delegation_matrix.md) / [`04_audit_log_gap_check.md`](04_audit_log_gap_check.md) / [`05_organization_axis.md`](05_organization_axis.md)(組織 readiness の並列軸)/ [`07_high_stakes_domain_overlay.md`](07_high_stakes_domain_overlay.md)(知財/法務/薬事向けに L5 ゲート層を足すドメイン overlay。base の層構成は変わりません)
 - CLI: `bin/aidr check-readiness --help`
+- 物語の前後: 前のステップは [09 スクリーニング](09_transition_screening.md)(どこから手を付けるか)、
+  次のステップは [03 委任マトリクス](03_delegation_matrix.md)(判定単位の振り分け)
 - 出典:
   - [メンテナによる分析記事 (Zenn / gh-pages ミラー)](https://suwa-sh.github.io/zenn-contents/articles/ajinomoto-accounting-agent_20260621/)
   - [ファーストアカウンティング公式 (2026-04-24)](https://www.fastaccounting.jp/news/20260424/15929/)

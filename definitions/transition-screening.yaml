@@ -44,10 +44,13 @@ items:
     threshold: 2          # >=2 Yes => high; otherwise low
   - id: "technical_exposure.E1"
     text: Is the majority of task time spent on information work (documents, data, code) rather than physical or face-to-face work?
+    text_ja: "タスク時間の過半が(物理作業や対面でなく)情報処理(文書・データ・コード)か"
   - id: "technical_exposure.E2"
     text: Are the main tasks' inputs and outputs fully digital (no physical handling required to complete them)?
+    text_ja: "主要タスクの入出力がデジタルデータだけで完結するか(物理的な取り扱いが不要か)"
   - id: "technical_exposure.E3"
     text: Could current AI tools halve the time of at least some core tasks while keeping quality (the exposure criterion of Eloundou et al. 2023)?
+    text_ja: "現行の AI ツールで品質を保ったまま、中核タスクの所要時間を半減できるか(Eloundou らの exposure 基準)"
 
   # --- human_necessity axis (regulation / relationship / physical) -----------
   # 記事の「規制・関係性・物理の いずれか で人間が役割に残る必要」に対応するため
@@ -67,11 +70,14 @@ items:
     threshold: 1          # >=1 Yes => high (any one reason keeps humans)
   - id: "human_necessity.H1"
     text: Does the work affect rights, finances, health, or regulated matters such that a human decision or signature is required by law, regulation, or audit (the default HITL domains)?
+    text_ja: "権利・財務・健康・規制のいずれかに影響し、法令・規制・監査上、人間の判断や署名が要求されるか(HITL 既定固定域)"
     flag: human_control
   - id: "human_necessity.H2"
     text: Is the interpersonal relationship itself (trust, negotiation, care) the core value the work delivers?
+    text_ja: "対人関係そのもの(信頼・交渉・ケア)が、この仕事が提供する価値の中核か"
   - id: "human_necessity.H3"
     text: Is physical on-site work or embodied skill indispensable to deliver the work?
+    text_ja: "現場での物理作業や身体的スキルが不可欠か"
 
   # --- demand_elasticity axis ------------------------------------------------
   # AI がコストを下げたときに需要が拡大するか。2/3 yes => high(弾力的)。
@@ -86,10 +92,13 @@ items:
     threshold: 2          # >=2 Yes => high (elastic); otherwise low
   - id: "demand_elasticity.D1"
     text: Would the number of requests (from customers or internal users) grow if cost or lead time dropped substantially?
+    text_ja: "コストや納期が大きく下がれば、顧客や社内からの依頼件数が増える見込みがあるか"
   - id: "demand_elasticity.D2"
     text: Is there unmet latent demand today because price or speed is the bottleneck?
+    text_ja: "価格や速度がボトルネックで、満たされていない潜在需要が今あるか"
   - id: "demand_elasticity.D3"
     text: Is demand free of hard caps such as regulatory quotas or fixed budgets that would stop it from growing?
+    text_ja: "需要の伸びを止める上限(規制枠・固定予算など)が無いか"
 
   # --- type map: 3 軸の (high|low) から 4 類型へ -----------------------------
   # 評価はソース順・部分マッチ(minimal_change は exposure=low のみで確定)。

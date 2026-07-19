@@ -11,6 +11,18 @@ AI エージェントに承認業務を委任するなら、後から判断を�
 正本は [`schemas/audit-log.schema.json`](../schemas/audit-log.schema.json)
 (JSON Schema Draft 2020-12)です。
 
+## 前提(これだけ知っていれば読めます)
+
+- 全体像([docs/00](00_overview.md))の本線 5 ステップのうち、本書は
+  **ステップ 5(記録は残っているか)** のスキーマ設計を扱います
+- **監査ログ** = AI の判断(誰が / いつ / 何を / なぜ / 結果)を後から再現・点検
+  できるように残す記録
+- **J-SOX** = 金融商品取引法の内部統制報告制度。上場企業に財務報告に関わる
+  内部統制の評価・報告を求めます
+- **JSON Schema** = JSON の形(必須項目・値の型)を機械検証するための規格
+- 物語上の位置: ミドリ精機の経費チェックエージェントが運用を開始し、
+  書き出すログの形を決める場面です
+
 ## When to use this
 
 - 監査ログ DB の列定義を新規設計する
@@ -136,7 +148,9 @@ for err in validator.iter_errors(your_log_dict):
 ## References
 
 - 正本: [`schemas/audit-log.schema.json`](../schemas/audit-log.schema.json)
-- サンプル: [`examples/audit-log-sample.json`](../examples/audit-log-sample.json)(`escalated` ケースです)
+- サンプル: [`examples/audit-log-sample.json`](../examples/audit-log-sample.json)(経費の交際費グレーケースを人間にエスカレーションした `escalated` の記録です)
 - CLI: `bin/aidr validate-audit-log --help`
-- 関連 doc: [`01_four_layer_framework.md`](01_four_layer_framework.md) の④統制層 / [`04_audit_log_gap_check.md`](04_audit_log_gap_check.md)(既存ログ基盤への適用例です)
+- 物語の前後: 前のステップは [06 タスク契約](06_task_contract_execution_rubric.md)(証跡 evidence の宣言)、
+  既存基盤への当てはめは [04 ログ基盤の点検](04_audit_log_gap_check.md)
+- 関連 doc: [`01_four_layer_framework.md`](01_four_layer_framework.md) の④統制層
 - 出典: [メンテナによる分析記事 §④統制・追跡層](https://suwa-sh.github.io/zenn-contents/articles/ajinomoto-accounting-agent_20260621/)

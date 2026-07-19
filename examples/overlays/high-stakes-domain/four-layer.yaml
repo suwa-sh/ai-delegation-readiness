@@ -1,30 +1,28 @@
-# Domain overlay: high-stakes professional work (IP / legal / pharma) —
-# readiness axis (extends four-layer-delegation-readiness).
+# ドメイン overlay(応用例): 高責任専門業務(知財/法務/薬事)— readiness 側
+# (four-layer-delegation-readiness を拡張)。
 #
-# Derived from the Omron IP AI-agent insourcing analysis
-# (https://suwa-sh.github.io/zenn-contents/articles/omron-ip-agent-insourcing_20260629/).
-# The analysis concludes that delegating AI work in high-stakes professional
-# domains is an *exception that holds only under four prerequisites* — not a
-# general rule. This overlay encodes those prerequisites as a hard gate.
+# オムロンの知財 AI エージェント内製の分析記事から抽出しています
+# (https://suwa-sh.github.io/zenn-contents/articles/omron-ip-agent-insourcing_20260629/)。
+# 分析の結論は「高責任専門ドメインへの AI 委任は、4 つの成立条件を満たすときだけ
+# 成立する例外であり、一般則ではない」です。この overlay はその成立条件を
+# ハードゲートとして符号化します。
 #
-# What this overlay does:
-#   1. Adds a new gating layer "L5" (high-stakes prerequisites) with
-#      pass: 1.0 and revise: 1.0 — a single No verdict means BLOCK.
-#      "Meets all four conditions or do not delegate."
-#   2. Adds two reversibility / error-cost questions to L3 (delegation scope).
-#      Note the scoring consequence: L3 becomes 6 equal-weight questions, so
-#      pass requires 6/6 and revise requires 5/6 (revise: 0.75).
+# この overlay がやること:
+#   1. 新しいゲート層 "L5"(高責任ドメイン成立条件)を追加する。
+#      pass: 1.0 かつ revise: 1.0 = revise 帯なし。1 問でも No なら BLOCK。
+#      「4 条件を満たすか、委任しないか」。
+#   2. L3(委任範囲層)に可逆性・誤りコストの質問を 2 問追加する。
+#      採点上の帰結: L3 は等重み 6 問になり、pass は 6/6、revise は 5/6 以上。
 #
-# How to reuse for your own domain: copy this file, rewrite the L5 questions
-# for your domain's failure modes (keep them domain-neutral in structure:
-# confidentiality, human verification loop, trained HITL, platform lifecycle),
-# and refresh case_evidence with your own sources. Validate with
-# `aidr check-overlay <your-file>`.
+# 自ドメインへの再利用: このファイルをコピーし、L5 の質問を自ドメインの
+# 失敗様態に書き換えます(構造は保つ: 秘匿性 / 人間検証ループ / 訓練された HITL /
+# 基盤ライフサイクル)。case_evidence も自分の出典に差し替え、
+# `aidr check-overlay <your-file>` で検証してください。
 #
-# Merge rules (enforced by `aidr check-overlay`):
-#   add          : append new items (existing ones are read-only)
-#   strengthen   : move a declared numeric field toward the stricter direction
-# Anything else (delete, replace, weaken) fails validation.
+# マージ規則(`aidr check-overlay` が機械的に検証します):
+#   add          : 項目の追加のみ(既存項目は read-only)
+#   strengthen   : 数値閾値を厳しい方向に変えることのみ
+# それ以外(削除・置換・緩和)は検証エラーになります。
 
 version: 1
 extends: four-layer-delegation-readiness
@@ -36,9 +34,11 @@ add:
   # verifiability; these two questions add reversibility and error cost.
   - id: "L3.HS_Q5"
     text: Are irreversible final decisions (filing confirmation, claim scope, "no prior art found") excluded from delegation?
+    text_ja: "不可逆な確定判断(出願確定・権利範囲・「先行技術なし」)を委任対象から除外しているか"
     weight: 1.0
   - id: "L3.HS_Q6"
     text: Is a human final decision inserted at steps where the cost of an error is asymmetric (litigation, loss of rights, regulatory sanction)?
+    text_ja: "誤りコストが非対称な工程(訴訟・権利喪失・行政処分)に人間の最終判断を挟んでいるか"
     weight: 1.0
 
   # --- L5: high-stakes prerequisites (hard gate) ------------------------------
@@ -74,13 +74,17 @@ add:
         source: https://docs.aws.amazon.com/bedrock/latest/userguide/model-lifecycle.html
   - id: "L5.Q1"
     text: Is confidential material (pre-filing inventions, litigation records, clinical trial data) handled in a closed network with no public-disclosure or leakage path?
+    text_ja: "秘匿情報(出願前発明・訴訟資料・治験データ)を、公知化・漏えい経路のない閉域で扱っているか"
     weight: 1.0
   - id: "L5.Q2"
     text: Is a human verification loop designed to catch misses (false negatives) where high recall is required?
+    text_ja: "高 recall が要る工程で、見落とし(false negative)を人間が捕まえる検証ループを設計しているか"
     weight: 1.0
   - id: "L5.Q3"
     text: Are human-in-the-loop procedures designed and trained assuming complacency (not merely "a human is present")?
+    text_ja: "HITL の手順を、形骸化(コンプレイセンシー)を前提に設計・訓練しているか(「人を置くだけ」でないか)"
     weight: 1.0
   - id: "L5.Q4"
     text: Is the yearly operating cost of tracking short foundation-model lifecycles (EOL in as little as 12 months) budgeted?
+    text_ja: "基盤モデルの短い寿命(最短 12 ヶ月で EOL)に毎年追随する運用コストを予算化しているか"
     weight: 1.0

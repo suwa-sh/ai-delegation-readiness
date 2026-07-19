@@ -11,6 +11,16 @@
 本軸は **味の素モデルの分析記事「6 条件チェックリスト + 反証 5」** から骨格を抽出しています。
 事実と一般化はラベル分けで示します:**【観測事実】** / **【設計提案】**。
 
+## 前提(これだけ知っていれば読めます)
+
+- 全体像([docs/00](00_overview.md))のステップ 2(readiness 診断)のうち、
+  **組織側の受け皿**を診断する並列軸の解説です。4 層([docs/01](01_four_layer_framework.md))と
+  同じコマンドで一緒に採点されます
+- **並列軸** = 4 層のゲート(下層が上層を止める積み上げ)には関与せず、
+  独立した合否として並ぶ観点
+- **bus factor** = 何人抜けたらプロジェクトが止まるか。1 なら、その 1 人が単一障害点です
+- **リテラシー層** = AI ツールを業務側で受け止めて使いこなす人材の層
+
 ## When to use this
 
 - 4 層(業務プロセス)の診断は済み、**組織側の受け皿**を点検したい
@@ -23,9 +33,12 @@
 bin/aidr check-readiness examples/business/ajinomoto-discovery-team.yaml
 ```
 
-*業務*は整っているが*組織*が未成熟なチームの結果です。
+*業務*は整っているが*組織*が未成熟なチームの結果です(応用例。ミドリ精機の物語とは
+独立した、味の素の分析記事由来のサンプルです)。
 
 ```text
+Target: 新規事業の探索チーム(小規模フルスタック・探索フェーズ)
+
 [OK] L1 業務標準化層: PASS (100%)
 [OK] L2 判断構造化層: PASS (100%)
 [OK] L3 委任範囲層: PASS (100%)
@@ -133,3 +146,5 @@ classDiagram
 - サンプル: [`examples/business/ajinomoto-discovery-team.yaml`](../examples/business/ajinomoto-discovery-team.yaml) /
   [`examples/overlays/organization-readiness-ajinomoto.yaml`](../examples/overlays/organization-readiness-ajinomoto.yaml)
 - 関連: [`01_four_layer_framework.md`](01_four_layer_framework.md)(4 層 + 効果測定)
+- 物語の前後: 本書は [01](01_four_layer_framework.md) と同じステップ 2(readiness 診断)の一部です。
+  次のステップは [03 委任マトリクス](03_delegation_matrix.md)

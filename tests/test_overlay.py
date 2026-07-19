@@ -226,7 +226,7 @@ def test_source_order_and_opaque_payload_preserved():
     assert list(groups.keys()) == ["L1", "L2", "L3", "L4", "efficacy", "organization"]
     # added leaves appended to their group, base leaves kept in order
     l1_leaves = [i["id"] for i in groups["L1"]["leaves"]]
-    assert l1_leaves == ["L1.Q1", "L1.Q2", "L1.Q3", "L1.Q4", "L1.ACME_Q5"]
+    assert l1_leaves == ["L1.Q1", "L1.Q2", "L1.Q3", "L1.Q4", "L1.MIDORI_Q5"]
     # opaque payload on the header survives untouched
     assert groups["L1"]["header"]["case_evidence"][0]["confidence"] == "observed_fact"
 
@@ -245,7 +245,7 @@ def test_roundtrip_sample_overlay():
     r = ov.apply_overlay(four_layer(), ov.load_yaml(sample_overlay_path()))
     assert r.ok, r.violations
     ids = _ids(r.merged)
-    assert "L1.ACME_Q5" in ids and "L4.ACME_Q6" in ids
+    assert "L1.MIDORI_Q5" in ids and "L4.MIDORI_Q6" in ids
     l4 = next(i for i in r.merged["items"] if i["id"] == "L4")
     assert l4["revise"] == 0.8
 

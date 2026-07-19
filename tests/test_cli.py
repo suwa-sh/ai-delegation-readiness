@@ -57,7 +57,14 @@ def test_screen_transition_sample_exits_0():
 
     r = _run("screen-transition", str(sample_task_groups_path()))
     assert r.returncode == 0
-    assert "REORGANIZATION" in r.stdout
+    # Sample-specific assertions: the reorganization group leads the output
+    # and carries the HITL marker (H1 = regulated financial reporting).
+    first_line = r.stdout.splitlines()[0]
+    assert "financial_disclosure_draft" in first_line
+    assert "REORGANIZATION" in first_line
+    assert "[HITL]" in first_line
+    for gid in ("expense_entry_check", "sales_proposal_draft", "equipment_maintenance"):
+        assert gid in r.stdout
 
 
 def test_screen_transition_missing_answer_exits_3(tmp_path):

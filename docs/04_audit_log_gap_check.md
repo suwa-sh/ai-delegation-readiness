@@ -8,6 +8,16 @@ Who/When/What/Why/Result の 5 観点で点検した結果と、`ALTER TABLE` �
 示します。**本書の手順は他社環境に持ち込めます** — 冒頭の 5 ステップが手順、
 後半が具体例になっています。
 
+## 前提(これだけ知っていれば読めます)
+
+- 全体像([docs/00](00_overview.md))のステップ 5(監査ログ)の**応用編**です。
+  スキーマの設計([docs/02](02_audit_log_schema.md))を先に読むと本書の観点が分かります
+- **列定義 / CHECK 制約 / enum** = データベースの用語。列定義はテーブルの項目、
+  CHECK 制約は「この値しか入らない」という機械的な制限、enum は取りうる値の
+  固定リストです
+- 本書の題材はミドリ精機の物語ではなく、**ある自社運用エージェント基盤の実スキーマ**を
+  点検した worked example(具体的な適用例)です
+
 ## When to use this
 
 - 既に動いている AI エージェント基盤の統制ログに穴がないか点検したい
@@ -171,3 +181,6 @@ CREATE TABLE IF NOT EXISTS human_overrides (
 
 - 正本(本リポ側): [`schemas/audit-log.schema.json`](../schemas/audit-log.schema.json)
 - 関連 doc: [`02_audit_log_schema.md`](02_audit_log_schema.md)(本書の前提です)
+- 物語の前後: 本書は学習パス([docs/00](00_overview.md))の最後の本線 doc です。
+  応用に進むなら [07 高責任ドメイン overlay](07_high_stakes_domain_overlay.md) /
+  [08 内製化 overlay](08_insourcing_judgment_overlay.md) へ

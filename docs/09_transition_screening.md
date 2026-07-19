@@ -9,6 +9,17 @@
 骨格は OpenAI「AI Jobs Transition Framework for the EU」(2026-06)から抽出した**簡易スクリーニング**であり、
 原典の定量推計の再現ではありません(**予測ではなく準備の地図**)。
 
+## 前提(これだけ知っていれば読めます)
+
+- 全体像([docs/00](00_overview.md))の本線 5 ステップのうち、本書は
+  **ステップ 1(どこから手を付けるか)** を扱います
+- **exposure(エクスポージャ)**= タスク時間のうち、現行の AI で代替・短縮できる部分の
+  割合。「理論上できる」であって「実際に使われている」ではありません
+- **需要弾力性** = コストが下がったとき需要(依頼件数)が増えるか。増えるなら
+  AI 化は削減でなく成長につながります
+- **HITL**(human-in-the-loop)= 人間を最終判断に残す運用
+- 物語上の位置: ミドリ精機の経理部が、経営指示を受けて最初にやることを決める場面です
+
 ## When to use this
 
 - AI 化の対象選定で「削減対象探し」に引きずられず、**どのタスク群から委任設計に手を付けるか**を根拠付きで決めたいとき
@@ -25,14 +36,18 @@ bin/aidr screen-transition examples/task-groups/sample-task-groups.yaml
 bin/aidr list-definitions --target transition
 ```
 
-出力例(抜粋):
+出力例(ミドリ精機のタスク群 4 つ。抜粋):
 
 ```text
-[REORG ] priority 1: clinical_documentation: REORGANIZATION [HITL]  (technical_exposure=high(2/3), human_necessity=high(3/3), demand_elasticity=low(1/3))
-[AUTO  ] priority 2: accounting_entry_check: HIGH_AUTOMATION  (technical_exposure=high(3/3), human_necessity=low(0/3), demand_elasticity=low(0/3))
-[GROWTH] priority 3: financial_advisory_reports: GROWTH [HITL]  (...)
-[STABLE] priority 4: equipment_field_maintenance: MINIMAL_CHANGE  (...)
+[REORG ] priority 1: financial_disclosure_draft: REORGANIZATION [HITL]  (technical_exposure=high(2/3), human_necessity=high(2/3), demand_elasticity=low(1/3))
+[AUTO  ] priority 2: expense_entry_check: HIGH_AUTOMATION  (technical_exposure=high(3/3), human_necessity=low(0/3), demand_elasticity=low(0/3))
+[GROWTH] priority 3: sales_proposal_draft: GROWTH  (technical_exposure=high(3/3), human_necessity=high(1/3), demand_elasticity=high(3/3))
+[STABLE] priority 4: equipment_maintenance: MINIMAL_CHANGE  (technical_exposure=low(1/3), human_necessity=high(1/3), demand_elasticity=low(1/3))
 ```
+
+決算開示資料ドラフトが最優先(再編 + HITL)、経費精算チェックが委任採点へ進む候補
+(高自動化)になりました。物語はここから経費精算チェックの readiness 診断
+([docs/01](01_four_layer_framework.md))へ進みます。
 
 - **全質問への回答が必須**です(fail-closed)。未回答があると欠落 id を列挙して入力エラー(exit 3)になります。
   未回答を no 扱いすると、人間必要性が low に倒れて高自動化(人間不要側)へ誤分類されるためです。
@@ -160,7 +175,7 @@ graph LR
 | axis group | `technical_exposure` / `human_necessity` / `demand_elasticity`。header の `threshold` で high/low を決める |
 | 質問 leaf | 観測可能な yes/no 質問。`flag: human_control` を持つ leaf(H1)は HITL フラグの源 |
 | types group | 軸レベル 3 つ組 → 類型のルックアップ。`delegation_priority` と `action`(推奨文言の正本)を持つ |
-| examples group | 採点済みの具体例(design_proposal)。overlay で自社例を追加できる |
+| examples group | 採点済みの具体例(design_proposal)。overlay で自社例を追加できる。**定義内の examples は各類型の判定基準を例示するリファレンスケースで、ミドリ精機の物語とは独立** |
 
 overlay で可能なのは 3 軸 + examples への `add` のみです。**threshold の strengthen は
 意図的に開けていません** — 閾値を上げると exposure=high に入りにくくなり、再編対象が
@@ -168,10 +183,11 @@ overlay で可能なのは 3 軸 + examples への `add` のみです。**thresh
 
 ## References
 
-- 正本: [`definitions/transition-screening.yaml`](../definitions/transition-screening.yaml)
-- サンプル: [`examples/task-groups/sample-task-groups.yaml`](../examples/task-groups/sample-task-groups.yaml)
-- 関連 doc: [`03_delegation_matrix.md`](03_delegation_matrix.md)(次段の委任マトリクス)/
-  [`01_four_layer_framework.md`](01_four_layer_framework.md)(readiness 点検)
+- 正本: [`definitions/transition-screening.yaml`](../definitions/transition-screening.yaml)(質問の日本語文は `text_ja`)
+- サンプル: [`examples/task-groups/sample-task-groups.yaml`](../examples/task-groups/sample-task-groups.yaml)(ミドリ精機のタスク群 4 つ)
+- 物語の前後: 本書がステップ 1 です。次のステップは
+  [01 4 層フレーム](01_four_layer_framework.md)(readiness 診断)→
+  [03 委任マトリクス](03_delegation_matrix.md)(判定単位の振り分け)
 - 出典: [Mapping Europe's AI Workforce Opportunity (OpenAI EU)](https://openai.com/index/mapping-ai-jobs-transition-eu/) /
   [The AI Jobs Transition Framework for the EU (PDF)](https://cdn.openai.com/pdf/the-ai-jobs-transition-framework-for-the-eu.pdf) /
   [GPTs are GPTs (Eloundou et al. 2023)](https://arxiv.org/abs/2303.10130) /

@@ -51,12 +51,15 @@ items:
   - id: "intent.I1"
     kind: question
     text: Is the pass condition written explicitly (what must hold to accept the output)?
+    text_ja: "合格条件(何を満たせば成果物を受け入れるか)が明文化されているか"
   - id: "intent.I2"
     kind: question
     text: Is the acceptance criterion mechanically checkable (re-runnable test or enumerable list)?
+    text_ja: "受け入れ基準を機械的に確認できるか(再実行可能なテスト、または列挙可能なリスト)"
   - id: "intent.I3"
     kind: question
     text: Is the primary deliverable named so that "done" is unambiguous?
+    text_ja: "主成果物が名指しされ、「完了」の定義が曖昧でないか"
 
   # --- 境界 (boundary): やってはいけないこと / エスカレーション ---
   - id: "boundary"
@@ -67,12 +70,15 @@ items:
   - id: "boundary.B1"
     kind: question
     text: Are prohibited actions listed (what the agent must not do)?
+    text_ja: "禁止事項(エージェントがやってはいけないこと)が列挙されているか"
   - id: "boundary.B2"
     kind: question
     text: Is the escalation condition defined (when to stop and hand to a human)?
+    text_ja: "エスカレーション条件(いつ止めて人間に渡すか)が定義されているか"
   - id: "boundary.B3"
     kind: question
     text: Is the data-access scope bounded (least privilege / which sources may be read)?
+    text_ja: "データアクセス範囲が最小権限で限定されているか(どのソースを読んでよいか)"
 
   # --- 証跡 (evidence): どの入出力を残すか ---
   - id: "evidence"
@@ -83,12 +89,15 @@ items:
   - id: "evidence.E1"
     kind: question
     text: Is the set of inputs/outputs to record defined (audit scope)?
+    text_ja: "記録する入出力の範囲(監査スコープ)が定義されているか"
   - id: "evidence.E2"
     kind: question
     text: Is Who/When/What/Why/Result captured for each decision?
+    text_ja: "判定ごとに Who/When/What/Why/Result を記録しているか"
   - id: "evidence.E3"
     kind: question
     text: Is the record produced by a deterministic step (not a best-effort tail that a long run can skip)?
+    text_ja: "記録は決定的なステップで生成されるか(長時間実行で省略されうる後付け処理でないか)"
 
   # --- 採点者 (scorer): 人 / AI-as-judge / 二段審査 ---
   - id: "scorer"
@@ -99,9 +108,11 @@ items:
   - id: "scorer.S1"
     kind: question
     text: Is the scorer assigned (a specific human, an AI judge, or a two-stage review)?
+    text_ja: "採点者が割り付けられているか(特定の人間・AI 採点者・二段審査のいずれか)"
   - id: "scorer.S2"
     kind: question
     text: Is the scoring rubric itself written down (not left tacit)?
+    text_ja: "採点ルーブリック自体が明文化されているか(暗黙のままにしていないか)"
   # data leaves: the gate reads these directly (not presence-scored).
   - id: "scorer.type"
     kind: data

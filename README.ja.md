@@ -6,93 +6,111 @@
 
 > 🇬🇧 English version: [README.md](README.md)
 
-高リスクな定型業務を AI エージェントに委任して良いかを **診断するツールと拡張可能な
-フレームワーク**です。さらに、委任すると決めた後の **1 タスクをどう与え・どう採点するか**
-まで点検します。味の素グループの経理 AI エージェント(2026 年 2 月本番稼働)の
-**公開分析からの抽出**です。
+## これは何(1 分で)
 
-主な特徴は、次の 5 点です。
+「この業務を AI エージェントに任せてよいか」を、勘ではなく**採点**で決めるための
+診断ツールと拡張可能なフレームワークです。
 
-1. **委任の前に「どこから手を付けるか」を地図にします** — タスク群を 3 軸(理論 exposure /
-   人間必要性 / 需要弾力性)で AI 移行 4 類型(成長 / 高自動化 / 再編 / 変化小)に振り分け、
-   委任設計の優先度順に並べます。最優先は「再編」(人は残るが人員需要は減りうる、最も設計が
-   要るゾーン)で、各類型には「headcount は最後に決める」という意思決定順序の推奨が付きます。
-2. **委任の可否を 2 つの面で診断します** — *業務*の標準化・構造化・委任範囲・統制を
-   機械的に採点し(導入効果の説明可能性を含む)、それと*並列に*、*組織*が委任を
-   受け止められるか(撤退判断の権限・受け皿となるリテラシー層・知識移転契約・bus factor
-   対策)を採点します。両者を別々の合否で返すので、「業務は委任できるが組織がまだ整って
-   いない」が、緑の業務スコアに隠れず独立した穴として表れます。
-3. **委任した 1 タスクの回し方を点検します** — readiness を通した後、タスクの実行契約を
-   4 要素(意図・境界・証跡・採点者)で採点します。合格条件が曖昧・エスカレーション先が
-   無い・AI 採点者が単一ルーブリックで自己採点する、といった状態でタスクを渡させません。
-4. **機械可読の正本を持ちます** — 移行 4 類型スクリーニング・4 層フレーム・委任マトリクス・
-   タスク契約ルーブリック・監査ログスキーマを定義として持ち、AI エージェントや CI から
-   直接利用できます。
-5. **フォークせず拡張できます** — 各社固有の質問や厳格化した閾値を、overlay で
-   追加できます。
+- **AI エージェント** = 指示を受けて判断や作業を自動で進める AI プログラム
+- **委任** = 人間がやっていた判断を AI に任せること。任せた後も責任は人間に残るため、
+  任せてよい条件を先に点検する必要があります
 
-> **用語集**:
-> - **J-SOX**(金融商品取引法の内部統制報告制度)は、上場企業に財務報告に係る内部統制の
->   評価・報告を求める制度です。
-> - **監査ログ**は、AI の判断(誰が / いつ / 何を / なぜ / 結果)を後から再現・点検できる
->   ように残す記録です。
-> - **4 層フレーム**は、標準化 → 構造化 → 委任範囲 → 統制 の順に積み上がる、委任の前提条件です。
-> - **効果測定軸(efficacy axis)**は、導入効果の数値に説明可能な分母・基準値があるかを
->   確認する、4 層と並列の観点です。
-> - **組織 readiness 軸(organization axis)**は、業務ではなく*組織*が委任を受け止められるかを
->   確認する、4 層と並列の観点です(撤退判断の権限 / 全社リテラシー層 / 知識移転契約 /
->   漸進分割の設計 / bus factor 対策)。
-> - **bus factor** は、プロジェクトが止まるまでに失われる必要がある人数です。bus factor 1 は、
->   その 1 人が単一障害点であることを意味します。
-> - **知識移転契約**は、成果物の納品だけでなく、ベンダーの know-how が自社に移る「内面化」を
->   KPI として測る契約です。
-> - **委任マトリクス(delegation matrix)**は、検証可能性 × 正解定義可能性 の 2 軸で、各判定を
->   委任 / LLM 補助 / 人間に残す に振り分ける採点です。
-> - **タスク契約 実行ルーブリック(task-contract)**は、readiness の*次段*です。委任した 1
->   タスクをどう与え・どう採点するかを、意図・境界・証跡・採点者 の 4 要素で点検します。
-> - **iRULER**(CHI 2026)は「ルーブリックをルーブリックで評価する」二重評価です。採点者が
->   AI のとき、採点ルーブリック自体を評価し、AI 採点者が単一の見える基準を最適化(Goodhart)
->   するのを防ぎます。
-> - **overlay(オーバーレイ)**は、正本をフォークせず、各社固有の質問追加・閾値強化を行う
->   拡張ファイルです。
-> - **AI 移行 4 類型(transition screening)**は、委任採点の*前段*です。タスク群を
->   成長 / 高自動化 / 再編 / 変化小 に振り分け、どこから委任設計に手を付けるかを決めます
->   (OpenAI の EU AI Jobs Transition Framework から抽出した簡易スクリーニング)。
-> - **HITL**(human-in-the-loop)は、人間を実行経路(最終判断)に残す運用です。権利・財務・
->   健康・規制に関わる領域は、本ツールでは既定で HITL 固定域として扱います。
+このツールは、その点検を **本線 5 ステップ + 任意の拡張** に分解します。
+各ステップが 1 つの問いに答えます。
 
-> **言語について**: `docs/` は日本語(著者の作業言語)で書いています。英語 README が
-> 入口、本ファイル(日本語)が正本テキストです。
+| 本線 | 問い | コマンド |
+|---|---|---|
+| 1 | どのタスク群から手を付けるか | `aidr screen-transition` |
+| 2 | この業務は委任に耐えるか | `aidr check-readiness` |
+| 3 | 中のどの判定を任せるか | `aidr score-delegation` |
+| 4 | タスクをどう渡し、誰が採点するか | `aidr check-task-contract` |
+| 5 | 記録は後から検証できるか | `aidr validate-audit-log` |
+| 拡張 | 自社ルールをどう足すか(任意) | `aidr check-overlay` + `--overlay` |
+
+主要サンプルは、架空の中堅製造業 **ミドリ精機株式会社** の物語でつながっています。
+診断で一度 **BLOCK(委任不可)** になり、改善して **PASS** してから先へ進む —
+という時間軸まで含めて、5 ステップを通しで体験できます
+(物語の正本: [`examples/README.md`](examples/README.md))。
+
+```mermaid
+flowchart LR
+    s1["1 スクリーニング"] --> s2["2 readiness 診断<br/>BLOCK なら改善して再診断"]
+    s2 --> s3["3 判定の振り分け"]
+    s3 --> s4["4 タスク契約"]
+    s4 --> s5["5 監査ログ検証"]
+```
+
+骨格は、味の素グループの経理 AI エージェント(2026 年 2 月本番稼働)の
+**公開分析からの抽出**です。定義はすべて機械可読(YAML / JSON Schema)で、
+AI エージェントや CI からも直接使えます。
+
+## こんなとき読む
+
+| あなたが... | まず読むもの |
+|---|---|
+| **初めて来た。全体を知りたい** | [docs/00 全体像](docs/00_overview.md) — 5 ステップをミドリ精機の物語で通しで見る |
+| **業務側の意思決定者**(経理部長 / CFO / コンプラ責任者)で AI 化を検討中 | [docs/01 4 層フレーム](docs/01_four_layer_framework.md) — `aidr check-readiness` で業務を採点する |
+| **どこから着手するか**を決めたい / 経営に説明したい | [docs/09 スクリーニング](docs/09_transition_screening.md) — 4 類型マップと「headcount は最後」の意思決定順序 |
+| **実装エンジニア**で高リスク承認業務向け AI エージェントを設計中 | [schemas/audit-log.schema.json](schemas/audit-log.schema.json) + [docs/02](docs/02_audit_log_schema.md) — スキーマをロガーに組み込む |
+| **運用担当**で既存 AI 基盤のログを点検したい | [docs/04](docs/04_audit_log_gap_check.md) — 5 ステップ手法を自社 SQL スキーマに当てる |
+| **コンサル / 提案者** | `docs/` 全部 + overlay 拡張モデル — clone してプライベートに overlay し、顧客固有の採点を提示する |
 
 ## Quick start(2 分で動かす)
 
-セットアップは不要です。公開されているイメージを取得して実行するだけで、同梱のサンプルが
-そのまま動きます。
+セットアップは不要です。公開イメージを取得して実行すると、同梱のサンプル
+(ミドリ精機の物語)がそのまま動きます。
 
 ```bash
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.7.0 --version
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.8.0 --version
 
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.7.0 \
+# 本線 5 ステップを物語の順に
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.8.0 \
   screen-transition examples/task-groups/sample-task-groups.yaml
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.7.0 \
-  check-readiness examples/business/sample-expense-approval.yaml
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.7.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.8.0 \
+  check-readiness examples/business/sample-expense-approval.yaml          # 初回診断 → BLOCK
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.8.0 \
+  check-readiness examples/business/sample-expense-approval-after.yaml    # 改善後 → PASS
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.8.0 \
   score-delegation examples/judgments/sample-judgments.yaml
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.7.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.8.0 \
+  check-task-contract examples/task-contracts/sample-green.yaml
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.8.0 \
   validate-audit-log examples/audit-log-sample.json --level extended
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.7.0 \
+
+# 拡張(任意)と定義の確認
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.8.0 \
   check-overlay examples/overlays/sample-company/extra-rules.yaml
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.7.0 list-definitions
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.8.0 list-definitions
 ```
 
 `--version` はアプリのバージョンと同梱の overlay エンジンのバージョンを表示します。例:
-`aidr 0.7.0 (overlay-scoring-skeleton 0.1.0)`。
+`aidr 0.8.0 (overlay-scoring-skeleton 0.1.0)`。
 
 各コマンドは決定的な終了コードを返すので、CI のゲートに使えます。
 **0** ok ・ **1** partial(yellow)・ **2** block(red: 欠落・SLA 違反・overlay 却下)・
 **3** 入力エラー。
 例外は `screen-transition` です。スクリーニングは合否ゲートでなく分類なので、成功時は
 類型によらず常に **0**(未回答の欠落・overlay 違反のみ **3**)を返します。
+
+## 学習パス(どの順で読むか)
+
+doc の番号は追加順で、読み順ではありません。全体から詳細へは次の順で読みます。
+
+| 順 | doc | 何が分かるか |
+|---|---|---|
+| 1 | [00 全体像](docs/00_overview.md) | 5 ステップの地図とミドリ精機の物語 |
+| 2 | [09 スクリーニング](docs/09_transition_screening.md) | ステップ 1: どこから手を付けるか |
+| 3 | [01 4 層フレーム](docs/01_four_layer_framework.md) | ステップ 2: 業務が委任に耐えるか |
+| 4 | [05 組織 readiness 軸](docs/05_organization_axis.md) | ステップ 2: 組織側の受け皿 |
+| 5 | [03 委任マトリクス](docs/03_delegation_matrix.md) | ステップ 3: どの判定を任せるか |
+| 6 | [06 タスク契約](docs/06_task_contract_execution_rubric.md) | ステップ 4: どう渡し、誰が採点するか |
+| 7 | [02 監査ログスキーマ](docs/02_audit_log_schema.md) | ステップ 5: 記録の設計 |
+| 8 | [04 ログ基盤の点検](docs/04_audit_log_gap_check.md) | ステップ 5 応用: 既存基盤への当てはめ |
+| 応用 | [07 高責任ドメイン overlay](docs/07_high_stakes_domain_overlay.md) / [08 内製化 overlay](docs/08_insourcing_judgment_overlay.md) | 知財/法務/薬事、内製化の判断責任 |
+
+> **言語について**: `docs/` は日本語(著者の作業言語)で書いています。英語 README が
+> 入口、本ファイル(日本語)が正本テキストです。定義ファイルの質問文は英語(`text`)と
+> 日本語(`text_ja`)を併記しています。
 
 ## 使い方(想定ワークフロー)
 
@@ -101,156 +119,104 @@ docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.7.0 list-definitions
 
 ```bash
 aidr() { docker run --rm -v "$PWD:/data" -w /data \
-  ghcr.io/suwa-sh/ai-delegation-readiness:v0.7.0 "$@"; }
+  ghcr.io/suwa-sh/ai-delegation-readiness:v0.8.0 "$@"; }
 ```
 
 [`examples/`](examples/) の各サンプルをひな型として書き換え、自社の値を入れてから
-実行します。診断から拡張まで、次の順で使います。
+実行します。各ステップの詳しい読み方は学習パスの doc を参照してください。
 
 ### ステップ 0 — 準備
 
 [`examples/`](examples/) のサンプルをひな型に、自社用の入力ファイルを作ります
 (`my-task-groups.yaml`、`my-business.yaml`、`my-judgments.yaml`)。
+質問の日本語文は `definitions/*.yaml` の `text_ja` にあります。
 
 ### ステップ 1 — どのタスク群から手を付けるかを地図にする
-
-`my-task-groups.yaml` にタスク群を並べ、3 軸(理論 exposure / 人間必要性 / 需要弾力性)の
-質問に `yes` / `no` を埋めて、AI 移行 4 類型に振り分けます。
 
 ```bash
 aidr screen-transition my-task-groups.yaml
 ```
 
-出力例(抜粋):
+タスク群が AI 移行 4 類型(成長 / 高自動化 / 再編 / 変化小)に、委任設計の優先度順で
+振り分けられます。最優先は「再編」(人は残るが人員需要は減りうる、役割再設計が要るゾーン)、
+「高自動化」が次のステップへ進む候補です。権利・財務・健康・規制に関わるタスク群には、
+類型によらず `[HITL]`(人間の最終判断が必須)が付きます。
+全質問への回答が必須で、未回答は欠落 id を列挙したエラーになります。
+→ [docs/09](docs/09_transition_screening.md)
 
-```text
-[REORG ] priority 1: clinical_documentation: REORGANIZATION [HITL]  (technical_exposure=high(2/3), human_necessity=high(3/3), demand_elasticity=low(1/3))
-[AUTO  ] priority 2: accounting_entry_check: HIGH_AUTOMATION  (technical_exposure=high(3/3), human_necessity=low(0/3), demand_elasticity=low(0/3))
-```
-
-出力は委任設計の優先度順です。最優先は「再編」(人は残るが人員需要は減りうる、役割再設計が
-要るゾーン)、「高自動化」はステップ 3 の委任採点へ進む候補です。権利・財務・健康・規制に
-関わるタスク群には、類型によらず `[HITL]`(人間の最終判断が必須)が付きます。全質問への
-回答が必須で、未回答があると欠落 id を列挙してエラーになります(未回答を「人間不要」側に
-倒さないためです)。3 軸と 4 類型の設計、「headcount は最後」の意思決定順序は
-[docs/09](docs/09_transition_screening.md) を参照してください。
-
-### ステップ 2 — 業務が委任に耐えるかを診断する
-
-`my-business.yaml` の各層の問いに `yes` / `no` を埋め、対象業務を 4 層 + 効果測定 +
-組織 readiness で採点します。
+### ステップ 2 — 業務が委任に耐えるかを診断する(BLOCK なら改善して再診断)
 
 ```bash
 aidr check-readiness my-business.yaml
 ```
 
-出力例 — 同梱の
-[`examples/business/ajinomoto-discovery-team.yaml`](examples/business/ajinomoto-discovery-team.yaml)。
-*業務*は整っているが*組織*が未成熟なチームの例です。
-
-```text
-Target: New-business discovery team (small full-stack, exploration phase)
-
-[OK] L1 業務標準化層: PASS (100%)
-[OK] L2 判断構造化層: PASS (100%)
-[OK] L3 委任範囲層: PASS (100%)
-[OK] L4 統制・追跡層: PASS (100%)
-[OK] efficacy 効果測定: PASS (100%)
-[NG] organization 組織 readiness層: BLOCK (33%)
-    no: organization.C2, organization.C4, organization.C5, organization.C6
-
-Conclusion: BLOCK
-```
-
-業務の各層は全て PASS でも、総合判定は BLOCK です。組織軸が、受け皿となるリテラシー層
-(C2)・知識移転契約(C4)・漸進分割の設計(C5)・bus factor 対策(C6)の不足を表面化させます。
+4 層(標準化 → 構造化 → 委任範囲 → 統制)+ 効果測定 + 組織 readiness で採点します。
 `[OK]` pass / `[..]` revise / `[NG]` block を層・軸ごとに示し、最後に総合判定を返します。
-**4 層は積み上げ**(下の層が崩れていると上の層は採点に意味がない)ため、層が最初のゲートに
-なるときは `First gate to fix` も表示します。効果測定・組織 readiness の 2 軸は並列で、
-層のゲートには関与しません。業務層が最初のゲートになるときは、`First gate to fix` が示す
-最下層から順に埋めます。各層の問いと合否基準は [docs/01](docs/01_four_layer_framework.md) を
-参照してください。
+**BLOCK は参考スコアではなくゲートです** — `First gate to fix` が示す最下層から改善し、
+PASS になってから次へ進みます。ミドリ精機のサンプルは初回 BLOCK
+([`sample-expense-approval.yaml`](examples/business/sample-expense-approval.yaml))→
+改善後 PASS([`sample-expense-approval-after.yaml`](examples/business/sample-expense-approval-after.yaml))の
+2 幕構成です。→ [docs/01](docs/01_four_layer_framework.md) / [docs/05](docs/05_organization_axis.md)
 
 ### ステップ 3 — 判定単位の委任領域を決める
-
-`my-judgments.yaml` に判定リストを並べ、検証可能性 × 正解定義可能性 の 2 軸で、各判定を
-委任 OK / LLM 補助 / 人間に残す に振り分けます。
 
 ```bash
 aidr score-delegation my-judgments.yaml
 ```
 
-出力例(抜粋):
-
-```text
-[GREEN ] receipt_mandatory_items_check: GREEN  (verifiability=high(3/3), answer_definability=high(3/3))
-[GREEN ] entertainment_expense_judgment: GREEN  (verifiability=high(2/3), answer_definability=high(2/3))
-[RED   ] new_hire_decision: RED  (verifiability=low(0/3), answer_definability=low(0/3))
-[YELLOW] discriminatory_language_detection: YELLOW  (verifiability=high(2/3), answer_definability=low(1/3))
-```
-
-🟢 GREEN は委任 OK、🟡 YELLOW は LLM 補助(人間が最終判定)、🔴 RED は人間に残す、です。
-各判定には推奨アクション(監査ログにどう記録するか)が併記されます。採点質問と象限の
-意味は [docs/03](docs/03_delegation_matrix.md) を参照してください。
+検証可能性 × 正解定義可能性の 2 軸で、各判定を 🟢 委任 OK / 🟡 LLM 補助(人間が最終判定)/
+🔴 人間に残す に振り分けます。各判定には推奨アクション(監査ログにどう記録するか)が
+併記されます。→ [docs/03](docs/03_delegation_matrix.md)
 
 ### ステップ 4 — 委任するタスクの契約を点検する
-
-委任すると決めた 1 タスクについて、意図 / 境界 / 証跡 / 採点者 を宣言し、実行契約を点検します。
-`examples/task-contracts/sample-green.yaml` をひな型に複製して答えを書きます。
 
 ```bash
 aidr check-task-contract my-contract.yaml
 ```
 
-🟢 GREEN は契約充足(そのまま回してよい)、🟡 YELLOW は要素に穴(埋めてから委任)、
-🔴 RED は委任不可(要素の欠落、または AI 採点者に iRULER 二重評価が無い)です。
-`scorer.type`(`human` / `ai_judge` / `two_stage`)は必須で、欠落・不正値は exit 3 です。
-4 要素・Goodhart 緩和・iRULER ゲートの詳細は [docs/06](docs/06_task_contract_execution_rubric.md)
-を参照してください。
+委任する 1 タスクの実行契約を、意図 / 境界 / 証跡 / 採点者の 4 要素で点検します。
+🟢 契約充足 / 🟡 要素に穴 / 🔴 委任不可。採点者が AI なのに二重評価(iRULER)が無い契約は
+🔴 で止まります。→ [docs/06](docs/06_task_contract_execution_rubric.md)
 
 ### ステップ 5 — 監査ログを検証する
 
-委任を始めたら、AI が書き出すログが Who/When/What/Why/Result を満たすかを検証します。
-`examples/audit-log-sample.json` をひな型に、自社のログ JSON を作ります。
-
 ```bash
-cp examples/audit-log-sample.json my-log.json
 aidr validate-audit-log my-log.json --level extended
 ```
 
-出力例:
-
-```text
-[OK] schema=audit_log_extended: valid
-```
-
+AI が書き出すログが Who/When/What/Why/Result を満たすかを検証します。
 `--level extended` は J-SOX グレードの拡張スキーマ(規定バージョン固定・離散 Result
-enum・エスカレーション先必須化)で検証します。違反は JSON パスで報告されます。スキーマ
-設計と、既存ログ基盤への当てはめ例は [docs/02](docs/02_audit_log_schema.md) と
-[docs/04](docs/04_audit_log_gap_check.md) を参照してください。
+enum・エスカレーション先必須化)です。→ [docs/02](docs/02_audit_log_schema.md) / [docs/04](docs/04_audit_log_gap_check.md)
 
-### ステップ 6 — 自社ルールで拡張する(任意)
+### 拡張(任意) — 自社ルールを overlay で足す
 
 各社固有の質問や厳格化した閾値は overlay で追加し、適用前に検証します。
+正本ファイルはフォークしません。
 
 ```bash
 aidr check-overlay examples/overlays/sample-company/extra-rules.yaml
 aidr check-readiness my-business.yaml --overlay examples/overlays/sample-company/extra-rules.yaml
 ```
 
-`check-overlay` の出力例:
+```yaml
+# examples/overlays/sample-company/extra-rules.yaml(ミドリ精機の自社ルール例)
+version: 1
+extends: four-layer-delegation-readiness
 
-```text
-[OK] overlay examples/overlays/sample-company/extra-rules.yaml merges cleanly onto base .../definitions/four-layer.yaml
+add:
+  - id: "L4.MIDORI_Q6"
+    text: Is the audit log stored in a tamper-evident store (WORM, hash chain, or signed)?
+    text_ja: "監査ログは改ざん検知可能なストア(WORM・ハッシュチェーン・署名)に保存されているか"
+    weight: 1.0
+
+strengthen:
+  "L4": {pass: 1.0, revise: 0.8}   # 元 0.6 → 強化のみ可
 ```
 
-overlay が `add`(追加)/ `strengthen`(強化)のルールを満たせば `[OK]`、違反すれば
-`[NG]` と理由を返します。検証を通った overlay を `--overlay` で各コマンドに適用します。
-
-**ドメイン overlay の実例**: 知財/法務/薬事のような高責任専門業務向けに、成立条件 4 つの
-ハードゲート層(L5)と慎重側の閾値(両軸 3/3)を足す overlay を同梱しています。
+**同梱のドメイン overlay(応用例)**:
 
 ```bash
+# 高責任専門業務(知財/法務/薬事): 成立条件 4 つのハードゲート層 L5 + 慎重側の閾値
 aidr check-readiness examples/business/sample-ip-agent-readiness.yaml \
   --overlay examples/overlays/high-stakes-domain/four-layer.yaml
 # => L1-L4 が全 PASS でも、成立条件が 1 つ欠ければ L5 で BLOCK
@@ -258,36 +224,20 @@ aidr check-readiness examples/business/sample-ip-agent-readiness.yaml \
 aidr score-delegation examples/judgments/sample-ip-judgments.yaml \
   --overlay examples/overlays/high-stakes-domain/delegation-matrix.yaml
 # => base では green の境界例(2/3)が yellow / red に落ちる
-```
 
-背景と読み替え方は [`docs/07_high_stakes_domain_overlay.md`](docs/07_high_stakes_domain_overlay.md) を参照してください。
-
-**内製化判断責任の overlay**: 「AI に委任してよいか」の前段にある **内製化=どの判断責任を社内に残すか**
-を採点する並列軸 `L_insourcing`(5 問)を足す overlay も同梱しています。L1〜L4 をゲートせず、
-「業務は委任できるが内製化判断責任が未確立」を独立した verdict として表面化させます。
-
-```bash
+# 内製化の判断責任: 並列軸 L_insourcing(5 問)を追加
 aidr check-readiness examples/business/sample-insourcing-readiness.yaml \
   --overlay examples/overlays/insourcing-judgment/four-layer.yaml
 # => L1-L4・組織が全 PASS でも、上流判断に社内の固有名が欠ければ L_insourcing が REVISE/BLOCK
 ```
 
-背景と 5 問の設計は [`docs/08_insourcing_judgment_overlay.md`](docs/08_insourcing_judgment_overlay.md) を参照してください。
-
-## Who this is for
-
-| あなたが... | まず読むもの |
-|---|---|
-| **業務側の意思決定者**(経理部長 / CFO / コンプラ責任者)で AI 化を検討中 | [`docs/01_four_layer_framework.md`](docs/01_four_layer_framework.md) — `aidr check-readiness` で業務を採点します |
-| **実装エンジニア**で高リスク承認業務向け AI エージェントを設計中 | [`schemas/audit-log.schema.json`](schemas/audit-log.schema.json) + [`docs/02_audit_log_schema.md`](docs/02_audit_log_schema.md) — スキーマをロガーに組み込みます |
-| **運用担当**で既存 AI 基盤のログを点検したい | [`docs/04_audit_log_gap_check.md`](docs/04_audit_log_gap_check.md) — 5 ステップ手法を自社 SQL スキーマに当てます |
-| **コンサル / 提案者** | `docs/` 全部 + overlay 拡張モデル — clone してプライベートに overlay し、顧客固有の採点を提示します |
+→ [docs/07](docs/07_high_stakes_domain_overlay.md) / [docs/08](docs/08_insourcing_judgment_overlay.md)
 
 ## What's in this repo
 
 ```
 ai-delegation-readiness/
-├── definitions/                 # 機械可読の正本フレームワーク(YAML)
+├── definitions/                 # 機械可読の正本フレームワーク(YAML。質問文は text / text_ja 併記)
 │   ├── transition-screening.yaml #  3 軸 + 移行 4 類型マップ + extension_points
 │   ├── four-layer.yaml          #   4 層 + 効果測定軸・組織 readiness 軸 + extension_points
 │   ├── delegation-matrix.yaml   #   2 軸 + 領域マップ + extension_points
@@ -296,77 +246,42 @@ ai-delegation-readiness/
 │   └── audit-log.schema.json    # JSON Schema with $defs: minimum (A) / extended (B)
 ├── src/adr/                     # Python 診断ツール(コンテナイメージで配布)
 ├── bin/aidr                     # CLI エントリポイント(単一コマンド、7 サブコマンド)
-├── examples/
-│   ├── task-groups/             # screen-transition のサンプル入力(4 類型 + HITL)
-│   ├── business/                # check-readiness のサンプル入力(ajinomoto-discovery-team / sample-ip-agent-readiness / sample-insourcing-readiness)
-│   ├── judgments/               # score-delegation のサンプル入力(汎用 / 知財 4 工程)
-│   ├── task-contracts/          # check-task-contract のサンプル入力(green / red-ai-judge)
-│   ├── audit-log-sample.json    # サンプル監査ログ(extended 有効)
-│   ├── overlays/                # overlay サンプル(Acme Corp / organization-readiness-ajinomoto / high-stakes-domain / insourcing-judgment)
-│   └── skills/                  # Claude Code skill サンプル 3 種
-└── docs/
-    ├── 01_four_layer_framework.md
-    ├── 02_audit_log_schema.md
-    ├── 03_delegation_matrix.md
-    ├── 04_audit_log_gap_check.md
-    ├── 05_organization_axis.md
-    ├── 06_task_contract_execution_rubric.md
-    ├── 07_high_stakes_domain_overlay.md
-    ├── 08_insourcing_judgment_overlay.md
-    └── 09_transition_screening.md
+├── examples/                    # ミドリ精機(架空)の物語でつながるサンプル一式
+│   ├── README.md                #   物語の正本(会社プロファイル + サンプル一覧 + 応用例)
+│   ├── task-groups/             #   ステップ 1: screen-transition の入力
+│   ├── business/                #   ステップ 2: check-readiness の入力(初回 BLOCK / 改善後 PASS + 応用例)
+│   ├── judgments/               #   ステップ 3: score-delegation の入力(+ 応用例)
+│   ├── task-contracts/          #   ステップ 4: check-task-contract の入力(green / red)
+│   ├── audit-log-sample.json    #   ステップ 5: サンプル監査ログ(escalated ケース)
+│   ├── overlays/                #   拡張: ミドリ精機の自社ルール + ドメイン overlay(応用例)
+│   └── skills/                  #   AI 取り込み口: Claude Code skill サンプル 3 種
+└── docs/                        # 解説(読み順は「学習パス」参照)
+    ├── 00_overview.md           #   全体像(最初に読む)
+    ├── 01〜06, 09               #   本線 5 ステップの詳細
+    └── 04, 07, 08               #   応用(ログ基盤点検 / 高責任ドメイン / 内製化)
 ```
 
 ## How to extend(フレームワークの意図)
 
-各社の独自ルールは **overlay で追加します**(正本ファイルはフォークしません)。
-雛形は [`examples/overlays/sample-company/extra-rules.yaml`](examples/overlays/sample-company/extra-rules.yaml) を参照してください。
-
-```yaml
-version: 1
-extends: four-layer-delegation-readiness
-
-add:
-  - id: "L4.ACME_Q6"
-    text: 監査ログは tamper-evident store に保存されているか
-    weight: 1.0
-
-strengthen:
-  "L4": {revise: 0.8}       # 元 0.6 → 強化のみ可
-```
-
-overlay は組織軸にも効きます。
-[`examples/overlays/organization-readiness-ajinomoto.yaml`](examples/overlays/organization-readiness-ajinomoto.yaml)
-は、自社固有の組織質問を 1 つ追加し、組織軸の合格基準を強化(`revise` 0.66 → 0.83)する例です
-(組織 readiness は到達が難しいという反証エビデンスを反映)。
-
-そして `--overlay` 付きで診断します([使い方(想定ワークフロー)](#使い方想定ワークフロー)で
-定義した `aidr` 関数を使うと、ファイルもマウントされます)。
-
-```bash
-aidr check-readiness mybiz.yaml --overlay our-rules.yaml
-```
-
-フレームワークは次の 3 経路で再利用できます。
-
-- **AI エージェント**: `definitions/four-layer.yaml` や
-  `schemas/audit-log.schema.json` を system prompt や tool context にロードします。
-  [`examples/skills/`](examples/skills/) に Claude Code skill のラッパー 3 種を用意しています
-- **CI パイプライン**: 出力ログ 1 件ごとに
-  `docker run --rm -v "$PWD:/data" -w /data ghcr.io/suwa-sh/ai-delegation-readiness:v0.7.0 validate-audit-log <log>`
-  を呼び、exit code でゲートします
-- **社内 overlay**: 自社固有の overlay をプライベートリポで管理し、`--overlay` で
-  適用します。本リポはクリーンな upstream として pull できます
-
-## The framework's invariants
-
-正本フレームワーク(`definitions/*.yaml` / `schemas/*.json`)は **全社で一貫**を
-保ちます。overlay で可能なのは、次の 2 つだけです。
+正本フレームワーク(`definitions/*.yaml` / `schemas/*.json`)は **全社で一貫**を保ちます。
+overlay で可能なのは、次の 2 つだけです。
 
 - **`add`**: 配列要素の追加(既存要素は read-only)
 - **`strengthen`**: 数値閾値の **強化方向のみ**(緩和は不可)
 
 削除・置換・緩和は merge violation として `aidr check-overlay` が機械的に検出します。
 これによりフォークせず安全に拡張できます。
+
+フレームワークは次の 3 経路で再利用できます。
+
+- **AI エージェント**: `definitions/*.yaml` や `schemas/audit-log.schema.json` を
+  system prompt や tool context にロードします。
+  [`examples/skills/`](examples/skills/) に Claude Code skill のラッパー 3 種を用意しています
+- **CI パイプライン**: 出力ログ 1 件ごとに
+  `docker run --rm -v "$PWD:/data" -w /data ghcr.io/suwa-sh/ai-delegation-readiness:v0.8.0 validate-audit-log <log>`
+  を呼び、exit code でゲートします
+- **社内 overlay**: 自社固有の overlay をプライベートリポで管理し、`--overlay` で
+  適用します。本リポはクリーンな upstream として pull できます
 
 ## Background
 

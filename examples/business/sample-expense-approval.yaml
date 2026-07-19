@@ -1,44 +1,45 @@
-# Sample input for `aidr check-readiness`.
+# `aidr check-readiness` のサンプル入力(物語ステップ 2: 初回診断)。
 #
-# Models a hypothetical mid-size company evaluating whether to delegate
-# expense-claim approval to an AI agent. The answers are illustrative,
-# not from any real organization.
+# ミドリ精機株式会社(架空。examples/README.md 参照)の経理部が、スクリーニングで
+# 「高自動化」と出た経費精算承認業務を初めて診断する場面です。
+# 結果は BLOCK(委任不可)になります: 規定はあるが SOP の粒度が粗く(L1)、
+# 判定ロジックの構造化が途中で(L2)、統制・追跡層(L4)は未着手だからです。
+# 改善後の再診断は sample-expense-approval-after.yaml を見てください。
 #
-# Each answer must be yes/no (or true/false, 1/0). Unanswered questions
-# are reported as unknown and are treated as no for scoring.
-#
-# Answer keys are the full item id from definitions/four-layer.yaml
-# (group.leaf, e.g. "L1.Q1").
+# 回答は yes/no(true/false, 1/0 も可)です。未回答の質問は unknown として
+# 報告され、採点上は no 扱いになります。
+# 回答キーは definitions/four-layer.yaml の item id(group.leaf、例 "L1.Q1")です。
+# 質問の日本語文は同ファイルの text_ja を参照してください。
 
-target: Expense claim approval (mid-size company, FY2026 review)
+target: 経費精算承認(ミドリ精機・経理部、FY2026 初回診断)
 
 answers:
-  # L1 Business standardization
-  L1.Q1: yes    # judgment criteria are documented
-  L1.Q2: yes    # exceptions are explicit procedures
-  L1.Q3: yes    # rule book is versioned
-  L1.Q4: no     # SOP granularity is too coarse for a third party to reproduce
+  # L1 業務標準化層
+  L1.Q1: yes    # 判断基準は経費規程として文書化済み
+  L1.Q2: yes    # 例外(海外出張・慶弔)は例外手続きとして明文化済み
+  L1.Q3: yes    # 経費規程は版管理されている
+  L1.Q4: no     # SOP の粒度が粗く、第三者が読んで再現できない
 
-  # L2 Judgment structuring
-  L2.Q1: yes    # rule clauses map to (input, condition, decision)
-  L2.Q2: no     # no clear deterministic/LLM/human line yet
-  L2.Q3: no     # no regression test for accuracy
+  # L2 判断構造化層
+  L2.Q1: yes    # 規程の各条項は「入力・条件・判定」に落とせる
+  L2.Q2: no     # 決定論的処理 / LLM 推論 / 人間エスカレーションの線引きが未設計
+  L2.Q3: no     # 判定ロジック変更時の回帰テストがない
 
-  # L3 Delegation scope
+  # L3 委任範囲層
   L3.Q1: yes
   L3.Q2: yes
   L3.Q3: yes
-  L3.Q4: no     # reproducibility from audit log is not yet possible
+  L3.Q4: no     # 監査ログからの判定再現がまだできない
 
-  # L4 Control & traceability
-  L4.Q1: no     # decision and execution are not separated yet
-  L4.Q2: no     # rationale retrieval from logs is incomplete
-  L4.Q3: no     # audit log does not yet have a structured Who/When/What/Why/Result
-  L4.Q4: no     # rule version is not pinned in log
-  L4.Q5: no     # no correction flow for false approvals yet
+  # L4 統制・追跡層(未着手)
+  L4.Q1: no     # 「判定」と「実行」が分離されていない
+  L4.Q2: no     # 判定根拠をログから取り出せない
+  L4.Q3: no     # 監査ログに Who/When/What/Why/Result の構造がない
+  L4.Q4: no     # 規定バージョンをログに固定していない
+  L4.Q5: no     # 誤承認の補正フローが未設計
 
-  # Efficacy measurement
-  efficacy.E1: yes      # denominator and baseline are documented
-  efficacy.E2: yes      # expected and actual are separated
-  efficacy.E3: no       # scope (all/part) is not stated
-  efficacy.E4: yes      # false approvals are tracked separately
+  # 効果測定(efficacy)
+  efficacy.E1: yes      # 削減見込みの分母・基準値は文書化済み
+  efficacy.E2: yes      # 期待値(ベンダー試算)と実績は区別している
+  efficacy.E3: no       # 対象範囲(全業務か一部か)を明示していない
+  efficacy.E4: yes      # 誤承認は効率と別に集計する設計
