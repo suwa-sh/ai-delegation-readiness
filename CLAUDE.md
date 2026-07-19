@@ -133,6 +133,10 @@ self-documenting** であると同時に、**マージ規則の実体**でもあ
 - workflow は Release が既存なら作成をスキップする(idempotent)ので、手動先行があっても
   イメージ push は通るが、上の原則(create しない)を守るのが正。
 - `pyproject.toml` の `version` とタグを一致させる(`aidr --version` と OCI label がタグ由来)。
+- **タグ push は、CI green を別コマンドで確認してから行う**。`gh run watch --exit-status ... | tail`
+  のようにパイプすると exit code が tail のものになり、`&&` 連結でも CI red のまま
+  タグが走る(v0.10.0 で実際に発生し、v0.10.1 で差し替えた)。watch はパイプせず単体で
+  実行し、結論(全 matrix job success)を見てからタグを打つ。
 
 ## 横断的な注意点
 
