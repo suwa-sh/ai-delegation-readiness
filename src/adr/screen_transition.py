@@ -47,6 +47,8 @@ import json
 from dataclasses import dataclass, field
 from pathlib import Path
 
+import yaml
+
 import overlay_scoring as overlay_mod
 from .check_readiness import OverlayError, _normalize_yes
 from .score_delegation import AxisScore, _resolve_region
@@ -87,23 +89,42 @@ class ScreenResult:
     exit_code: int = 0
 
 
+def _parse_answer_strict(value) -> bool | None:
+    """Yes/no parser without silent coercion (fail-closed).
+
+    ``_normalize_yes`` alone is too tolerant for the screening contract: it
+    maps ``None`` / typos ("yess", "maybe") to ``None`` (which a naive
+    else-branch would score as "no") and coerces any non-zero number
+    (``2``, ``-1``, ``0.5``) to yes. Here anything that is not an
+    unambiguous yes/no (bool, "yes"/"no" variants, exactly 0 or 1) is an
+    input error, so a typo can never tip an axis silently.
+    """
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        if value not in (0, 1):
+            return None
+    return _normalize_yes(value)
+
+
 def _score_axis_strict(
     axis_id: str, questions: list[dict], header: dict, answers: dict
-) -> tuple[AxisScore, list[str]]:
-    """Score one axis; return the score and any missing question ids."""
+) -> tuple[AxisScore, list[str], list[str]]:
+    """Score one axis; return the score, missing ids, and invalid-value ids."""
     yes_ids: list[str] = []
     no_ids: list[str] = []
     missing: list[str] = []
+    invalid: list[str] = []
     for q in questions:
         qid = q["id"]
         if qid not in answers:
             missing.append(qid)
             continue
-        ans = _normalize_yes(answers.get(qid))
+        ans = _parse_answer_strict(answers.get(qid))
         if ans is True:
             yes_ids.append(qid)
-        else:
+        elif ans is False:
             no_ids.append(qid)
+        else:
+            invalid.append(f"{qid} (got: {answers.get(qid)!r})")
     threshold = int(header.get("threshold", len(questions)))
     score = len(yes_ids)
     level = "high" if score >= threshold else "low"
@@ -117,6 +138,7 @@ def _score_axis_strict(
             no_ids=no_ids,
         ),
         missing,
+        invalid,
     )
 
 
@@ -152,32 +174,50 @@ def screen(
     type_evidence = (groups["types"]["header"] or {}).get("case_evidence", []) or []
     human_control_ids = _flagged_question_ids(axis_groups, _HUMAN_CONTROL_FLAG)
 
-    input_data = overlay_mod.load_yaml(task_groups_path)
+    try:
+        input_data = overlay_mod.load_yaml(task_groups_path)
+    except yaml.YAMLError as e:
+        raise InputError(f"input is not valid YAML: {e}") from e
     if not isinstance(input_data, dict):
         raise InputError("input must be a YAML mapping with a 'task_groups' list")
-    groups_in = input_data.get("task_groups", []) or []
+    if "task_groups" not in input_data or input_data["task_groups"] is None:
+        raise InputError("input must contain a 'task_groups' list")
+    groups_in = input_data["task_groups"]
     if not isinstance(groups_in, list):
         raise InputError("'task_groups' must be a list")
 
     results: list[TaskGroupResult] = []
-    for g in groups_in:
+    for idx, g in enumerate(groups_in):
+        if not isinstance(g, dict):
+            raise InputError(f"task_groups[{idx}] must be a mapping (got: {g!r})")
         gid = g.get("id") or g.get("description", "<unnamed>")
         desc = g.get("description") or gid
-        answers = g.get("answers", {}) or {}
+        answers = g.get("answers")
+        if answers is None:
+            answers = {}
+        if not isinstance(answers, dict):
+            raise InputError(f"task group '{gid}': 'answers' must be a mapping")
 
         axis_scores: dict[str, AxisScore] = {}
         missing_all: list[str] = []
+        invalid_all: list[str] = []
         for aid, group in axis_groups.items():
-            score, missing = _score_axis_strict(aid, group["leaves"], group["header"], answers)
+            score, missing, invalid = _score_axis_strict(
+                aid, group["leaves"], group["header"], answers
+            )
             axis_scores[aid] = score
             missing_all.extend(missing)
-        # Fail-closed: every question must be answered. A silent "missing =
-        # no" would tip human_necessity low and misclassify toward
-        # high_automation (see module docstring).
+            invalid_all.extend(invalid)
+        # Fail-closed: every question must carry an unambiguous yes/no. A
+        # silent "missing/typo = no" would tip human_necessity low and
+        # misclassify toward high_automation (see module docstring).
+        problems = []
         if missing_all:
-            raise InputError(
-                f"task group '{gid}' is missing answers for: {', '.join(missing_all)}"
-            )
+            problems.append(f"missing answers for: {', '.join(missing_all)}")
+        if invalid_all:
+            problems.append(f"invalid answers (use yes/no) for: {', '.join(invalid_all)}")
+        if problems:
+            raise InputError(f"task group '{gid}': " + "; ".join(problems))
 
         axis_levels = {aid: s.level for aid, s in axis_scores.items()}
         type_leaf = _resolve_region(type_leaves, axis_levels, sep)
@@ -227,9 +267,13 @@ def render_text(result: ScreenResult) -> str:
         )
         lines.append(f"    {r.description}")
         if r.human_control_required:
+            # Generic phrasing: overlays may add their own human_control
+            # questions, so only the base H1 is glossed with the default
+            # fixed domains.
             lines.append(
-                "    HITL: human decision required by the default fixed domains "
-                f"(rights/finances/health/regulation): {', '.join(r.human_control_yes_ids)}"
+                "    HITL: a human keeps the final decision "
+                f"(human_control flags answered yes: {', '.join(r.human_control_yes_ids)}; "
+                "base H1 = rights/finances/health/regulation)"
             )
         action_lines = r.action.splitlines() or [""]
         lines.append(f"    action: {action_lines[0]}")

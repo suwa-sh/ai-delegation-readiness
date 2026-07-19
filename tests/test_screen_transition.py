@@ -147,6 +147,24 @@ def test_missing_answer_is_input_error_listing_ids(tmp_path):
         assert qid in msg
 
 
+def test_invalid_answer_value_is_input_error_listing_value(tmp_path):
+    """Typos and out-of-range numbers must not silently score as yes/no.
+
+    'yess' on H1 would otherwise score as no -> human_necessity low ->
+    high_automation without HITL: the exact fail-open the contract forbids.
+    """
+    answers = _answers(True, False, False)
+    answers["human_necessity.H1"] = "yess"
+    answers["demand_elasticity.D1"] = 2
+    p = _write_task_groups(tmp_path, answers)
+    with pytest.raises(st.InputError) as e:
+        st.screen(p)
+    msg = str(e.value)
+    assert "invalid answers" in msg
+    assert "human_necessity.H1" in msg and "yess" in msg
+    assert "demand_elasticity.D1" in msg
+
+
 def test_non_mapping_input_is_input_error(tmp_path):
     p = _write(tmp_path, "- just\n- a list\n")
     with pytest.raises(st.InputError):
@@ -155,6 +173,31 @@ def test_non_mapping_input_is_input_error(tmp_path):
 
 def test_task_groups_not_a_list_is_input_error(tmp_path):
     p = _write(tmp_path, "task_groups: {oops: 1}\n")
+    with pytest.raises(st.InputError):
+        st.screen(p)
+
+
+def test_task_groups_null_or_absent_is_input_error(tmp_path):
+    with pytest.raises(st.InputError):
+        st.screen(_write(tmp_path, "task_groups:\n", name="null.yaml"))
+    with pytest.raises(st.InputError):
+        st.screen(_write(tmp_path, "other_key: 1\n", name="absent.yaml"))
+
+
+def test_non_mapping_entry_is_input_error(tmp_path):
+    p = _write(tmp_path, "task_groups:\n  - just_a_string\n")
+    with pytest.raises(st.InputError):
+        st.screen(p)
+
+
+def test_answers_wrong_type_is_input_error(tmp_path):
+    p = _write(tmp_path, "task_groups:\n  - id: bad\n    answers: true\n")
+    with pytest.raises(st.InputError):
+        st.screen(p)
+
+
+def test_broken_yaml_is_input_error(tmp_path):
+    p = _write(tmp_path, "task_groups: [unclosed\n  - {\n")
     with pytest.raises(st.InputError):
         st.screen(p)
 
@@ -186,6 +229,32 @@ def test_overlay_added_question_is_required_and_scored(tmp_path):
     )
     result = st.screen(p2, overlay_paths=[overlay])
     assert result.task_groups[0].axes["technical_exposure"].score == 4
+
+
+def test_overlay_added_human_control_flag_is_picked_up(tmp_path):
+    """A company overlay can add its own human_control question; the flag
+    and the rendered text must cover it generically (not only base H1)."""
+    overlay = _write(
+        tmp_path,
+        """
+        version: 1
+        extends: transition-screening
+        add:
+          - id: "human_necessity.H4"
+            text: Does company policy require a named human release decision?
+            flag: human_control
+        """,
+        name="ov-hc.yaml",
+    )
+    answers = _answers(True, False, True)  # growth path, H1..H3 = no
+    answers["human_necessity.H4"] = True
+    p = _write_task_groups(tmp_path, answers)
+    result = st.screen(p, overlay_paths=[overlay])
+    r = result.task_groups[0]
+    assert r.human_control_required is True
+    assert r.human_control_yes_ids == ["human_necessity.H4"]
+    text = st.render_text(st.ScreenResult(task_groups=[r]))
+    assert "[HITL]" in text and "human_necessity.H4" in text
 
 
 def test_render_json_includes_case_evidence():

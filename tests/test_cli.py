@@ -44,12 +44,36 @@ def test_help_exits_zero():
 
 @pytest.mark.parametrize(
     "subcommand",
-    ["check-readiness", "score-delegation", "check-task-contract", "validate-audit-log", "check-overlay", "list-definitions"],
+    ["screen-transition", "check-readiness", "score-delegation", "check-task-contract", "validate-audit-log", "check-overlay", "list-definitions"],
 )
 def test_subcommand_help(subcommand):
     r = _run(subcommand, "--help")
     assert r.returncode == 0
     assert "usage" in r.stdout.lower()
+
+
+def test_screen_transition_sample_exits_0():
+    from conftest import sample_task_groups_path
+
+    r = _run("screen-transition", str(sample_task_groups_path()))
+    assert r.returncode == 0
+    assert "REORGANIZATION" in r.stdout
+
+
+def test_screen_transition_missing_answer_exits_3(tmp_path):
+    p = tmp_path / "tg.yaml"
+    p.write_text("task_groups:\n  - id: partial\n    answers: {technical_exposure.E1: yes}\n")
+    r = _run("screen-transition", str(p))
+    assert r.returncode == 3
+    assert "missing answers" in r.stderr
+
+
+def test_screen_transition_broken_yaml_exits_3(tmp_path):
+    p = tmp_path / "broken.yaml"
+    p.write_text("task_groups: [unclosed\n  - {")
+    r = _run("screen-transition", str(p))
+    assert r.returncode == 3
+    assert "[ERROR]" in r.stderr
 
 
 def test_check_readiness_blocked_sample_exits_2():

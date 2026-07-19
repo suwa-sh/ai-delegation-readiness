@@ -122,19 +122,23 @@ H1 = yes でも、群の中の個別判定が green になることはありま�
 
 ```mermaid
 flowchart LR
-    screen["screen-transition<br/>タスク群を 4 類型に分類"] --> score["score-delegation<br/>判定単位を green/yellow/red に採点"]
-    score --> ready["check-readiness<br/>業務・組織の 4 層+並列軸を点検"]
-    ready --> contract["check-task-contract<br/>委任タスクの実行契約を点検"]
+    screen["screen-transition<br/>タスク群を 4 類型に分類"] --> ready["check-readiness<br/>業務・組織の 4 層+並列軸を点検"]
+    ready --> score["score-delegation<br/>判定単位を green/yellow/red に採点"]
+    score --> contract["check-task-contract<br/>委任タスクの実行契約を点検"]
     contract --> audit["validate-audit-log<br/>運用ログを検証"]
 ```
 
 | 要素名 | 説明 |
 |---|---|
 | screen-transition | **今回追加**。母集団(タスク群)の分類と優先順位付け。合否は出さない |
+| check-readiness | 優先度が付いた業務の readiness を点検 |
 | score-delegation | 高自動化ゾーンの判定単位を委任マトリクスで採点 |
-| check-readiness | 委任すると決めた業務の readiness を点検 |
 | check-task-contract | 委任する 1 タスクの与え方・採点者を点検 |
 | validate-audit-log | 運用開始後のログを検証 |
+
+順序の正本は README の「使い方(想定ワークフロー)」です。スクリーニングで優先度を付けた
+タスク群に対し、業務単位の readiness(check-readiness)→ 判定単位の採点(score-delegation)
+の順で掘り下げます。
 
 ### ■データ
 

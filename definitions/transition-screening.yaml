@@ -142,10 +142,11 @@ items:
     when:
       - { technical_exposure: high, demand_elasticity: low, human_necessity: low }
     action: |
-      Score the concrete judgments with `aidr score-delegation` to find the
-      green (delegate OK) region, then run `aidr check-readiness` before
-      delegating. Decide headcount LAST, after redeploy paths have been
-      evaluated — high automation potential is not a layoff mandate.
+      Diagnose the process with `aidr check-readiness`, then score the
+      concrete judgments with `aidr score-delegation` to find the green
+      (delegate OK) region before delegating. Decide headcount LAST, after
+      redeploy paths have been evaluated — high automation potential is
+      not a layoff mandate.
   - id: "types.growth"
     name: growth
     name_ja: 成長
