@@ -97,8 +97,6 @@ docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.9.0 list-definitions
 
 ## 学習パス(どの順で読むか)
 
-doc の番号 = 読み順です。00 から順に読むと全体から詳細へ進めます。
-
 | 順 | doc | 何が分かるか |
 |---|---|---|
 | 1 | [00 全体像](docs/00_overview.md) | 5 ステップの地図とミドリ精機の物語 |
