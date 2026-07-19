@@ -108,7 +108,7 @@ items:
   # 再編が 1 位である理由: 人は残るが人員需要は減りうる最難ゾーンで、役割再定義・
   # reskill・権限移譲の設計コストが最も高く、augmentation に混ぜると見えなくなるため。
   # WEF の redeploy 目安数値は claim_needs_verification のため action には埋め込まず、
-  # case_evidence と docs/09 に確度ラベル付きで置く。
+  # case_evidence と docs/01 に確度ラベル付きで置く。
   - id: "types"
     label: AI-transition type map ((technical_exposure, demand_elasticity, human_necessity) -> type)
     case_evidence:
@@ -142,7 +142,7 @@ items:
       design. Follow the order: decompose into tasks -> sort each into
       automate / augment / human -> redefine roles -> reskill and transfer
       authority -> decide headcount LAST. Before any reduction, evaluate
-      redeploy paths (skill adjacency); see the WEF section of docs/09 for
+      redeploy paths (skill adjacency); see the WEF section of docs/01 for
       reference figures and their confidence labels.
   - id: "types.high_automation"
     name: high_automation

@@ -1,4 +1,4 @@
-# 05. 組織 readiness 軸で「組織が委任を受け止められるか」を診断する
+# 03. 組織 readiness 軸で「組織が委任を受け止められるか」を診断する
 
 ## TL;DR
 
@@ -14,7 +14,7 @@
 ## 前提
 
 - 全体像([docs/00](00_overview.md))のステップ 2(readiness 診断)のうち、
-  **組織側の受け皿**を診断する並列軸の解説です。4 層([docs/01](01_four_layer_framework.md))と
+  **組織側の受け皿**を診断する並列軸の解説です。4 層([docs/02](02_four_layer_framework.md))と
   同じコマンドで一緒に採点されます
 - **並列軸** = 4 層のゲート(下層が上層を止める積み上げ)には関与せず、
   独立した合否として並ぶ観点
@@ -155,5 +155,5 @@ classDiagram
 - 採点: [`src/adr/check_readiness.py`](../src/adr/check_readiness.py)(`axis_role` / 層と並列軸の振り分け)
 - サンプル: [`examples/business/ajinomoto-discovery-team.yaml`](../examples/business/ajinomoto-discovery-team.yaml) /
   [`examples/overlays/organization-readiness-ajinomoto.yaml`](../examples/overlays/organization-readiness-ajinomoto.yaml)
-- 関連: [`01_four_layer_framework.md`](01_four_layer_framework.md)(4 層 + 効果測定)
-- 次のステップ: [03 委任マトリクス](03_delegation_matrix.md)
+- 関連: [`02_four_layer_framework.md`](02_four_layer_framework.md)(4 層 + 効果測定)
+- 次のステップ: [04 委任マトリクス](04_delegation_matrix.md)

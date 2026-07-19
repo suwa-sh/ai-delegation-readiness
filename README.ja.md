@@ -49,10 +49,10 @@ AI エージェントや CI からも直接使えます。
 | あなたが... | まず読むもの |
 |---|---|
 | **初めて来た。全体を知りたい** | [docs/00 全体像](docs/00_overview.md) — 5 ステップをミドリ精機の物語で通しで見る |
-| **業務側の意思決定者**(経理部長 / CFO / コンプラ責任者)で AI 化を検討中 | [docs/01 4 層フレーム](docs/01_four_layer_framework.md) — `aidr check-readiness` で業務を採点する |
-| **どこから着手するか**を決めたい / 経営に説明したい | [docs/09 スクリーニング](docs/09_transition_screening.md) — 4 類型マップと「headcount は最後」の意思決定順序 |
-| **実装エンジニア**で高リスク承認業務向け AI エージェントを設計中 | [schemas/audit-log.schema.json](schemas/audit-log.schema.json) + [docs/02](docs/02_audit_log_schema.md) — スキーマをロガーに組み込む |
-| **運用担当**で既存 AI 基盤のログを点検したい | [docs/04](docs/04_audit_log_gap_check.md) — 5 ステップ手法を自社 SQL スキーマに当てる |
+| **業務側の意思決定者**(経理部長 / CFO / コンプラ責任者)で AI 化を検討中 | [docs/02 4 層フレーム](docs/02_four_layer_framework.md) — `aidr check-readiness` で業務を採点する |
+| **どこから着手するか**を決めたい / 経営に説明したい | [docs/01 スクリーニング](docs/01_transition_screening.md) — 4 類型マップと「headcount は最後」の意思決定順序 |
+| **実装エンジニア**で高リスク承認業務向け AI エージェントを設計中 | [schemas/audit-log.schema.json](schemas/audit-log.schema.json) + [docs/06](docs/06_audit_log_schema.md) — スキーマをロガーに組み込む |
+| **運用担当**で既存 AI 基盤のログを点検したい | [docs/07](docs/07_audit_log_gap_check.md) — 5 ステップ手法を自社 SQL スキーマに当てる |
 | **コンサル / 提案者** | `docs/` 全部 + overlay 拡張モデル — clone してプライベートに overlay し、顧客固有の採点を提示する |
 
 ## Quick start(2 分で動かす)
@@ -97,19 +97,19 @@ docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.9.0 list-definitions
 
 ## 学習パス(どの順で読むか)
 
-doc の番号は追加順で、読み順ではありません。全体から詳細へは次の順で読みます。
+doc の番号 = 読み順です。00 から順に読むと全体から詳細へ進めます。
 
 | 順 | doc | 何が分かるか |
 |---|---|---|
 | 1 | [00 全体像](docs/00_overview.md) | 5 ステップの地図とミドリ精機の物語 |
-| 2 | [09 スクリーニング](docs/09_transition_screening.md) | ステップ 1: どこから手を付けるか |
-| 3 | [01 4 層フレーム](docs/01_four_layer_framework.md) | ステップ 2: 業務が委任に耐えるか |
-| 4 | [05 組織 readiness 軸](docs/05_organization_axis.md) | ステップ 2: 組織側の受け皿 |
-| 5 | [03 委任マトリクス](docs/03_delegation_matrix.md) | ステップ 3: どの判定を任せるか |
-| 6 | [06 タスク契約](docs/06_task_contract_execution_rubric.md) | ステップ 4: どう渡し、誰が採点するか |
-| 7 | [02 監査ログスキーマ](docs/02_audit_log_schema.md) | ステップ 5: 記録の設計 |
-| 8 | [04 ログ基盤の点検](docs/04_audit_log_gap_check.md) | ステップ 5 応用: 既存基盤への当てはめ |
-| 応用 | [07 高責任ドメイン overlay](docs/07_high_stakes_domain_overlay.md) / [08 内製化 overlay](docs/08_insourcing_judgment_overlay.md) | 知財/法務/薬事、内製化の判断責任 |
+| 2 | [01 スクリーニング](docs/01_transition_screening.md) | ステップ 1: どこから手を付けるか |
+| 3 | [02 4 層フレーム](docs/02_four_layer_framework.md) | ステップ 2: 業務が委任に耐えるか |
+| 4 | [03 組織 readiness 軸](docs/03_organization_axis.md) | ステップ 2: 組織側の受け皿 |
+| 5 | [04 委任マトリクス](docs/04_delegation_matrix.md) | ステップ 3: どの判定を任せるか |
+| 6 | [05 タスク契約](docs/05_task_contract_execution_rubric.md) | ステップ 4: どう渡し、誰が採点するか |
+| 7 | [06 監査ログスキーマ](docs/06_audit_log_schema.md) | ステップ 5: 記録の設計 |
+| 8 | [07 ログ基盤の点検](docs/07_audit_log_gap_check.md) | ステップ 5 応用: 既存基盤への当てはめ |
+| 応用 | [08 高責任ドメイン overlay](docs/08_high_stakes_domain_overlay.md) / [09 内製化 overlay](docs/09_insourcing_judgment_overlay.md) | 知財/法務/薬事、内製化の判断責任 |
 
 > **言語について**: `docs/` は日本語(著者の作業言語)で書いています。英語 README が
 > 入口、本ファイル(日本語)が正本テキストです。定義ファイルの質問文は英語(`text`)と
@@ -158,7 +158,7 @@ aidr screen-transition my-task-groups.yaml
 「高自動化」が次のステップへ進む候補です。権利・財務・健康・規制に関わるタスク群には、
 類型によらず `[HITL]`(人間の最終判断が必須)が付きます。
 全質問への回答が必須で、未回答は欠落 id を列挙したエラーになります。
-→ [docs/09](docs/09_transition_screening.md)
+→ [docs/01](docs/01_transition_screening.md)
 
 ### ステップ 2 — 業務が委任に耐えるかを診断する(BLOCK なら改善して再診断)
 
@@ -172,7 +172,7 @@ aidr check-readiness my-business.yaml
 PASS になってから次へ進みます。ミドリ精機のサンプルは初回 BLOCK
 ([`sample-expense-approval.yaml`](examples/business/sample-expense-approval.yaml))→
 改善後 PASS([`sample-expense-approval-after.yaml`](examples/business/sample-expense-approval-after.yaml))の
-2 幕構成です。→ [docs/01](docs/01_four_layer_framework.md) / [docs/05](docs/05_organization_axis.md)
+2 幕構成です。→ [docs/02](docs/02_four_layer_framework.md) / [docs/03](docs/03_organization_axis.md)
 
 ### ステップ 3 — 判定単位の委任領域を決める
 
@@ -182,7 +182,7 @@ aidr score-delegation my-judgments.yaml
 
 検証可能性 × 正解定義可能性の 2 軸で、各判定を 🟢 委任 OK / 🟡 LLM 補助(人間が最終判定)/
 🔴 人間に残す に振り分けます。各判定には推奨アクション(監査ログにどう記録するか)が
-併記されます。→ [docs/03](docs/03_delegation_matrix.md)
+併記されます。→ [docs/04](docs/04_delegation_matrix.md)
 
 ### ステップ 4 — 委任するタスクの契約を点検する
 
@@ -192,7 +192,7 @@ aidr check-task-contract my-contract.yaml
 
 委任する 1 タスクの実行契約を、意図 / 境界 / 証跡 / 採点者の 4 要素で点検します。
 🟢 契約充足 / 🟡 要素に穴 / 🔴 委任不可。採点者が AI なのに二重評価(iRULER)が無い契約は
-🔴 で止まります。→ [docs/06](docs/06_task_contract_execution_rubric.md)
+🔴 で止まります。→ [docs/05](docs/05_task_contract_execution_rubric.md)
 
 ### ステップ 5 — 監査ログを検証する
 
@@ -202,7 +202,7 @@ aidr validate-audit-log my-log.json --level extended
 
 AI が書き出すログが Who/When/What/Why/Result を満たすかを検証します。
 `--level extended` は J-SOX グレードの拡張スキーマ(規定バージョン固定・離散 Result
-enum・エスカレーション先必須化)です。→ [docs/02](docs/02_audit_log_schema.md) / [docs/04](docs/04_audit_log_gap_check.md)
+enum・エスカレーション先必須化)です。→ [docs/06](docs/06_audit_log_schema.md) / [docs/07](docs/07_audit_log_gap_check.md)
 
 ### 拡張(任意) — 自社ルールを overlay で足す
 
@@ -247,7 +247,7 @@ aidr check-readiness examples/business/sample-insourcing-readiness.yaml \
 # => L1-L4・組織が全 PASS でも、上流判断に社内の固有名が欠ければ L_insourcing が REVISE/BLOCK
 ```
 
-→ [docs/07](docs/07_high_stakes_domain_overlay.md) / [docs/08](docs/08_insourcing_judgment_overlay.md)
+→ [docs/08](docs/08_high_stakes_domain_overlay.md) / [docs/09](docs/09_insourcing_judgment_overlay.md)
 
 ## What's in this repo
 
@@ -312,7 +312,7 @@ LLM の周りで構造化**したことだと示されています。下層の�
 重要なのはこのためです。
 
 **留保**: 広く引用される「工数 76% 削減」見出しは、分析記事に分母・基準値・スコープが
-明示されていません。本リポは効果数値を保証せず、観測の観点だけを保持します(`docs/01`
+明示されていません。本リポは効果数値を保証せず、観測の観点だけを保持します(`docs/02`
 の効果測定軸を参照してください)。
 
 ### 出典

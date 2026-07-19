@@ -29,7 +29,7 @@ description: |
 # 拡張ポイント: 各社のオーバーレイで presence 質問・具体例を追加でき、閾値は強化のみ可。
 # 安全ゲート (iRULER) は gates の boolean policy 側にあり、overlay の add/strengthen 対象外
 # なので緩和できない (質問を足して threshold を据え置くと相対的に緩むため、add 時は
-# threshold の同時強化を推奨する。docs/06 参照)。
+# threshold の同時強化を推奨する。docs/05 参照)。
 extension_points:
   - {group: "intent", allow: add}
   - {group: "boundary", allow: add}

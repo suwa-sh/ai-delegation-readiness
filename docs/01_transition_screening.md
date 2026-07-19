@@ -1,4 +1,4 @@
-# 09. 委任の前に「どのタスク群から手を付けるか」を 4 類型で地図にする
+# 01. 委任の前に「どのタスク群から手を付けるか」を 4 類型で地図にする
 
 ## TL;DR
 
@@ -53,7 +53,7 @@ bin/aidr screen-transition examples/task-groups/sample-task-groups.yaml
 | 設備保全 → **変化小** | 現場の物理作業が中心で、当面 AI の影響が小さい。**監視のみ**で過剰投資を避ける |
 
 ミドリ精機の物語は、ここで「経費精算チェック」を最初の題材に選び、
-readiness 診断([docs/01](01_four_layer_framework.md))へ進みます。
+readiness 診断([docs/02](02_four_layer_framework.md))へ進みます。
 
 実行時の注意は 2 つだけです。
 
@@ -144,7 +144,7 @@ H1(規制固定域)が yes のタスク群には、**類型がどれであって
 
 次のステップ(判定単位の採点)との対応:
 
-| 本書(タスク群の粗い分類) | 委任マトリクス([docs/03](03_delegation_matrix.md)、判定単位) | 意味 |
+| 本書(タスク群の粗い分類) | 委任マトリクス([docs/04](04_delegation_matrix.md)、判定単位) | 意味 |
 |---|---|---|
 | H1 = yes(規制固定域) | red 領域(human only)の運用上の既定 | 最終判断は人間。AI は参照のみ |
 | H2 / H3 = yes(関係・物理) | (マトリクス対象のタスク自体が少ない) | — |
@@ -212,7 +212,7 @@ flowchart LR
 
 ### ■データ(定義ファイルの概念モデル)
 
-概念モデルは委任マトリクス([docs/03](03_delegation_matrix.md))と同じ枠組みです:
+概念モデルは委任マトリクス([docs/04](04_delegation_matrix.md))と同じ枠組みです:
 axis group(header の `threshold` + 質問 leaf)と、軸レベルの組をルックアップする
 `types` group(委任マトリクスの `regions` に相当)、および `examples` group(データ)。
 
@@ -242,7 +242,7 @@ overlay で可能なのは 3 軸 + examples への `add` のみです。**thresh
 
 - 正本: [`definitions/transition-screening.yaml`](../definitions/transition-screening.yaml)
 - サンプル: [`examples/task-groups/sample-task-groups.yaml`](../examples/task-groups/sample-task-groups.yaml)
-- 次のステップ: [01 4 層フレーム](01_four_layer_framework.md)
+- 次のステップ: [02 4 層フレーム](02_four_layer_framework.md)
 - 出典: [Mapping Europe's AI Workforce Opportunity (OpenAI EU)](https://openai.com/index/mapping-ai-jobs-transition-eu/) /
   [The AI Jobs Transition Framework for the EU (PDF)](https://cdn.openai.com/pdf/the-ai-jobs-transition-framework-for-the-eu.pdf) /
   [GPTs are GPTs (Eloundou et al. 2023)](https://arxiv.org/abs/2303.10130) /

@@ -104,16 +104,16 @@ self-documenting** であると同時に、**マージ規則の実体**でもあ
 
 - 味の素事例の④統制層は公開情報が薄い。続報(誤承認補正フロー・人間最終承認の置き場所・
   規定バージョン管理運用)が出た時点で `definitions/four-layer.yaml` の case_evidence と
-  `docs/01` を更新する
+  `docs/02` を更新する
 - 監査ログの「拡張点」(改ざん耐性・保存期間・原証憑参照・規定バージョン固定)は
   読者から実装提案が来た時点で `schemas/audit-log.schema.json` に追加する
-- 既存ログ基盤の点検メモ(`docs/04`)は、ある自社運用エージェント基盤を題材にした
+- 既存ログ基盤の点検メモ(`docs/07`)は、ある自社運用エージェント基盤を題材にした
   worked example。他者は同じ手法を自社環境に当てる(冒頭の 5 ステップ参照)
-- **移行 4 類型スクリーニング**(`definitions/transition-screening.yaml` / `docs/09`)の職種
+- **移行 4 類型スクリーニング**(`definitions/transition-screening.yaml` / `docs/01`)の職種
   worked example は米国版フレームの公表例からの当てはめ(design_proposal)。OpenAI が EU 版の
-  職種リスト詳細を公開したら `examples` group と docs/09 の職種例を更新する
+  職種リスト詳細を公開したら `examples` group と docs/01 の職種例を更新する
 - **ドメイン overlay**(`examples/overlays/high-stakes-domain/`)は base を変えずに
-  高責任専門業務(知財/法務/薬事)向けの L5 ゲート層・閾値強化を足す実例(`docs/07`)。
+  高責任専門業務(知財/法務/薬事)向けの L5 ゲート層・閾値強化を足す実例(`docs/08`)。
   新ドメインを足すときは同じ形(overlay ディレクトリ + サンプル入力 + docs/NN)を踏襲する。
   case_evidence の出典が更新されたら overlay 側も追随する
 

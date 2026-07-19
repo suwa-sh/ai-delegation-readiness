@@ -65,7 +65,7 @@ bin/aidr screen-transition examples/task-groups/sample-task-groups.yaml
 
 ミドリ精機では、決算開示資料ドラフトが「再編」(最優先で役割再設計が要る)、
 経費精算チェックが「高自動化」(次のステップに進む候補)になりました。
-経理部は経費精算チェックを最初の題材に選びます。→ 詳細は [docs/09](09_transition_screening.md)
+経理部は経費精算チェックを最初の題材に選びます。→ 詳細は [docs/01](01_transition_screening.md)
 
 ### ステップ 2: 業務が委任に耐えるか(readiness 診断・2 幕)
 
@@ -104,7 +104,7 @@ bin/aidr check-readiness examples/business/sample-expense-approval-after.yaml
 
 入力: [`examples/business/sample-expense-approval-after.yaml`](../examples/business/sample-expense-approval-after.yaml)
 
-PASS になって初めて、次のステップに進めます。→ 詳細は [docs/01](01_four_layer_framework.md)(4 層)と [docs/05](05_organization_axis.md)(組織の受け皿)
+PASS になって初めて、次のステップに進めます。→ 詳細は [docs/02](02_four_layer_framework.md)(4 層)と [docs/03](03_organization_axis.md)(組織の受け皿)
 
 ### ステップ 3: どの判定を任せるか(判定の振り分け)
 
@@ -119,7 +119,7 @@ bin/aidr score-delegation examples/judgments/sample-judgments.yaml
 入力: [`examples/judgments/sample-judgments.yaml`](../examples/judgments/sample-judgments.yaml)
 
 ミドリ精機では、領収書チェックとインボイスチェックが 🟢、採用面接の合否(境界比較の例)は
-🔴 になりました。→ 詳細は [docs/03](03_delegation_matrix.md)
+🔴 になりました。→ 詳細は [docs/04](04_delegation_matrix.md)
 
 ### ステップ 4: タスクをどう渡すか(タスク契約)
 
@@ -134,7 +134,7 @@ bin/aidr check-task-contract examples/task-contracts/sample-green.yaml
 入力: [`examples/task-contracts/sample-green.yaml`](../examples/task-contracts/sample-green.yaml)
 
 AI が AI を単一の基準で採点する構成は、ここで 🔴 として止まります
-([`sample-red-ai-judge.yaml`](../examples/task-contracts/sample-red-ai-judge.yaml) が失敗例)。→ 詳細は [docs/06](06_task_contract_execution_rubric.md)
+([`sample-red-ai-judge.yaml`](../examples/task-contracts/sample-red-ai-judge.yaml) が失敗例)。→ 詳細は [docs/05](05_task_contract_execution_rubric.md)
 
 ### ステップ 5: 記録は残っているか(監査ログ検証)
 
@@ -147,7 +147,7 @@ bin/aidr validate-audit-log examples/audit-log-sample.json --level extended
 ```
 
 入力: [`examples/audit-log-sample.json`](../examples/audit-log-sample.json) — 交際費のグレーケースを AI が**自動承認せず人間にエスカレーションした**記録です。
-→ 詳細は [docs/02](02_audit_log_schema.md)(スキーマ)と [docs/04](04_audit_log_gap_check.md)(既存基盤の点検)
+→ 詳細は [docs/06](06_audit_log_schema.md)(スキーマ)と [docs/07](07_audit_log_gap_check.md)(既存基盤の点検)
 
 ### 拡張(任意): 自社ルールを足す
 
@@ -161,19 +161,19 @@ bin/aidr check-readiness my-business.yaml --overlay examples/overlays/sample-com
 
 ## 学習パス(どの順で読むか)
 
-doc の番号は追加順で、読み順ではありません。次の順で読むと全体から詳細へ進めます。
+doc の番号 = 読み順です。00 から順に読むと全体から詳細へ進めます。
 
 | 順 | doc | 何が分かるか |
 |---|---|---|
 | 1 | 本書(00) | 全体像と 5 ステップの物語 |
-| 2 | [09 スクリーニング](09_transition_screening.md) | どこから手を付けるかの決め方 |
-| 3 | [01 4 層フレーム](01_four_layer_framework.md) | 業務が委任に耐えるかの診断 |
-| 4 | [05 組織 readiness 軸](05_organization_axis.md) | 組織側の受け皿の診断 |
-| 5 | [03 委任マトリクス](03_delegation_matrix.md) | 判定単位の振り分け |
-| 6 | [06 タスク契約](06_task_contract_execution_rubric.md) | 委任タスクの与え方・採点者 |
-| 7 | [02 監査ログスキーマ](02_audit_log_schema.md) | 記録の設計 |
-| 8 | [04 ログ基盤の点検](04_audit_log_gap_check.md) | 既存基盤への当てはめ |
-| 応用 | [07 高責任ドメイン overlay](07_high_stakes_domain_overlay.md) / [08 内製化 overlay](08_insourcing_judgment_overlay.md) | 知財/法務/薬事、内製化の判断責任 |
+| 2 | [01 スクリーニング](01_transition_screening.md) | どこから手を付けるかの決め方 |
+| 3 | [02 4 層フレーム](02_four_layer_framework.md) | 業務が委任に耐えるかの診断 |
+| 4 | [03 組織 readiness 軸](03_organization_axis.md) | 組織側の受け皿の診断 |
+| 5 | [04 委任マトリクス](04_delegation_matrix.md) | 判定単位の振り分け |
+| 6 | [05 タスク契約](05_task_contract_execution_rubric.md) | 委任タスクの与え方・採点者 |
+| 7 | [06 監査ログスキーマ](06_audit_log_schema.md) | 記録の設計 |
+| 8 | [07 ログ基盤の点検](07_audit_log_gap_check.md) | 既存基盤への当てはめ |
+| 応用 | [08 高責任ドメイン overlay](08_high_stakes_domain_overlay.md) / [09 内製化 overlay](09_insourcing_judgment_overlay.md) | 知財/法務/薬事、内製化の判断責任 |
 
 ## References
 

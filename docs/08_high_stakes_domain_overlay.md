@@ -1,4 +1,4 @@
-# 07. 高責任専門業務(知財/法務/薬事)を overlay で慎重側に採点する
+# 08. 高責任専門業務(知財/法務/薬事)を overlay で慎重側に採点する
 
 ## TL;DR
 
@@ -165,7 +165,7 @@ flowchart TD
 
 - **L5 はゲート層**: header に `role` を指定しないため、`check-readiness` の `axis_role()` が
   ゲート層として扱い、L4 の後に積み上がります(振り分けの仕組みは
-  [`05_organization_axis.md`](05_organization_axis.md) の■構造を参照。データモデルも同 doc と共通)。
+  [`03_organization_axis.md`](03_organization_axis.md) の■構造を参照。データモデルも同 doc と共通)。
 - **opt-in**: overlay を `--overlay` で渡した診断にだけ効きます。base だけで使う利用者には無影響です。
 
 ## References
@@ -174,8 +174,8 @@ flowchart TD
   [`examples/overlays/high-stakes-domain/delegation-matrix.yaml`](../examples/overlays/high-stakes-domain/delegation-matrix.yaml)
 - サンプル: [`examples/business/sample-ip-agent-readiness.yaml`](../examples/business/sample-ip-agent-readiness.yaml) /
   [`examples/judgments/sample-ip-judgments.yaml`](../examples/judgments/sample-ip-judgments.yaml)
-- 関連 doc: [`01_four_layer_framework.md`](01_four_layer_framework.md)(4 層フレーム)/
-  [`03_delegation_matrix.md`](03_delegation_matrix.md)(委任マトリクス)/
-  [`05_organization_axis.md`](05_organization_axis.md)(並列軸とゲート層の振り分け)
+- 関連 doc: [`02_four_layer_framework.md`](02_four_layer_framework.md)(4 層フレーム)/
+  [`04_delegation_matrix.md`](04_delegation_matrix.md)(委任マトリクス)/
+  [`03_organization_axis.md`](03_organization_axis.md)(並列軸とゲート層の振り分け)
 - 出典: [オムロンの知財 AI エージェント内製に学ぶ「高責任業務への AI 委任」設計](https://suwa-sh.github.io/zenn-contents/articles/omron-ip-agent-insourcing_20260629/)(分析記事)/
   [AWS builders.flash 実装事例](https://aws.amazon.com/jp/builders-flash/202511/omron-intellectual-property-ai-agent/)(準一次)

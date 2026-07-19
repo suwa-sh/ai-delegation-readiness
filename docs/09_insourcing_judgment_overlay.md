@@ -1,4 +1,4 @@
-# 08. 内製化=「どの判断責任を社内に残すか」を overlay で採点する
+# 09. 内製化=「どの判断責任を社内に残すか」を overlay で採点する
 
 ## TL;DR
 
@@ -15,7 +15,7 @@
 ## 前提
 
 - 本書は**応用編**です。本線 5 ステップ([docs/00](00_overview.md))と
-  並列軸の考え方([docs/05](05_organization_axis.md))を先に読んでください
+  並列軸の考え方([docs/03](03_organization_axis.md))を先に読んでください
 - **内製化(insourcing)**= 外部ベンダーに任せていた開発・判断を社内に取り戻すこと
 - **判断責任の所有** = 「その判断に社内の固有名(具体的な担当者・役職)がつくか」。
   作業を誰がやるかではなく、決定を誰が持つかを見ます
@@ -130,7 +130,7 @@ flowchart TD
 - **`L_insourcing` は並列軸**: header に `role: parallel` を指定するため、`check-readiness` の
   `axis_role()` が並列軸として扱い、efficacy / organization と同じ枠で採点します。
   ゲート層(L1〜L4)の `blocked_from` には関与しません。振り分けの仕組みとデータモデルは
-  [`05_organization_axis.md`](05_organization_axis.md) の■構造・■データを参照(同じ枠組みです)。
+  [`03_organization_axis.md`](03_organization_axis.md) の■構造・■データを参照(同じ枠組みです)。
 - **`L_` 接頭辞の理由**: overlay で新規 group を足せるのは `extension_points` の `L*` selector に
   合う名前だけです。`L_insourcing` は `L*` に合致し、かつ `role: parallel` で非ゲート軸になります。
   名前の `L` は「ゲート層」を意味しません(gating/parallel は `role` フィールドだけで決まります)。
@@ -138,7 +138,7 @@ flowchart TD
 
 ### ■データ
 
-概念モデルは [`05_organization_axis.md`](05_organization_axis.md) の■データと共通です
+概念モデルは [`03_organization_axis.md`](03_organization_axis.md) の■データと共通です
 (base group + overlay が add する leaf、header の `role` で軸種を決定)。本 overlay は
 `role: parallel` の group を 1 本(`L_insourcing`)と、その配下の質問 leaf を 5 つ足すだけです。
 
@@ -146,9 +146,9 @@ flowchart TD
 
 - 正本: [`examples/overlays/insourcing-judgment/four-layer.yaml`](../examples/overlays/insourcing-judgment/four-layer.yaml)
 - サンプル: [`examples/business/sample-insourcing-readiness.yaml`](../examples/business/sample-insourcing-readiness.yaml)
-- 関連 doc: [`01_four_layer_framework.md`](01_four_layer_framework.md)(4 層フレーム)/
-  [`05_organization_axis.md`](05_organization_axis.md)(並列軸とゲート層の振り分け・データモデル)/
-  [`07_high_stakes_domain_overlay.md`](07_high_stakes_domain_overlay.md)(ドメイン overlay の実例)
+- 関連 doc: [`02_four_layer_framework.md`](02_four_layer_framework.md)(4 層フレーム)/
+  [`03_organization_axis.md`](03_organization_axis.md)(並列軸とゲート層の振り分け・データモデル)/
+  [`08_high_stakes_domain_overlay.md`](08_high_stakes_domain_overlay.md)(ドメイン overlay の実例)
 - 出典: みずほ証券の内製化分析(「内製化の本質は採用ではなく『誰が判断責任を持つか』」)。
   一次資料は [金融庁 行政処分(2021-11-26)](https://www.fsa.go.jp/news/r3/ginkou/20211126/20211126.html) /
   [総務省 令和元年版 情報通信白書](https://www.soumu.go.jp/johotsusintokei/whitepaper/ja/r01/html/nd123110.html) /

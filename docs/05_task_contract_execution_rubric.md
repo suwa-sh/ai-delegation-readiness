@@ -1,4 +1,4 @@
-# 06. 委任タスクを意図・境界・証跡・採点者で点検する
+# 05. 委任タスクを意図・境界・証跡・採点者で点検する
 
 ## TL;DR
 
@@ -127,5 +127,5 @@ partial、0 で absent です。**absent が 1 つでもあれば 🔴**、absen
 - 正本: [`definitions/task-contract.yaml`](../definitions/task-contract.yaml)
 - サンプル入力: [`examples/task-contracts/sample-green.yaml`](../examples/task-contracts/sample-green.yaml) / [`sample-red-ai-judge.yaml`](../examples/task-contracts/sample-red-ai-judge.yaml)
 - CLI: `bin/aidr check-task-contract --help`
-- 次のステップ: [02 監査ログスキーマ](02_audit_log_schema.md)
+- 次のステップ: [06 監査ログスキーマ](06_audit_log_schema.md)
 - 出典: iRULER(CHI 2026)/ OpenAI「How agents are transforming work」(2026-06-25)

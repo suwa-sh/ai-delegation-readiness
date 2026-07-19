@@ -1,4 +1,4 @@
-# 01. 4 層フレームで委任の可否を診断する
+# 02. 4 層フレームで委任の可否を診断する
 
 ## TL;DR
 
@@ -80,7 +80,7 @@ bin/aidr check-readiness examples/business/sample-expense-approval-after.yaml
 
 入力: [`examples/business/sample-expense-approval-after.yaml`](../examples/business/sample-expense-approval-after.yaml)
 
-PASS になって初めて、次のステップ(判定単位の振り分け → [docs/03](03_delegation_matrix.md))へ進みます。
+PASS になって初めて、次のステップ(判定単位の振り分け → [docs/04](04_delegation_matrix.md))へ進みます。
 自社業務を診断するときは `bin/aidr init --target four-layer > my-business.yaml` で
 テンプレートを生成して埋めてください。
 
@@ -160,7 +160,7 @@ flowchart TB
 
 **主な問い**: 第三者が同一入力で同じ採点をできるか / 規定の条番号を引けるか /
 正解を定義しにくい領域の除外 / 監査ログからの再現。
-判定単位での 2 軸採点は [docs/03](03_delegation_matrix.md) を参照してください。
+判定単位での 2 軸採点は [docs/04](04_delegation_matrix.md) を参照してください。
 
 #### ④ 統制・追跡層
 
@@ -169,8 +169,8 @@ flowchart TB
 
 **主な問い**: 「判定」と「実行」の分離(職務分掌)/ 差し戻し理由のログ提示 /
 Who/When/What/Why/Result の構造化記録 / 規定バージョンのログ固定 / 誤承認の補正フロー。
-監査ログ最小スキーマは [docs/02](02_audit_log_schema.md) を、既存ログ基盤への
-当てはめ例は [docs/04](04_audit_log_gap_check.md) を参照してください。
+監査ログ最小スキーマは [docs/06](06_audit_log_schema.md) を、既存ログ基盤への
+当てはめ例は [docs/07](07_audit_log_gap_check.md) を参照してください。
 
 **【観測事実】** 公開情報には統制層の具体(誤承認補正フローや監査ログ設計)が
 ほとんど開示されておらず、再現を目指す側は **ここを自前で設計する必要があります**。
@@ -187,7 +187,7 @@ AI 起因の誤承認の独立集計。
 一方で、ITmedia の見出し「工数 76% 削減」は **分母が記事に明示されていません**。
 本リポは効果測定の数値を保証せず、観点だけを保持します。
 
-組織側の受け皿を診断する並列軸(organization)は [docs/05](05_organization_axis.md) を
+組織側の受け皿を診断する並列軸(organization)は [docs/03](03_organization_axis.md) を
 参照してください。
 
 ### Self-check sheet(5 項目)
@@ -218,8 +218,8 @@ AI 起因の誤承認の独立集計。
 - サンプル: [`examples/business/sample-expense-approval.yaml`](../examples/business/sample-expense-approval.yaml)(初回 BLOCK)/
   [`sample-expense-approval-after.yaml`](../examples/business/sample-expense-approval-after.yaml)(改善後 PASS)
 - CLI: `bin/aidr check-readiness --help` / テンプレート生成は `bin/aidr init --target four-layer`
-- 次のステップ: [05 組織 readiness 軸](05_organization_axis.md) → [03 委任マトリクス](03_delegation_matrix.md)
-- 関連 doc: [`02_audit_log_schema.md`](02_audit_log_schema.md) / [`04_audit_log_gap_check.md`](04_audit_log_gap_check.md) / [`07_high_stakes_domain_overlay.md`](07_high_stakes_domain_overlay.md)(知財/法務/薬事向けに L5 ゲート層を足すドメイン overlay)
+- 次のステップ: [03 組織 readiness 軸](03_organization_axis.md) → [04 委任マトリクス](04_delegation_matrix.md)
+- 関連 doc: [`06_audit_log_schema.md`](06_audit_log_schema.md) / [`07_audit_log_gap_check.md`](07_audit_log_gap_check.md) / [`08_high_stakes_domain_overlay.md`](08_high_stakes_domain_overlay.md)(知財/法務/薬事向けに L5 ゲート層を足すドメイン overlay)
 - 出典:
   - [メンテナによる分析記事 (Zenn / gh-pages ミラー)](https://suwa-sh.github.io/zenn-contents/articles/ajinomoto-accounting-agent_20260621/)
   - [ファーストアカウンティング公式 (2026-04-24)](https://www.fastaccounting.jp/news/20260424/15929/)

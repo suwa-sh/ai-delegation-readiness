@@ -26,12 +26,12 @@ The following are documented design choices, not security issues:
 
 - The audit log "extensions" (tamper resistance, retention periods, source
   document references, delegation lifecycle) are intentionally not
-  implemented. `docs/02_audit_log_schema.md` flags them as direction-only
+  implemented. `docs/06_audit_log_schema.md` flags them as direction-only
 - The "76% workload reduction" cited from news coverage is acknowledged as
-  undefined in `docs/01_four_layer_framework.md` — quoting it without that
+  undefined in `docs/02_four_layer_framework.md` — quoting it without that
   caveat is on the consumer side, not this repository
 - Disagreement with the recommended scoring rules in
-  `docs/03_delegation_matrix.md`. The 3-question / majority-yes rubric is a
+  `docs/04_delegation_matrix.md`. The 3-question / majority-yes rubric is a
   design proposal labelled as such; alternative rubrics are welcome via
   normal issues or PRs
 

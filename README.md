@@ -54,10 +54,10 @@ consume it directly.
 | If you are... | Start with... |
 |---|---|
 | **New here and want the big picture** | [docs/00 overview](docs/00_overview.md) (Japanese) — the 5 steps told through the Midori Seiki story |
-| A **business decision maker** (head of accounting, CFO, compliance lead) considering AI for a process | [docs/01](docs/01_four_layer_framework.md) — score your process with `aidr check-readiness` |
-| Deciding **where to start** / briefing management | [docs/09](docs/09_transition_screening.md) — the 4-type transition map and the headcount-last decision order |
-| An **engineer** designing an AI agent for high-risk approvals | [schemas/audit-log.schema.json](schemas/audit-log.schema.json) + [docs/02](docs/02_audit_log_schema.md) — wire the schema into your logger |
-| An **operator** auditing an existing AI platform's logging | [docs/04](docs/04_audit_log_gap_check.md) — apply the 5-step method to your own SQL schema |
+| A **business decision maker** (head of accounting, CFO, compliance lead) considering AI for a process | [docs/02](docs/02_four_layer_framework.md) — score your process with `aidr check-readiness` |
+| Deciding **where to start** / briefing management | [docs/01](docs/01_transition_screening.md) — the 4-type transition map and the headcount-last decision order |
+| An **engineer** designing an AI agent for high-risk approvals | [schemas/audit-log.schema.json](schemas/audit-log.schema.json) + [docs/06](docs/06_audit_log_schema.md) — wire the schema into your logger |
+| An **operator** auditing an existing AI platform's logging | [docs/07](docs/07_audit_log_gap_check.md) — apply the 5-step method to your own SQL schema |
 | A **consultant / proposal author** | All of `docs/` + the overlay model — clone, overlay in private, present client-specific scoring |
 
 ## Quick start (2 minutes)
@@ -124,7 +124,7 @@ Japanese (`text_ja`) in `definitions/*.yaml`.
    feeds the next steps. Groups touching rights / finances / health / regulated
    matters carry a `[HITL]` marker whatever their type. Every question must be
    answered — missing answers are an input error. See
-   [docs/09](docs/09_transition_screening.md).
+   [docs/01](docs/01_transition_screening.md).
 3. **Diagnose the process and the organization** —
    `aidr check-readiness my-business.yaml` scores the four layers
    (standardization → structuring → scope → control) plus the efficacy and
@@ -133,22 +133,22 @@ Japanese (`text_ja`) in `definitions/*.yaml`.
    ([`sample-expense-approval.yaml`](examples/business/sample-expense-approval.yaml))
    then PASS
    ([`sample-expense-approval-after.yaml`](examples/business/sample-expense-approval-after.yaml)).
-   See [docs/01](docs/01_four_layer_framework.md) / [docs/05](docs/05_organization_axis.md).
+   See [docs/02](docs/02_four_layer_framework.md) / [docs/03](docs/03_organization_axis.md).
 4. **Score the judgments** — `aidr score-delegation my-judgments.yaml` places
    each judgment into GREEN (delegate), YELLOW (LLM-assist, a human decides), or
-   RED (human-only). See [docs/03](docs/03_delegation_matrix.md).
+   RED (human-only). See [docs/04](docs/04_delegation_matrix.md).
 5. **Check the task contract** — `aidr check-task-contract my-contract.yaml`
    checks intent / boundary / evidence / scorer. An AI judge with no iRULER
    double-evaluation blocks (RED). See
-   [docs/06](docs/06_task_contract_execution_rubric.md).
+   [docs/05](docs/05_task_contract_execution_rubric.md).
 6. **Validate the audit log** —
    `aidr validate-audit-log my-log.json --level extended` checks who / when /
-   what / why / result at J-SOX grade. See [docs/02](docs/02_audit_log_schema.md).
+   what / why / result at J-SOX grade. See [docs/06](docs/06_audit_log_schema.md).
 7. **Extend (optional)** — add your own questions / thresholds via an overlay,
    validated by `aidr check-overlay <path>` and applied with `--overlay`.
    Bundled domain overlays: high-stakes professional work (IP / legal / pharma,
-   [docs/07](docs/07_high_stakes_domain_overlay.md)) and insourcing judgment
-   responsibility ([docs/08](docs/08_insourcing_judgment_overlay.md)):
+   [docs/08](docs/08_high_stakes_domain_overlay.md)) and insourcing judgment
+   responsibility ([docs/09](docs/09_insourcing_judgment_overlay.md)):
 
    ```bash
    aidr check-readiness examples/business/sample-ip-agent-readiness.yaml \
@@ -250,7 +250,7 @@ the choice of model.
 **Caveat**: the widely-cited "76% workload reduction" headline has no defined
 denominator, baseline, or scope in the source articles. This repository does not
 warrant efficacy figures; it preserves the **observability viewpoint**
-(`docs/01` efficacy axis).
+(`docs/02` efficacy axis).
 
 ### Source
 

@@ -1,9 +1,9 @@
-# 04. 既存ログ基盤を 5 観点で点検する(worked example つき)
+# 07. 既存ログ基盤を 5 観点で点検する(worked example つき)
 
 ## TL;DR
 
 **既に動いている AI 基盤のログは、監査に耐えるか?** —
-新しくログを設計する([docs/02](02_audit_log_schema.md))のではなく、
+新しくログを設計する([docs/06](06_audit_log_schema.md))のではなく、
 **今あるデータベースの記録に穴がないかを点検する**のが本書です。
 手順は 5 ステップ(テーブルを集める → 5 観点で分類 → 「不適」の理由を型レベルで
 説明 → 改修案を設計 → 優先順位を引く)。後半は、ある自社運用エージェント基盤の
@@ -12,7 +12,7 @@
 ## 前提
 
 - 全体像([docs/00](00_overview.md))のステップ 5(監査ログ)の**応用編**です。
-  スキーマの設計([docs/02](02_audit_log_schema.md))を先に読むと本書の観点が分かります
+  スキーマの設計([docs/06](06_audit_log_schema.md))を先に読むと本書の観点が分かります
 - **列定義 / CHECK 制約 / enum** = データベースの用語。列定義はテーブルの項目、
   CHECK 制約は「この値しか入らない」という機械的な制限、enum は取りうる値の
   固定リストです
@@ -30,7 +30,7 @@
 1. **対象テーブルを集める** — エージェントの実行ログ / 成果ログ / 対話ログの列定義を
    `\d <table>`(PostgreSQL)や `DESCRIBE <table>`(MySQL)で集めます。
 
-2. **5 観点で列を分類する** — `docs/02_audit_log_schema.md` の Who/When/What/Why/Result
+2. **5 観点で列を分類する** — `docs/06_audit_log_schema.md` の Who/When/What/Why/Result
    の最小項目を観点に、各列が「充足 / 部分 / 欠け / 不適」のどれかを判定します。
 
 3. **「不適」の理由を型・意味論レベルで説明する** — 「自由形式 TEXT に書けば書ける」と
@@ -181,5 +181,5 @@ CREATE TABLE IF NOT EXISTS human_overrides (
 ## References
 
 - 正本(本リポ側): [`schemas/audit-log.schema.json`](../schemas/audit-log.schema.json)
-- 関連 doc: [`02_audit_log_schema.md`](02_audit_log_schema.md)(本書の前提です)
-- 次のステップ(応用): [07 高責任ドメイン overlay](07_high_stakes_domain_overlay.md) / [08 内製化 overlay](08_insourcing_judgment_overlay.md)
+- 関連 doc: [`06_audit_log_schema.md`](06_audit_log_schema.md)(本書の前提です)
+- 次のステップ(応用): [08 高責任ドメイン overlay](08_high_stakes_domain_overlay.md) / [09 内製化 overlay](09_insourcing_judgment_overlay.md)
