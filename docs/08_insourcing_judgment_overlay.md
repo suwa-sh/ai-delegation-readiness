@@ -12,7 +12,7 @@
 骨格は **みずほ証券の内製化分析記事**から抽出しています。事実と一般化はラベルで分けます:
 **【観測事実】** / **【設計提案】**。
 
-## 前提(これだけ知っていれば読めます)
+## 前提
 
 - 本書は**応用編**です。本線 5 ステップ([docs/00](00_overview.md))と
   並列軸の考え方([docs/05](05_organization_axis.md))を先に読んでください
@@ -40,8 +40,6 @@ bin/aidr list-definitions --target four-layer \
 ```
 
 入力: [`examples/business/sample-insourcing-readiness.yaml`](../examples/business/sample-insourcing-readiness.yaml)
-— 問いと回答が 1 ファイルで読めます。overlay の正本は
-[`examples/overlays/insourcing-judgment/four-layer.yaml`](../examples/overlays/insourcing-judgment/four-layer.yaml) です。
 
 サンプルは、業務(L1〜L4)も組織(organization)も整っているが、
 アーキテクチャの最終判断に社内の固有名がつかない(`I2: no`)架空企業です。

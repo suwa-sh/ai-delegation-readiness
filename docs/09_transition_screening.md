@@ -10,7 +10,7 @@
 人員削減の予測でもありません — 各類型には「headcount(人数)は最後に決める」
 という推奨の意思決定順序が付きます。
 
-## 前提(これだけ知っていれば読めます)
+## 前提
 
 - 全体像([docs/00](00_overview.md))の本線 5 ステップのうち、本書は
   **ステップ 1(どこから手を付けるか)** を扱います
@@ -35,8 +35,6 @@ bin/aidr screen-transition examples/task-groups/sample-task-groups.yaml
 ```
 
 入力: [`examples/task-groups/sample-task-groups.yaml`](../examples/task-groups/sample-task-groups.yaml)
-— タスク群ごとの id・問い・回答が 1 ファイルで読めます(`aidr init --target transition` の
-テンプレートに回答を書き込んだ形式)。出力の各行は、この入力の id に対応します。
 
 ```text
 [REORG ] priority 1: financial_disclosure_draft: REORGANIZATION [HITL]  (technical_exposure=high(2/3), human_necessity=high(2/3), demand_elasticity=low(1/3))
@@ -65,7 +63,7 @@ readiness 診断([docs/01](01_four_layer_framework.md))へ進みます。
   類型は exit code に写しません
 
 自社のタスク群でやるときは `bin/aidr init --target transition > my-task-groups.yaml` で
-問いコメント付きのテンプレートを生成して埋めてください。
+テンプレートを生成して埋めてください。
 
 ## Concept
 
@@ -242,11 +240,9 @@ overlay で可能なのは 3 軸 + examples への `add` のみです。**thresh
 
 ## References
 
-- 正本: [`definitions/transition-screening.yaml`](../definitions/transition-screening.yaml)(質問の日本語文は `text_ja`)
-- サンプル: [`examples/task-groups/sample-task-groups.yaml`](../examples/task-groups/sample-task-groups.yaml)(ミドリ精機のタスク群 4 つ)
-- 物語の前後: 本書がステップ 1 です。次のステップは
-  [01 4 層フレーム](01_four_layer_framework.md)(readiness 診断)→
-  [03 委任マトリクス](03_delegation_matrix.md)(判定単位の振り分け)
+- 正本: [`definitions/transition-screening.yaml`](../definitions/transition-screening.yaml)
+- サンプル: [`examples/task-groups/sample-task-groups.yaml`](../examples/task-groups/sample-task-groups.yaml)
+- 次のステップ: [01 4 層フレーム](01_four_layer_framework.md)
 - 出典: [Mapping Europe's AI Workforce Opportunity (OpenAI EU)](https://openai.com/index/mapping-ai-jobs-transition-eu/) /
   [The AI Jobs Transition Framework for the EU (PDF)](https://cdn.openai.com/pdf/the-ai-jobs-transition-framework-for-the-eu.pdf) /
   [GPTs are GPTs (Eloundou et al. 2023)](https://arxiv.org/abs/2303.10130) /

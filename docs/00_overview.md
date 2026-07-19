@@ -9,7 +9,7 @@ CLI と定義ファイルの集まりです。使い方は **本線 5 ステッ�
 ④タスクをどう渡すか ⑤記録は残っているか。
 本書は、架空の会社の物語で 5 ステップを通しで体験する入口です。
 
-## 前提(これだけ知っていれば読めます)
+## 前提
 
 - **AI エージェント** = 指示を受けて、判断や作業を自動で進める AI プログラム
 - **委任(delegation)** = 人間がやっていた判断を AI エージェントに任せること。
@@ -61,7 +61,7 @@ flowchart LR
 bin/aidr screen-transition examples/task-groups/sample-task-groups.yaml
 ```
 
-入力: [`examples/task-groups/sample-task-groups.yaml`](../examples/task-groups/sample-task-groups.yaml)(問いと回答が 1 ファイルで読めます)
+入力: [`examples/task-groups/sample-task-groups.yaml`](../examples/task-groups/sample-task-groups.yaml)
 
 ミドリ精機では、決算開示資料ドラフトが「再編」(最優先で役割再設計が要る)、
 経費精算チェックが「高自動化」(次のステップに進む候補)になりました。
@@ -77,7 +77,7 @@ bin/aidr screen-transition examples/task-groups/sample-task-groups.yaml
 bin/aidr check-readiness examples/business/sample-expense-approval.yaml
 ```
 
-入力: [`examples/business/sample-expense-approval.yaml`](../examples/business/sample-expense-approval.yaml)(問いと回答が 1 ファイルで読めます)
+入力: [`examples/business/sample-expense-approval.yaml`](../examples/business/sample-expense-approval.yaml)
 
 ```text
 Target: 経費精算承認(ミドリ精機・経理部、FY2026 初回診断)
@@ -102,7 +102,7 @@ bin/aidr check-readiness examples/business/sample-expense-approval-after.yaml
 # => Conclusion: PASS
 ```
 
-入力: [`examples/business/sample-expense-approval-after.yaml`](../examples/business/sample-expense-approval-after.yaml)(改善内容が回答のコメントで読めます)
+入力: [`examples/business/sample-expense-approval-after.yaml`](../examples/business/sample-expense-approval-after.yaml)
 
 PASS になって初めて、次のステップに進めます。→ 詳細は [docs/01](01_four_layer_framework.md)(4 層)と [docs/05](05_organization_axis.md)(組織の受け皿)
 
@@ -116,7 +116,7 @@ PASS になって初めて、次のステップに進めます。→ 詳細は [
 bin/aidr score-delegation examples/judgments/sample-judgments.yaml
 ```
 
-入力: [`examples/judgments/sample-judgments.yaml`](../examples/judgments/sample-judgments.yaml)(問いと回答が 1 ファイルで読めます)
+入力: [`examples/judgments/sample-judgments.yaml`](../examples/judgments/sample-judgments.yaml)
 
 ミドリ精機では、領収書チェックとインボイスチェックが 🟢、採用面接の合否(境界比較の例)は
 🔴 になりました。→ 詳細は [docs/03](03_delegation_matrix.md)
@@ -131,7 +131,7 @@ bin/aidr check-task-contract examples/task-contracts/sample-green.yaml
 # => Region: GREEN — 契約充足
 ```
 
-入力: [`examples/task-contracts/sample-green.yaml`](../examples/task-contracts/sample-green.yaml)(問いと回答が 1 ファイルで読めます)
+入力: [`examples/task-contracts/sample-green.yaml`](../examples/task-contracts/sample-green.yaml)
 
 AI が AI を単一の基準で採点する構成は、ここで 🔴 として止まります
 ([`sample-red-ai-judge.yaml`](../examples/task-contracts/sample-red-ai-judge.yaml) が失敗例)。→ 詳細は [docs/06](06_task_contract_execution_rubric.md)
@@ -177,6 +177,6 @@ doc の番号は追加順で、読み順ではありません。次の順で読�
 
 ## References
 
-- サンプルの正本: [`examples/README.md`](../examples/README.md)(ミドリ精機のプロファイルとサンプル一覧)
-- 定義の正本: [`definitions/`](../definitions/)(質問・閾値。日本語の質問文は各 leaf の `text_ja`)
+- サンプルの正本: [`examples/README.md`](../examples/README.md)
+- 定義の正本: [`definitions/`](../definitions/)
 - 入口: [`README.ja.md`](../README.ja.md)

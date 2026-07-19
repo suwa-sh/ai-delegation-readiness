@@ -9,7 +9,7 @@
 説明 → 改修案を設計 → 優先順位を引く)。後半は、ある自社運用エージェント基盤の
 実スキーマに当てた具体例(worked example)で、`ALTER TABLE` の改修案まで示します。
 
-## 前提(これだけ知っていれば読めます)
+## 前提
 
 - 全体像([docs/00](00_overview.md))のステップ 5(監査ログ)の**応用編**です。
   スキーマの設計([docs/02](02_audit_log_schema.md))を先に読むと本書の観点が分かります
@@ -182,6 +182,4 @@ CREATE TABLE IF NOT EXISTS human_overrides (
 
 - 正本(本リポ側): [`schemas/audit-log.schema.json`](../schemas/audit-log.schema.json)
 - 関連 doc: [`02_audit_log_schema.md`](02_audit_log_schema.md)(本書の前提です)
-- 物語の前後: 本書は学習パス([docs/00](00_overview.md))の最後の本線 doc です。
-  応用に進むなら [07 高責任ドメイン overlay](07_high_stakes_domain_overlay.md) /
-  [08 内製化 overlay](08_insourcing_judgment_overlay.md) へ
+- 次のステップ(応用): [07 高責任ドメイン overlay](07_high_stakes_domain_overlay.md) / [08 内製化 overlay](08_insourcing_judgment_overlay.md)

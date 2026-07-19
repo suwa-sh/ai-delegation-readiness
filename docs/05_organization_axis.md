@@ -11,7 +11,7 @@
 本軸は **味の素モデルの分析記事「6 条件チェックリスト + 反証 5」** から骨格を抽出しています。
 事実と一般化はラベル分けで示します:**【観測事実】** / **【設計提案】**。
 
-## 前提(これだけ知っていれば読めます)
+## 前提
 
 - 全体像([docs/00](00_overview.md))のステップ 2(readiness 診断)のうち、
   **組織側の受け皿**を診断する並列軸の解説です。4 層([docs/01](01_four_layer_framework.md))と
@@ -37,7 +37,6 @@ bin/aidr check-readiness examples/business/ajinomoto-discovery-team.yaml
 ```
 
 入力: [`examples/business/ajinomoto-discovery-team.yaml`](../examples/business/ajinomoto-discovery-team.yaml)
-— 問いと回答が 1 ファイルで読めます。
 
 ```text
 Target: 新規事業の探索チーム(小規模フルスタック・探索フェーズ)
@@ -157,5 +156,4 @@ classDiagram
 - サンプル: [`examples/business/ajinomoto-discovery-team.yaml`](../examples/business/ajinomoto-discovery-team.yaml) /
   [`examples/overlays/organization-readiness-ajinomoto.yaml`](../examples/overlays/organization-readiness-ajinomoto.yaml)
 - 関連: [`01_four_layer_framework.md`](01_four_layer_framework.md)(4 層 + 効果測定)
-- 物語の前後: 本書は [01](01_four_layer_framework.md) と同じステップ 2(readiness 診断)の一部です。
-  次のステップは [03 委任マトリクス](03_delegation_matrix.md)
+- 次のステップ: [03 委任マトリクス](03_delegation_matrix.md)

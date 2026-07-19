@@ -12,7 +12,7 @@ BLOCK)として足し、委任マトリクスの閾値も慎重側(満点でな�
 骨格は **オムロン知財 AI エージェント内製の分析記事** から抽出しています。
 事実と一般化はラベル分けで示します: **【観測事実】** / **【設計提案】**。
 
-## 前提(これだけ知っていれば読めます)
+## 前提
 
 - 本書は**応用編**です。本線 5 ステップ([docs/00](00_overview.md))と
   overlay の仕組み(README の「自社ルールで拡張する」)を先に読んでください
@@ -46,8 +46,6 @@ bin/aidr score-delegation examples/judgments/sample-ip-judgments.yaml \
 
 入力: [`examples/business/sample-ip-agent-readiness.yaml`](../examples/business/sample-ip-agent-readiness.yaml) /
 [`examples/judgments/sample-ip-judgments.yaml`](../examples/judgments/sample-ip-judgments.yaml)
-— 問いと回答が 1 ファイルで読めます。overlay の正本は
-[`examples/overlays/high-stakes-domain/`](../examples/overlays/high-stakes-domain/) です。
 
 readiness サンプルは「業務プロセスは整っている(L1〜L4 全 PASS)が、
 HITL がコンプレイセンシー前提で設計されていない(L5.Q3: no)」架空の知財部門です。

@@ -12,7 +12,7 @@
 正本は [`definitions/delegation-matrix.yaml`](../definitions/delegation-matrix.yaml)
 です。
 
-## 前提(これだけ知っていれば読めます)
+## 前提
 
 - 全体像([docs/00](00_overview.md))の本線 5 ステップのうち、本書は
   **ステップ 3(どの判定を任せるか)** を扱います
@@ -37,8 +37,6 @@ bin/aidr score-delegation examples/judgments/sample-judgments.yaml
 ```
 
 入力: [`examples/judgments/sample-judgments.yaml`](../examples/judgments/sample-judgments.yaml)
-— 判定ごとの id・問い・回答が 1 ファイルで読めます(`aidr init --target matrix` の
-テンプレートに回答を書き込んだ形式)。出力の各行は、この入力の id に対応します。
 
 ```text
 [GREEN ] receipt_mandatory_items_check: GREEN  (verifiability=high(3/3), answer_definability=high(3/3))
@@ -59,7 +57,7 @@ bin/aidr score-delegation examples/judgments/sample-judgments.yaml
 
 各判定には推奨アクション(監査ログにどう記録するか)が併記されます。
 自社の判定リストを採点するときは `bin/aidr init --target matrix > my-judgments.yaml` で
-問いコメント付きのテンプレートを生成して埋めてください。
+テンプレートを生成して埋めてください。
 
 ## Concept
 
@@ -140,9 +138,8 @@ bin/aidr score-delegation examples/judgments/sample-judgments.yaml
 
 ## References
 
-- 正本: [`definitions/delegation-matrix.yaml`](../definitions/delegation-matrix.yaml)(日本語の質問文は `text_ja`)
+- 正本: [`definitions/delegation-matrix.yaml`](../definitions/delegation-matrix.yaml)
 - サンプル入力: [`examples/judgments/sample-judgments.yaml`](../examples/judgments/sample-judgments.yaml)
 - CLI: `bin/aidr score-delegation --help` / テンプレート生成は `bin/aidr init --target matrix`
-- 物語の前後: 前のステップは [01 4 層フレーム](01_four_layer_framework.md)(readiness 診断)、
-  次のステップは [06 タスク契約](06_task_contract_execution_rubric.md)(委任タスクの与え方)
+- 次のステップ: [06 タスク契約](06_task_contract_execution_rubric.md)
 - 関連 doc: [`02_audit_log_schema.md`](02_audit_log_schema.md) / [`07_high_stakes_domain_overlay.md`](07_high_stakes_domain_overlay.md)(知財/法務/薬事向けに両軸の閾値を 3/3 へ強化するドメイン overlay。base の閾値 2/3 は変わりません)

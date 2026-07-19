@@ -12,7 +12,7 @@ AI に任せた判断を、**後から「なぜこうなった?」と聞かれ�
 正本は [`schemas/audit-log.schema.json`](../schemas/audit-log.schema.json)
 (JSON Schema Draft 2020-12)です。
 
-## 前提(これだけ知っていれば読めます)
+## 前提
 
 - 全体像([docs/00](00_overview.md))の本線 5 ステップのうち、本書は
   **ステップ 5(記録は残っているか)** のスキーマ設計を扱います
@@ -157,7 +157,6 @@ for err in validator.iter_errors(your_log_dict):
 - 正本: [`schemas/audit-log.schema.json`](../schemas/audit-log.schema.json)
 - サンプル: [`examples/audit-log-sample.json`](../examples/audit-log-sample.json)(経費の交際費グレーケースを人間にエスカレーションした `escalated` の記録です)
 - CLI: `bin/aidr validate-audit-log --help`
-- 物語の前後: 前のステップは [06 タスク契約](06_task_contract_execution_rubric.md)(証跡 evidence の宣言)、
-  既存基盤への当てはめは [04 ログ基盤の点検](04_audit_log_gap_check.md)
+- 次のステップ: [04 ログ基盤の点検](04_audit_log_gap_check.md)
 - 関連 doc: [`01_four_layer_framework.md`](01_four_layer_framework.md) の④統制層
 - 出典: [メンテナによる分析記事 §④統制・追跡層](https://suwa-sh.github.io/zenn-contents/articles/ajinomoto-accounting-agent_20260621/)

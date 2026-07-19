@@ -13,7 +13,7 @@
 
 正本は [`definitions/task-contract.yaml`](../definitions/task-contract.yaml) です。
 
-## 前提(これだけ知っていれば読めます)
+## 前提
 
 - 全体像([docs/00](00_overview.md))の本線 5 ステップのうち、本書は
   **ステップ 4(タスクをどう渡すか)** を扱います
@@ -44,7 +44,6 @@ bin/aidr check-task-contract examples/task-contracts/sample-red-ai-judge.yaml
 
 入力: [`examples/task-contracts/sample-green.yaml`](../examples/task-contracts/sample-green.yaml) /
 [`sample-red-ai-judge.yaml`](../examples/task-contracts/sample-red-ai-judge.yaml)
-— 問いと回答が 1 ファイルで読めます。
 
 | 例 | 読み方 |
 |---|---|
@@ -125,9 +124,8 @@ partial、0 で absent です。**absent が 1 つでもあれば 🔴**、absen
 
 ## References
 
-- 正本: [`definitions/task-contract.yaml`](../definitions/task-contract.yaml)(質問の日本語文は `text_ja`)
-- サンプル入力: [`examples/task-contracts/sample-green.yaml`](../examples/task-contracts/sample-green.yaml) / [`sample-red-ai-judge.yaml`](../examples/task-contracts/sample-red-ai-judge.yaml)(ミドリ精機の経費チェック委任の 2 例)
+- 正本: [`definitions/task-contract.yaml`](../definitions/task-contract.yaml)
+- サンプル入力: [`examples/task-contracts/sample-green.yaml`](../examples/task-contracts/sample-green.yaml) / [`sample-red-ai-judge.yaml`](../examples/task-contracts/sample-red-ai-judge.yaml)
 - CLI: `bin/aidr check-task-contract --help`
-- 物語の前後: 前のステップは [03 委任マトリクス](03_delegation_matrix.md)(委任前の領域判定)、
-  次のステップは [02 監査ログスキーマ](02_audit_log_schema.md)(証跡 evidence の schema)
+- 次のステップ: [02 監査ログスキーマ](02_audit_log_schema.md)
 - 出典: iRULER(CHI 2026)/ OpenAI「How agents are transforming work」(2026-06-25)
