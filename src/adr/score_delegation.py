@@ -24,11 +24,17 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+import yaml
+
 import overlay_scoring as overlay_mod
 from .check_readiness import OverlayError, _normalize_yes
 
 DEFINITION_NAME = "delegation-matrix"
 DEFAULT_DEFINITION = Path(__file__).resolve().parents[2] / "definitions" / "delegation-matrix.yaml"
+
+
+class InputError(Exception):
+    """Raised when the judgments input violates the input contract."""
 
 
 @dataclass
@@ -130,8 +136,21 @@ def score(
     axis_groups = {gid: g for gid, g in groups.items() if gid not in _NON_AXIS_GROUPS}
     region_leaves = groups["regions"]["leaves"]
 
-    input_data = overlay_mod.load_yaml(judgments_path)
-    judgments_in = input_data.get("judgments", []) or []
+    # Input contract (mirrors screen_transition): a missing/None 'judgments'
+    # key or a non-list value is an input error (exit 3), not a silent
+    # zero-judgment success — a mistyped path/format in CI must not pass as
+    # "scored everything". An explicitly empty list is still allowed.
+    try:
+        input_data = overlay_mod.load_yaml(judgments_path)
+    except yaml.YAMLError as e:
+        raise InputError(f"input is not valid YAML/JSON: {e}") from e
+    if not isinstance(input_data, dict):
+        raise InputError("input must be a mapping with a 'judgments' list")
+    if "judgments" not in input_data or input_data["judgments"] is None:
+        raise InputError("input must contain a 'judgments' list")
+    judgments_in = input_data["judgments"]
+    if not isinstance(judgments_in, list):
+        raise InputError("'judgments' must be a list")
 
     results: list[JudgmentResult] = []
     for j in judgments_in:

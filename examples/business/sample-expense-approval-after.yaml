@@ -54,3 +54,8 @@ answers:
   organization.C4: yes    # ベンダー契約に知識移転(内面化)を KPI として明記
   organization.C5: yes    # 拡大期のチーム分割案を事前設計済み
   organization.C6: yes    # ペア作業と ADR で属人化対策を運用中
+
+  # ミドリ精機の自社ルール(overlays/sample-company/extra-rules.yaml)を
+  # 適用して再診断する場合の追加回答。overlay なしの実行では無視される。
+  L1.MIDORI_Q5: yes       # 規程集は 12 ヶ月以内に法務レビュー済み
+  L4.MIDORI_Q6: yes       # 監査ログはハッシュチェーン付きストアに保存

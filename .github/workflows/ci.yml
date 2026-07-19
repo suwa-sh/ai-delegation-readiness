@@ -43,4 +43,7 @@ jobs:
         run: |
           bin/aidr --help
           bin/aidr validate-audit-log examples/audit-log-sample.json --level extended
+
+      - name: Check documentation links
+        run: python3 scripts/check-doc-links.py
           bin/aidr check-overlay examples/overlays/sample-company/extra-rules.yaml

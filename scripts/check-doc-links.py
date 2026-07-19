@@ -2,11 +2,12 @@
 """Markdown リンク検査: 相対パスの実在と見出しアンカーの存在を検証する。
 
 検査対象: リポ内の README*.md / docs/*.md / examples/**/*.md
-検査内容:
+検査内容(インライン形式 [label](path) / ![alt](path) のみ。reference-style
+リンクと本文中の裸のパス文字列は対象外 — 本リポでは使っていない):
   1. 相対リンク(bare パス含む: docs/01_..., README.md, LICENSE 等)の実在
   2. #fragment が対象ファイルの見出しアンカー(GitHub 方式 slug)に存在すること
   3. 画像リンク(![...](path))のパス実在
-http(s) / mailto の外部リンクは対象外。
+http(s) / mailto の外部リンクは対象外。CI(ci.yml)から毎 push 実行される。
 
 usage: python3 scripts/check-doc-links.py   (exit 0 = OK / 1 = broken links)
 """

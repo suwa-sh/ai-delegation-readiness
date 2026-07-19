@@ -77,7 +77,7 @@ flowchart TD
 | 需要弾力性(demand_elasticity) | AI がコストを下げたとき需要が拡大するか。D1〜D3 の 2/3 yes で high |
 | 人間必要性(human_necessity) | 規制・関係・物理の**いずれか**で人間が残る必要。H1〜H3 の **1 つでも** yes で high |
 | 再編(reorganization) | 人は残るが人員需要は減りうる最難ゾーン。委任設計の最優先(priority 1) |
-| 高自動化(high_automation) | 委任候補。次段の `score-delegation` で判定単位に採点する |
+| 高自動化(high_automation) | 委任候補。まず `check-readiness` で業務を診断し、PASS 後に `score-delegation` で判定単位に採点する |
 | 成長(growth) | コスト低下が需要を拡大。augment 投資・役割拡張 |
 | 変化小(minimal_change) | 低 exposure / 物理障壁。監視のみで過剰投資を避ける |
 

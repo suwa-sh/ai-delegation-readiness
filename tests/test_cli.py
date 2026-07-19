@@ -83,6 +83,58 @@ def test_screen_transition_broken_yaml_exits_3(tmp_path):
     assert "[ERROR]" in r.stderr
 
 
+def test_check_readiness_after_sample_passes():
+    """The story's re-diagnosis must stay PASS, with and without the
+    company overlay (its extra answers are pre-filled in the sample)."""
+    from conftest import sample_business_after_path, sample_overlay_path
+
+    r = _run("check-readiness", str(sample_business_after_path()))
+    assert r.returncode == 0
+    assert "Conclusion: PASS" in r.stdout
+
+    r2 = _run(
+        "check-readiness", str(sample_business_after_path()),
+        "--overlay", str(sample_overlay_path()),
+    )
+    assert r2.returncode == 0
+    assert "Conclusion: PASS" in r2.stdout
+
+
+def test_score_delegation_missing_judgments_key_exits_3(tmp_path):
+    """A wrong-shape input (e.g. an audit-log JSON) must not pass as a
+    zero-judgment success."""
+    p = tmp_path / "not-judgments.json"
+    p.write_text('{"who": {"agent": {"id": "x"}}}')
+    r = _run("score-delegation", str(p))
+    assert r.returncode == 3
+    assert "[ERROR]" in r.stderr
+
+
+def test_score_delegation_empty_list_is_explicit_success(tmp_path):
+    p = tmp_path / "empty.yaml"
+    p.write_text("judgments: []\n")
+    r = _run("score-delegation", str(p))
+    assert r.returncode == 0
+    assert "No judgments scored." in r.stdout
+
+
+def test_validate_audit_log_broken_json_exits_3(tmp_path):
+    p = tmp_path / "broken.json"
+    p.write_text('{"who": ')
+    r = _run("validate-audit-log", str(p))
+    assert r.returncode == 3
+    assert "[ERROR]" in r.stderr
+    assert "Traceback" not in r.stderr
+
+
+def test_check_overlay_rejected_exits_1(tmp_path):
+    """Pin the documented contract: a rejected overlay is exit 1 (not 2)."""
+    p = tmp_path / "weaken.yaml"
+    p.write_text('version: 1\nextends: four-layer-delegation-readiness\nstrengthen:\n  "L4": {revise: 0.4}\n')
+    r = _run("check-overlay", str(p))
+    assert r.returncode == 1
+
+
 def test_check_readiness_blocked_sample_exits_2():
     r = _run("check-readiness", str(sample_business_path()))
     assert r.returncode == 2

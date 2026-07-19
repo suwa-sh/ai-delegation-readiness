@@ -39,6 +39,10 @@ def sample_business_path() -> Path:
     return EXAMPLES_DIR / "business" / "sample-expense-approval.yaml"
 
 
+def sample_business_after_path() -> Path:
+    return EXAMPLES_DIR / "business" / "sample-expense-approval-after.yaml"
+
+
 def sample_judgments_path() -> Path:
     return EXAMPLES_DIR / "judgments" / "sample-judgments.yaml"
 

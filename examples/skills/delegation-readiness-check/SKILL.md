@@ -37,7 +37,9 @@ description: Walk a user through the 4-layer readiness check for AI delegation. 
    `unknown` にする(CLI は採点上 no として扱い、レポートでは unknown として
    区別して表示する)。
 
-4. L4 の後に効果測定(efficacy)の質問を出す。
+4. L4 の後に効果測定(efficacy)の質問を出し、続けて組織 readiness
+   (organization.C1〜C6)の質問を出す。**組織軸を飛ばさない** —
+   未回答は unknown(採点上 no)となり、他が満点でも総合 BLOCK になる。
 
 5. 集めた回答を `/tmp/aidr-readiness-<timestamp>.yaml` に書き出す。形式:
 
@@ -53,13 +55,16 @@ description: Walk a user through the 4-layer readiness check for AI delegation. 
    (overlay があれば `--overlay <path>` を追加)。stdout と exit code を取得する。
 
 7. JSON 出力をユーザー向けに翻訳する。結論(PASS / REVISE / BLOCK)を先頭に、
-   verdict が pass でない層ごとに:
+   verdict が pass でない層・軸ごとに:
    - どの質問が no / unknown だったか
-   - その層が最初のゲートか(`blocked_from`)
-   - 層の `purpose` から導いた次の一手を 1 文
+   - その層が最初のゲートか(`blocked_from`。**並列軸(efficacy / organization)は
+     ゲートに関与しない**ので、blocked_from には現れない)
+   - 層・軸の `purpose` から導いた次の一手を 1 文
 
 8. 結論が BLOCK / REVISE なら、次の具体行動を勧める:
-   「まず層 L<N> を直して、チェックを再実行してください」。
+   - ゲート層由来なら「まず層 L<N> を直して、チェックを再実行してください」
+   - 並列軸(組織 readiness 等)由来なら「業務プロセスとは独立の穴です。
+     軸の no / unknown 項目(受け皿・知識移転・bus factor 等)を整えてください」
    この段階では AI への委任を勧めない。
 
 ## 出力の作法

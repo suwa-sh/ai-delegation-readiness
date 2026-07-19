@@ -59,8 +59,10 @@ task-groups YAML を書き出し、CLI を JSON モードで実行し、結果�
 6. JSON をユーザー向けに翻訳する。CLI が返す委任優先度順のまま:
    - **再編(reorganization)** を先頭に: 設計が最も重いゾーン
      (人は残るが人員需要は減りうる。役割再設計が必要)と明示する
-   - **高自動化(high_automation)**: 次の一手 — 具体的な判定を
-     `aidr score-delegation` で採点する — を勧める
+   - **高自動化(high_automation)**: 次の一手を勧める — **まず
+     `aidr check-readiness` で業務の readiness を診断し(BLOCK なら改善が先)、
+     PASS 後に `aidr score-delegation` で具体的な判定を採点する**。
+     readiness 診断を飛ばして判定採点だけで委任を始めさせない
    - `human_control_required: true` の群: 類型がどれであっても、
      権利・財務・健康・規制の領域は人間が最終判断を持つと明言する
    - 締めは `action` テキストの意思決定順序で: タスク分解 → 仕分け →

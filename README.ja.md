@@ -87,10 +87,13 @@ docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.8.0 list-definitions
 `aidr 0.8.0 (overlay-scoring-skeleton 0.1.0)`。
 
 各コマンドは決定的な終了コードを返すので、CI のゲートに使えます。
-**0** ok ・ **1** partial(yellow)・ **2** block(red: 欠落・SLA 違反・overlay 却下)・
-**3** 入力エラー。
-例外は `screen-transition` です。スクリーニングは合否ゲートでなく分類なので、成功時は
-類型によらず常に **0**(未回答の欠落・overlay 違反のみ **3**)を返します。
+
+| コマンド | 0 | 1 | 2 | 3 |
+|---|---|---|---|---|
+| check-readiness / score-delegation / check-task-contract | ok(green) | partial(yellow) | block(red) | 入力エラー・overlay 違反 |
+| screen-transition | 成功(分類はゲートでないため類型によらず 0) | — | — | 未回答の欠落・不正値・overlay 違反 |
+| validate-audit-log | valid | invalid(スキーマ違反) | — | 入力エラー(JSON 構文不正・ファイルなし) |
+| check-overlay | マージ規則を満たす | 違反あり(却下) | — | — |
 
 ## 学習パス(どの順で読むか)
 

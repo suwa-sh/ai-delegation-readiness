@@ -46,6 +46,10 @@
 | 5 監査ログ | `aidr validate-audit-log` | [`audit-log-sample.json`](audit-log-sample.json) |
 | 拡張(任意) | `aidr check-overlay` → 各コマンド `--overlay` | [`overlays/sample-company/extra-rules.yaml`](overlays/sample-company/extra-rules.yaml) |
 
+補足: 改善後サンプル(2')には、ミドリ精機の自社ルール overlay を適用する場合の
+追加回答(`L1.MIDORI_Q5` / `L4.MIDORI_Q6`)も入っています。overlay あり・なしの
+どちらで再診断しても PASS になります。
+
 補足:
 
 - ステップ 3 のサンプルには、経費の 3 判定に加えて **境界比較のための 2 判定**
@@ -68,5 +72,7 @@
 
 正本定義(`definitions/*.yaml`)の中にも `examples` group があります(領収書チェック・
 コーディング委任・看護・配管工など)。これらは **各分類の判定基準を例示する
-リファレンスケース**で、ミドリ精機の物語とは独立です。日本語化・物語統一の対象外として、
-出典ラベル(observed_fact / design_proposal)つきの原文のまま維持しています。
+リファレンスケース**で、ミドリ精機の物語とは独立です。日本語化・物語統一の対象外として
+原文のまま維持しています(多くの例には confidence ラベル
+= observed_fact / design_proposal が付いています。ラベルの無い一部の例は
+定義追加時の記載のままです)。

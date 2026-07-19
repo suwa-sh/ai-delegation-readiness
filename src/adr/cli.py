@@ -98,6 +98,9 @@ def _cmd_score_delegation(args: argparse.Namespace) -> int:
     except _check_readiness.OverlayError as e:
         sys.stderr.write(f"[ERROR] {e}\n")
         return 3
+    except _score.InputError as e:
+        sys.stderr.write(f"[ERROR] {e}\n")
+        return 3
     output = (
         _score.render_json(result)
         if args.format == "json"
@@ -126,7 +129,15 @@ def _cmd_check_task_contract(args: argparse.Namespace) -> int:
 
 
 def _cmd_validate_audit_log(args: argparse.Namespace) -> int:
-    result = _validate.validate(args.log, level=args.level)
+    import json as _json
+
+    try:
+        result = _validate.validate(args.log, level=args.level)
+    except (_json.JSONDecodeError, FileNotFoundError) as e:
+        # Malformed/missing input is an input error (exit 3), not an
+        # "invalid log" verdict (exit 1) — and never a raw traceback.
+        sys.stderr.write(f"[ERROR] {e}\n")
+        return 3
     output = (
         _validate.render_json(result)
         if args.format == "json"

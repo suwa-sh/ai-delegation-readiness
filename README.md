@@ -92,11 +92,13 @@ docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.8.0 list-definitions
 `aidr 0.8.0 (overlay-scoring-skeleton 0.1.0)`.
 
 Every command returns a deterministic exit code so you can gate CI on it:
-**0** ok · **1** partial (yellow) · **2** block (red: gaps, SLA breach, rejected
-overlay) · **3** input error.
-The exception is `screen-transition`: screening is a classification, not a
-pass/fail gate, so it exits **0** on success whatever the types are (missing
-answers and overlay violations still exit **3**).
+
+| Command | 0 | 1 | 2 | 3 |
+|---|---|---|---|---|
+| check-readiness / score-delegation / check-task-contract | ok (green) | partial (yellow) | block (red) | input error / overlay violation |
+| screen-transition | success (classification, not a gate — 0 whatever the types) | — | — | missing/invalid answers, overlay violation |
+| validate-audit-log | valid | invalid (schema violations) | — | input error (malformed JSON, missing file) |
+| check-overlay | merges cleanly | violations (rejected) | — | — |
 
 ## Usage workflow
 
