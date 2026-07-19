@@ -41,17 +41,10 @@ task-groups YAML を書き出し、CLI を JSON モードで実行し、結果�
    (fail-closed): CLI は未回答を拒否するので、スキップしない。ユーザーが
    迷ったら yes/no を決められるまで話し合う。代わりに推測しない。
 
-4. 回答を `/tmp/aidr-screening-<timestamp>.yaml` に書き出す。形式は
-   `examples/task-groups/sample-task-groups.yaml` と同じ:
-
-   ```yaml
-   task_groups:
-     - id: <slug>
-       description: <タスク群の名前>
-       answers:
-         technical_exposure.E1: yes
-         ...
-   ```
+4. `bin/aidr init --target transition`(overlay があれば `--overlay <path>` を付ける)で
+   問いコメント付きテンプレートを `/tmp/aidr-screening-<timestamp>.yaml` に生成し、
+   タスク群の数だけ `- id:` ブロックを複製して回答を書き込む(問いのコメントは
+   消さない)。記入例: `examples/task-groups/sample-task-groups.yaml`。
 
 5. `bin/aidr screen-transition <tmp.yaml> --format json` を実行する
    (overlay があれば `--overlay <path>`)。stdout を取得する。

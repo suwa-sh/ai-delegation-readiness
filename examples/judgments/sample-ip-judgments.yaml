@@ -1,4 +1,5 @@
 # `aidr score-delegation` + 高責任ドメイン overlay のサンプル入力(応用例)。
+# `aidr init --target matrix` のテンプレートに回答を書き込んだものです。
 #
 # 2 回実行すると、overlay の「慎重側への割り引き」が体験できます:
 #
@@ -9,24 +10,46 @@
 #   bin/aidr score-delegation examples/judgments/sample-ip-judgments.yaml \
 #     --overlay examples/overlays/high-stakes-domain/delegation-matrix.yaml
 #
-# 特許業務の 4 工程です(overlay 内の worked examples と対応)。base の閾値では
-# 4 件すべて green ですが、overlay 適用後は特許分類だけが green に残ります —
-# 境界事例(どちらかの軸が 2/3)は yellow / red に落ちます。この落ち方が本題です:
-# 高責任ドメインでは「ほぼ満点の軸」を high と扱いません。
+# 特許業務の 4 工程です。base では 4 件すべて green、overlay 適用後は特許分類だけが
+# green に残ります — 境界事例(どちらかの軸が 2/3)は yellow / red に落ちます。
 
 judgments:
   - id: patent_classification
     description: 特許分類コードの付与(有限のラベル集合・正解ラベルの大量な蓄積あり)
-    answers: { verifiability.V1: yes, verifiability.V2: yes, verifiability.V3: yes, answer_definability.A1: yes, answer_definability.A2: yes, answer_definability.A3: yes }
+    answers:
+      verifiability.V1: yes        # 問: 第三者が同一入力で同じ判定を採点できるか
+      verifiability.V2: yes        # 問: 正誤判定に必要な情報が入力データと規定文書だけで揃うか(個人の経験に依存しないか)
+      verifiability.V3: yes        # 問: 判定結果を機械的に再実行できるテストに落とせるか
+      answer_definability.A1: yes  # 問: 判定根拠を規定の条番号(または SOP のステップ番号)に紐付けられるか
+      answer_definability.A2: yes  # 問: 判定の妥当性がケース個別の文脈でなく規定で決まるか
+      answer_definability.A3: yes  # 問: ベテランの暗黙知に頼らず判定理由を文書化できるか
 
   - id: prior_art_candidate_retrieval
     description: クレームに対する先行技術候補の抽出(「該当なし」の確定は含まない)
-    answers: { verifiability.V1: yes, verifiability.V2: yes, verifiability.V3: yes, answer_definability.A1: yes, answer_definability.A2: yes, answer_definability.A3: no }
+    answers:
+      verifiability.V1: yes        # 問: 第三者が同一入力で同じ判定を採点できるか
+      verifiability.V2: yes        # 問: 正誤判定に必要な情報が入力データと規定文書だけで揃うか(個人の経験に依存しないか)
+      verifiability.V3: yes        # 問: 判定結果を機械的に再実行できるテストに落とせるか
+      answer_definability.A1: yes  # 問: 判定根拠を規定の条番号(または SOP のステップ番号)に紐付けられるか
+      answer_definability.A2: yes  # 問: 判定の妥当性がケース個別の文脈でなく規定で決まるか
+      answer_definability.A3: no   # 問: ベテランの暗黙知に頼らず判定理由を文書化できるか
 
   - id: patent_spec_draft
     description: 発明提案書を課題・手段・効果に再構成する明細書ドラフト作成
-    answers: { verifiability.V1: yes, verifiability.V2: yes, verifiability.V3: no, answer_definability.A1: yes, answer_definability.A2: yes, answer_definability.A3: yes }
+    answers:
+      verifiability.V1: yes        # 問: 第三者が同一入力で同じ判定を採点できるか
+      verifiability.V2: yes        # 問: 正誤判定に必要な情報が入力データと規定文書だけで揃うか(個人の経験に依存しないか)
+      verifiability.V3: no         # 問: 判定結果を機械的に再実行できるテストに落とせるか
+      answer_definability.A1: yes  # 問: 判定根拠を規定の条番号(または SOP のステップ番号)に紐付けられるか
+      answer_definability.A2: yes  # 問: 判定の妥当性がケース個別の文脈でなく規定で決まるか
+      answer_definability.A3: yes  # 問: ベテランの暗黙知に頼らず判定理由を文書化できるか
 
   - id: invalidity_search_final
     description: 無効資料調査の「該当する資料は存在しない」という確定判断
-    answers: { verifiability.V1: yes, verifiability.V2: yes, verifiability.V3: no, answer_definability.A1: yes, answer_definability.A2: yes, answer_definability.A3: no }
+    answers:
+      verifiability.V1: yes        # 問: 第三者が同一入力で同じ判定を採点できるか
+      verifiability.V2: yes        # 問: 正誤判定に必要な情報が入力データと規定文書だけで揃うか(個人の経験に依存しないか)
+      verifiability.V3: no         # 問: 判定結果を機械的に再実行できるテストに落とせるか
+      answer_definability.A1: yes  # 問: 判定根拠を規定の条番号(または SOP のステップ番号)に紐付けられるか
+      answer_definability.A2: yes  # 問: 判定の妥当性がケース個別の文脈でなく規定で決まるか
+      answer_definability.A3: no   # 問: ベテランの暗黙知に頼らず判定理由を文書化できるか

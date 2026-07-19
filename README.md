@@ -66,30 +66,30 @@ No setup — pull the published image and run it. The bundled samples (the
 Midori Seiki story) work out of the box:
 
 ```bash
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.8.0 --version
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.9.0 --version
 
 # The 5 main-line steps, in story order
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.8.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.9.0 \
   screen-transition examples/task-groups/sample-task-groups.yaml
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.8.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.9.0 \
   check-readiness examples/business/sample-expense-approval.yaml          # first diagnosis -> BLOCK
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.8.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.9.0 \
   check-readiness examples/business/sample-expense-approval-after.yaml    # after fixes -> PASS
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.8.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.9.0 \
   score-delegation examples/judgments/sample-judgments.yaml
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.8.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.9.0 \
   check-task-contract examples/task-contracts/sample-green.yaml
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.8.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.9.0 \
   validate-audit-log examples/audit-log-sample.json --level extended
 
 # Extension (optional) and definition inspection
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.8.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.9.0 \
   check-overlay examples/overlays/sample-company/extra-rules.yaml
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.8.0 list-definitions
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.9.0 list-definitions
 ```
 
 `--version` prints the app version and the bundled overlay engine version, e.g.
-`aidr 0.8.0 (overlay-scoring-skeleton 0.1.0)`.
+`aidr 0.9.0 (overlay-scoring-skeleton 0.1.0)`.
 
 Every command returns a deterministic exit code so you can gate CI on it:
 
@@ -107,15 +107,17 @@ into the container. A shell function keeps the rest of this guide readable:
 
 ```bash
 aidr() { docker run --rm -v "$PWD:/data" -w /data \
-  ghcr.io/suwa-sh/ai-delegation-readiness:v0.8.0 "$@"; }
+  ghcr.io/suwa-sh/ai-delegation-readiness:v0.9.0 "$@"; }
 ```
 
 Grab a sample from [`examples/`](examples/) as a template, edit it with your own
 values, then run the commands in this order. Question texts carry both English
 (`text`) and Japanese (`text_ja`) in `definitions/*.yaml`.
 
-1. **Prepare** — start your own input files from the samples
-   (`my-task-groups.yaml`, `my-business.yaml`, `my-judgments.yaml`).
+1. **Prepare** — generate templates with question comments via
+   `aidr init --target transition|four-layer|matrix|task-contract > my-file.yaml`
+   (add `--overlay` to include your company's extra questions). The bundled
+   [`examples/`](examples/) are these templates filled with Midori Seiki's answers.
 2. **Map where to start** — `aidr screen-transition my-task-groups.yaml` sorts
    task groups into the four AI-transition types in delegation-design priority
    order: *reorganization* first (role redesign needed), *high automation*
@@ -177,7 +179,7 @@ ai-delegation-readiness/
 ├── schemas/
 │   └── audit-log.schema.json    # JSON Schema with $defs: minimum (A) / extended (B)
 ├── src/adr/                     # Python diagnostic tool (shipped as a container image)
-├── bin/aidr                     # CLI entry point (single command, 7 subcommands)
+├── bin/aidr                     # CLI entry point (single command, 8 subcommands)
 ├── examples/                    # Samples connected by the Midori Seiki (fictional) story
 │   ├── README.md                #   Canonical story profile + sample index + applied cases (Japanese)
 │   ├── task-groups/             #   Step 1: screen-transition input
@@ -225,7 +227,7 @@ The framework is reused in three ways:
   `schemas/audit-log.schema.json` into the system prompt or tool context.
   See [`examples/skills/`](examples/skills/) for three ready-to-adapt Claude
   Code skill wrappers.
-- **CI pipelines**: run `docker run --rm -v "$PWD:/data" -w /data ghcr.io/suwa-sh/ai-delegation-readiness:v0.8.0 validate-audit-log <log>` on each emitted log; gate
+- **CI pipelines**: run `docker run --rm -v "$PWD:/data" -w /data ghcr.io/suwa-sh/ai-delegation-readiness:v0.9.0 validate-audit-log <log>` on each emitted log; gate
   on exit code.
 - **Internal overlays**: keep your company-specific overlay in a private repo and
   apply with `--overlay`. The framework stays a clean upstream you can pull from.

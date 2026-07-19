@@ -2,11 +2,12 @@
 
 ## TL;DR
 
-知財・法務・薬事のような**高文脈・高責任な専門業務**は、「AI 適地」と一般化するのではなく、
-**成立条件 4 つ(閉域データ / 高 recall 人検証 / 訓練された HITL / 基盤移行運用)を満たすときに
-例外的に成立する型**として採点します。本 overlay は base 定義を変えずに、
-①成立条件のハードゲート層 **L5**(1 つでも No なら BLOCK)、②委任範囲層 L3 への
-**可逆性・誤りコスト**の質問、③委任マトリクス両軸の**閾値強化(2/3 → 3/3)**、を追加します。
+知財・法務・薬事のような、**誤りが訴訟・権利喪失・行政処分に直結する仕事**にも
+AI を使えるのか? — 答えは「一般には No、**4 つの成立条件を満たすときだけ例外的に Yes**」です。
+成立条件は、①秘匿情報を閉域で扱える ②見落としを人間が捕まえるループがある
+③形骸化を前提に HITL を訓練している ④基盤モデルの毎年の移行コストを織り込んでいる。
+本 overlay は base 定義を変えずに、この成立条件をハードゲート層 **L5**(1 つでも No なら
+BLOCK)として足し、委任マトリクスの閾値も慎重側(満点でなければ high と扱わない)に強化します。
 
 骨格は **オムロン知財 AI エージェント内製の分析記事** から抽出しています。
 事実と一般化はラベル分けで示します: **【観測事実】** / **【設計提案】**。
@@ -31,7 +32,7 @@
 - オムロン型の内製(基盤は managed、ドメイン特化層を内製)を検討していて、
   着手前に成立条件を点検したい
 
-## Quick use
+## 事例で見る(架空の知財部門)
 
 ```bash
 # 業務全体の readiness(成立条件ゲート込み)
@@ -42,6 +43,11 @@ bin/aidr check-readiness examples/business/sample-ip-agent-readiness.yaml \
 bin/aidr score-delegation examples/judgments/sample-ip-judgments.yaml \
   --overlay examples/overlays/high-stakes-domain/delegation-matrix.yaml
 ```
+
+入力: [`examples/business/sample-ip-agent-readiness.yaml`](../examples/business/sample-ip-agent-readiness.yaml) /
+[`examples/judgments/sample-ip-judgments.yaml`](../examples/judgments/sample-ip-judgments.yaml)
+— 問いと回答が 1 ファイルで読めます。overlay の正本は
+[`examples/overlays/high-stakes-domain/`](../examples/overlays/high-stakes-domain/) です。
 
 readiness サンプルは「業務プロセスは整っている(L1〜L4 全 PASS)が、
 HITL がコンプレイセンシー前提で設計されていない(L5.Q3: no)」架空の知財部門です。

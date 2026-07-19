@@ -41,15 +41,10 @@ description: Walk a user through the 4-layer readiness check for AI delegation. 
    (organization.C1〜C6)の質問を出す。**組織軸を飛ばさない** —
    未回答は unknown(採点上 no)となり、他が満点でも総合 BLOCK になる。
 
-5. 集めた回答を `/tmp/aidr-readiness-<timestamp>.yaml` に書き出す。形式:
-
-   ```yaml
-   target: <業務名>
-   answers:
-     L1.Q1: yes
-     L1.Q2: no
-     ...
-   ```
+5. `bin/aidr init --target four-layer`(overlay があれば `--overlay <path>` を付ける)で
+   問いコメント付きテンプレートを `/tmp/aidr-readiness-<timestamp>.yaml` に生成し、
+   集めた回答を書き込む(テンプレートの質問行の値を埋めるだけ。問いのコメントは
+   消さない — ユーザーが後からファイル単体で見直せるように)。
 
 6. `bin/aidr check-readiness <tmp.yaml> --format json` を実行する
    (overlay があれば `--overlay <path>` を追加)。stdout と exit code を取得する。

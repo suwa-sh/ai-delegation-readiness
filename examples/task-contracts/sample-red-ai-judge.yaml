@@ -1,22 +1,25 @@
 # `aidr check-task-contract` のサンプル入力(物語ステップ 4: 委任不可の例)。
+# `aidr init --target task-contract` のテンプレートに回答を書き込んだものです。
 #
 # sample-green.yaml と同じ契約ですが、AI 採点者が単一ルーブリックで採点し、
 # iRULER 二重評価がありません。安全ゲートが作動して RED(exit 2)になります —
 # 他の要素がすべて宣言済みでも、です。
 # 直すには、二重評価を実装する(scorer.iruler_double_eval: yes)か、
 # 人間の二段目審査を置きます(scorer.type: two_stage)。
+
 task: 経費チェックエージェントへの経費精算チェック委任(採点者が安全でない例)
+
 answers:
-  intent.I1: yes
-  intent.I2: yes
-  intent.I3: yes
-  boundary.B1: yes
-  boundary.B2: yes
-  boundary.B3: yes
-  evidence.E1: yes
-  evidence.E2: yes
-  evidence.E3: yes
-  scorer.S1: yes
-  scorer.S2: yes
-  scorer.type: ai_judge
-  scorer.iruler_double_eval: no    # -> RED: 二重評価のない AI 採点者
+  intent.I1: yes                   # 問: 合格条件(何を満たせば成果物を受け入れるか)が明文化されているか
+  intent.I2: yes                   # 問: 受け入れ基準を機械的に確認できるか(再実行可能なテスト、または列挙可能なリスト)
+  intent.I3: yes                   # 問: 主成果物が名指しされ、「完了」の定義が曖昧でないか
+  boundary.B1: yes                 # 問: 禁止事項(エージェントがやってはいけないこと)が列挙されているか
+  boundary.B2: yes                 # 問: エスカレーション条件(いつ止めて人間に渡すか)が定義されているか
+  boundary.B3: yes                 # 問: データアクセス範囲が最小権限で限定されているか(どのソースを読んでよいか)
+  evidence.E1: yes                 # 問: 記録する入出力の範囲(監査スコープ)が定義されているか
+  evidence.E2: yes                 # 問: 判定ごとに Who/When/What/Why/Result を記録しているか
+  evidence.E3: yes                 # 問: 記録は決定的なステップで生成されるか(長時間実行で省略されうる後付け処理でないか)
+  scorer.S1: yes                   # 問: 採点者が割り付けられているか(特定の人間・AI 採点者・二段審査のいずれか)
+  scorer.S2: yes                   # 問: 採点ルーブリック自体が明文化されているか(暗黙のままにしていないか)
+  scorer.type: ai_judge            # human | ai_judge | two_stage(必須)
+  scorer.iruler_double_eval: no    # AI 採点者(ai_judge)のとき、二重評価があるか(yes/no) → 二重評価のない AI 採点者 → RED

@@ -1,6 +1,7 @@
 """Command-line entry point for ``aidr``.
 
 Subcommands:
+    init                   generate an answer-file template with question comments
     screen-transition      pre-delegation screening into the 4 AI-transition types
     check-readiness        4-layer + efficacy readiness check (delegate-or-not)
     score-delegation       delegation matrix scoring per judgment
@@ -23,6 +24,7 @@ from . import (
     check_overlay as _check_overlay,
     check_readiness as _check_readiness,
     check_task_contract as _task,
+    init_input as _init,
     list_definitions as _list,
     score_delegation as _score,
     screen_transition as _screen,
@@ -72,6 +74,15 @@ def _cmd_check_readiness(args: argparse.Namespace) -> int:
     )
     print(output)
     return _check_readiness.exit_code_for(result)
+
+
+def _cmd_init(args: argparse.Namespace) -> int:
+    try:
+        print(_init.generate(args.target, overlay_paths=args.overlay), end="")
+    except _check_readiness.OverlayError as e:
+        sys.stderr.write(f"[ERROR] {e}\n")
+        return 3
+    return 0
 
 
 def _cmd_screen_transition(args: argparse.Namespace) -> int:
@@ -209,6 +220,25 @@ def build_parser() -> argparse.ArgumentParser:
     p_check.add_argument("business", help="Path to the business answers YAML")
     _shared_overlay_args(p_check)
     p_check.set_defaults(func=_cmd_check_readiness)
+
+    p_init = sub.add_parser(
+        "init",
+        help="Generate an answer-file template with question comments (write to stdout)",
+    )
+    p_init.add_argument(
+        "--target",
+        choices=sorted(_init.TARGETS),
+        required=True,
+        help="Which input template to generate",
+    )
+    p_init.add_argument(
+        "--overlay",
+        action="append",
+        default=[],
+        metavar="PATH",
+        help="Overlay file to include (repeatable; added questions appear in the template)",
+    )
+    p_init.set_defaults(func=_cmd_init)
 
     p_screen = sub.add_parser(
         "screen-transition",

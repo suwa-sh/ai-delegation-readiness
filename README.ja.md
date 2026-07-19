@@ -61,30 +61,30 @@ AI エージェントや CI からも直接使えます。
 (ミドリ精機の物語)がそのまま動きます。
 
 ```bash
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.8.0 --version
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.9.0 --version
 
 # 本線 5 ステップを物語の順に
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.8.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.9.0 \
   screen-transition examples/task-groups/sample-task-groups.yaml
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.8.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.9.0 \
   check-readiness examples/business/sample-expense-approval.yaml          # 初回診断 → BLOCK
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.8.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.9.0 \
   check-readiness examples/business/sample-expense-approval-after.yaml    # 改善後 → PASS
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.8.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.9.0 \
   score-delegation examples/judgments/sample-judgments.yaml
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.8.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.9.0 \
   check-task-contract examples/task-contracts/sample-green.yaml
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.8.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.9.0 \
   validate-audit-log examples/audit-log-sample.json --level extended
 
 # 拡張(任意)と定義の確認
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.8.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.9.0 \
   check-overlay examples/overlays/sample-company/extra-rules.yaml
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.8.0 list-definitions
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.9.0 list-definitions
 ```
 
 `--version` はアプリのバージョンと同梱の overlay エンジンのバージョンを表示します。例:
-`aidr 0.8.0 (overlay-scoring-skeleton 0.1.0)`。
+`aidr 0.9.0 (overlay-scoring-skeleton 0.1.0)`。
 
 各コマンドは決定的な終了コードを返すので、CI のゲートに使えます。
 
@@ -122,17 +122,30 @@ doc の番号は追加順で、読み順ではありません。全体から詳�
 
 ```bash
 aidr() { docker run --rm -v "$PWD:/data" -w /data \
-  ghcr.io/suwa-sh/ai-delegation-readiness:v0.8.0 "$@"; }
+  ghcr.io/suwa-sh/ai-delegation-readiness:v0.9.0 "$@"; }
 ```
 
 [`examples/`](examples/) の各サンプルをひな型として書き換え、自社の値を入れてから
 実行します。各ステップの詳しい読み方は学習パスの doc を参照してください。
 
-### ステップ 0 — 準備
+### ステップ 0 — 準備(`aidr init` でテンプレート生成)
 
-[`examples/`](examples/) のサンプルをひな型に、自社用の入力ファイルを作ります
-(`my-task-groups.yaml`、`my-business.yaml`、`my-judgments.yaml`)。
-質問の日本語文は `definitions/*.yaml` の `text_ja` にあります。
+自社用の入力ファイルは、**問いのコメント付きテンプレート**を生成して埋めます。
+問いの正本は `definitions/*.yaml` に一元管理されており、生成されるコメントは
+常に定義と一致します。
+
+```bash
+aidr init --target transition    > my-task-groups.yaml   # ステップ 1 用
+aidr init --target four-layer    > my-business.yaml      # ステップ 2 用
+aidr init --target matrix        > my-judgments.yaml     # ステップ 3 用
+aidr init --target task-contract > my-contract.yaml      # ステップ 4 用
+
+# 自社 overlay の追加質問も含めて生成
+aidr init --target four-layer --overlay our-rules.yaml > my-business.yaml
+```
+
+記入例は [`examples/`](examples/) にあります(同じテンプレートに
+ミドリ精機の回答を書き込んだものです)。
 
 ### ステップ 1 — どのタスク群から手を付けるかを地図にする
 
@@ -248,7 +261,7 @@ ai-delegation-readiness/
 ├── schemas/
 │   └── audit-log.schema.json    # JSON Schema with $defs: minimum (A) / extended (B)
 ├── src/adr/                     # Python 診断ツール(コンテナイメージで配布)
-├── bin/aidr                     # CLI エントリポイント(単一コマンド、7 サブコマンド)
+├── bin/aidr                     # CLI エントリポイント(単一コマンド、8 サブコマンド)
 ├── examples/                    # ミドリ精機(架空)の物語でつながるサンプル一式
 │   ├── README.md                #   物語の正本(会社プロファイル + サンプル一覧 + 応用例)
 │   ├── task-groups/             #   ステップ 1: screen-transition の入力
@@ -281,7 +294,7 @@ overlay で可能なのは、次の 2 つだけです。
   system prompt や tool context にロードします。
   [`examples/skills/`](examples/skills/) に Claude Code skill のラッパー 3 種を用意しています
 - **CI パイプライン**: 出力ログ 1 件ごとに
-  `docker run --rm -v "$PWD:/data" -w /data ghcr.io/suwa-sh/ai-delegation-readiness:v0.8.0 validate-audit-log <log>`
+  `docker run --rm -v "$PWD:/data" -w /data ghcr.io/suwa-sh/ai-delegation-readiness:v0.9.0 validate-audit-log <log>`
   を呼び、exit code でゲートします
 - **社内 overlay**: 自社固有の overlay をプライベートリポで管理し、`--overlay` で
   適用します。本リポはクリーンな upstream として pull できます

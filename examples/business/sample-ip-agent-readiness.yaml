@@ -1,67 +1,62 @@
-# `aidr check-readiness` + 高責任ドメイン overlay のサンプル入力(応用例):
+# `aidr check-readiness` + 高責任ドメイン overlay のサンプル入力(応用例)。
+# `aidr init --target four-layer --overlay ../overlays/high-stakes-domain/four-layer.yaml`
+# のテンプレートに回答を書き込んだものです。
 #
 #   bin/aidr check-readiness examples/business/sample-ip-agent-readiness.yaml \
 #     --overlay examples/overlays/high-stakes-domain/four-layer.yaml
 #
 # 先行技術調査(候補抽出 + 分析レポートドラフト)を社内 AI エージェントに
-# 委任しようとしている架空の知財部門の例です(回答は例示で、実在組織の
-# 実データではありません)。ミドリ精機の物語とは独立した応用例です。
-#
-# このサンプルが語る物語: 業務プロセス自体はよく整っています — overlay が足す
-# 可逆性の質問(L3.HS_Q5 / HS_Q6)を含めて L1〜L4 は全て PASS です。
-# 委任を止めるのは高責任ドメインの成立条件ゲートです: HITL の手順はあるが、
-# 形骸化(コンプレイセンシー)を前提にした設計・訓練がされていません(L5.Q3: no)。
-# 成立条件は 1 つ欠けるだけで足ります — L5 ゲートに revise 帯はないため、
-# 結論は BLOCK(blocked_from: L5)になります。
-#
-# 回答キーは definitions/four-layer.yaml の item id + overlay の追加項目です。
-# 未回答の質問は unknown(採点上は no 扱い)になります。
+# 委任しようとしている架空の知財部門の例です(ミドリ精機の物語とは独立)。
+# 業務プロセスは整っている(L1〜L4 全 PASS)のに、高責任ドメインの成立条件
+# ゲートで止まります: HITL の手順はあるが、形骸化(コンプレイセンシー)を前提に
+# した設計・訓練がない(L5.Q3: no)。L5 に revise 帯はなく、1 問の No で
+# BLOCK(blocked_from: L5)です。
 
 target: 先行技術調査エージェント(架空の知財部門・FY2026 評価)
 
 answers:
-  # L1 業務標準化層 — 調査 SOP とレポートのテンプレートは成熟している
-  L1.Q1: yes
-  L1.Q2: yes
-  L1.Q3: yes
-  L1.Q4: yes
+  # --- L1 業務標準化層 — 調査 SOP とテンプレートは成熟 ---
+  L1.Q1: yes                       # 問: 判断基準は文書化され、暗黙知に依存していないか
+  L1.Q2: yes                       # 問: 例外ケースは(暗黙でなく)例外手続きとして明文化されているか
+  L1.Q3: yes                       # 問: 規定集は版管理されているか(改定日・理由・履歴を辿れるか)
+  L1.Q4: yes                       # 問: SOP は第三者が読んで再現できる粒度で書かれているか
 
-  # L2 判断構造化層 — 検索・再ランクの規則は「入力・条件・判定」に落ちている
-  L2.Q1: yes
-  L2.Q2: yes
-  L2.Q3: yes
+  # --- L2 判断構造化層 ---
+  L2.Q1: yes                       # 問: 規定の各条項を「どの入力を・どの条件で・どう判定するか」の三つ組に落とせるか
+  L2.Q2: yes                       # 問: 決定論的処理・LLM の推論・人間へのエスカレーションの線引きが明確か
+  L2.Q3: yes                       # 問: 判定ロジックの変更時に精度劣化を検出する回帰テストがあるか
 
-  # L3 委任範囲層 — overlay の可逆性・誤りコストの質問を含む
-  L3.Q1: yes
-  L3.Q2: yes
-  L3.Q3: yes
-  L3.Q4: yes
-  L3.HS_Q5: yes   # 「先行技術なし」の確定は人間に残している
-  L3.HS_Q6: yes   # 誤りコストが非対称な工程は人間が最終判断する
+  # --- L3 委任範囲層(overlay の可逆性・誤りコスト質問を含む) ---
+  L3.Q1: yes                       # 問: 第三者が同一入力で同じ判定を採点できるか
+  L3.Q2: yes                       # 問: 判定根拠を規定の条番号(または SOP のステップ番号)に紐付けられるか
+  L3.Q3: yes                       # 問: 正解を定義しにくい領域(倫理判断・新規ポリシー策定)を委任対象から除外できているか
+  L3.Q4: yes                       # 問: 後から監査ログで判定を再現できるか
+  L3.HS_Q5: yes                    # 問: 不可逆な確定判断(出願確定・権利範囲・「先行技術なし」)を委任対象から除外しているか → 「先行技術なし」の確定は人間に残している
+  L3.HS_Q6: yes                    # 問: 誤りコストが非対称な工程(訴訟・権利喪失・行政処分)に人間の最終判断を挟んでいるか
 
-  # L4 統制・追跡層
-  L4.Q1: yes
-  L4.Q2: yes
-  L4.Q3: yes
-  L4.Q4: yes
-  L4.Q5: yes
+  # --- L4 統制・追跡層 ---
+  L4.Q1: yes                       # 問: 職務分掌を保つため「判定」と「実行」が分離されているか
+  L4.Q2: yes                       # 問: 判定根拠(参照規定 + チェック項目)をログから取り出せるか
+  L4.Q3: yes                       # 問: 監査ログは Who/When/What/Why/Result を構造化スキーマで記録しているか
+  L4.Q4: yes                       # 問: 規定改定後も過去判定を再検証できるよう、規定バージョンをログに固定しているか
+  L4.Q5: yes                       # 問: 誤承認の補正フローが設計され、ログに残るか
 
-  # L5 高責任ドメイン成立条件(overlay のハードゲート: 4 条件すべて yes が必要)
-  L5.Q1: yes      # 出願前発明は閉域ネットワークで扱っている
-  L5.Q2: yes      # 高 recall の人間検証ループを設計済み
-  L5.Q3: no       # HITL はあるが、形骸化を前提にした設計・訓練がない
-  L5.Q4: yes      # 毎年の基盤モデル移行コストを予算化済み
+  # --- L5 高責任ドメイン成立条件(overlay のハードゲート: 4 問すべて yes が必要) ---
+  L5.Q1: yes                       # 問: 秘匿情報(出願前発明・訴訟資料・治験データ)を、公知化・漏えい経路のない閉域で扱っているか → 出願前発明は閉域で扱っている
+  L5.Q2: yes                       # 問: 高 recall が要る工程で、見落とし(false negative)を人間が捕まえる検証ループを設計しているか
+  L5.Q3: no                        # 問: HITL の手順を、形骸化(コンプレイセンシー)を前提に設計・訓練しているか(「人を置くだけ」でないか) → 「人を置くだけ」で訓練がない
+  L5.Q4: yes                       # 問: 基盤モデルの短い寿命(最短 12 ヶ月で EOL)に毎年追随する運用コストを予算化しているか → 毎年の移行コストを予算化済み
 
-  # 効果測定 — 測定設計はまだ部分的
-  efficacy.E1: yes
-  efficacy.E2: yes
-  efficacy.E3: no    # 対象範囲(業務全体か一部か)を明示していない
-  efficacy.E4: yes
+  # --- 効果測定 — 測定設計はまだ部分的 ---
+  efficacy.E1: yes                 # 問: 削減数値の分母・基準値・期間を説明できるか
+  efficacy.E2: yes                 # 問: 期待値(ベンダー試算)と実績(自社実測)を区別しているか
+  efficacy.E3: no                  # 問: 数値の対象範囲(業務全体か一部か)を明示しているか → 対象範囲を明示していない
+  efficacy.E4: yes                 # 問: AI 起因の誤承認・誤差し戻しを効率とは別に集計しているか
 
-  # 組織 readiness — 受け皿はほぼ整っているが bus factor が未対策
-  organization.C1: yes
-  organization.C2: yes
-  organization.C3: yes
-  organization.C4: yes
-  organization.C5: yes
-  organization.C6: no   # bus factor 対策がまだ運用されていない
+  # --- 組織 readiness — 受け皿はほぼ整い、bus factor が未対策 ---
+  organization.C1: yes             # 問: 8〜12 ヶ月以内に「やめる」と決められる権限と文化があるか
+  organization.C2: yes             # 問: 受け皿となる全社リテラシー層(ビジネス側人材)が 2 桁人数まで育っているか
+  organization.C3: yes             # 問: AI ツール基盤(Copilot・社内チャット・RAG)が個人レベルで定着しているか
+  organization.C4: yes             # 問: 知識移転契約で内面化(SECI の I)を KPI にできるか(例: IPA モデル契約)
+  organization.C5: yes             # 問: 拡大期の漸進分割(Stream-aligned から Complicated-Subsystem / Platform への切り出し)を事前に設計できるか
+  organization.C6: no              # 問: bus factor 対策(ペアプロ・ADR・Knowledge Transfer Day)を運用しているか → bus factor 対策が未運用

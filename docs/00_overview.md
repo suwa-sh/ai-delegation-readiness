@@ -61,6 +61,8 @@ flowchart LR
 bin/aidr screen-transition examples/task-groups/sample-task-groups.yaml
 ```
 
+入力: [`examples/task-groups/sample-task-groups.yaml`](../examples/task-groups/sample-task-groups.yaml)(問いと回答が 1 ファイルで読めます)
+
 ミドリ精機では、決算開示資料ドラフトが「再編」(最優先で役割再設計が要る)、
 経費精算チェックが「高自動化」(次のステップに進む候補)になりました。
 経理部は経費精算チェックを最初の題材に選びます。→ 詳細は [docs/09](09_transition_screening.md)
@@ -74,6 +76,8 @@ bin/aidr screen-transition examples/task-groups/sample-task-groups.yaml
 ```bash
 bin/aidr check-readiness examples/business/sample-expense-approval.yaml
 ```
+
+入力: [`examples/business/sample-expense-approval.yaml`](../examples/business/sample-expense-approval.yaml)(問いと回答が 1 ファイルで読めます)
 
 ```text
 Target: 経費精算承認(ミドリ精機・経理部、FY2026 初回診断)
@@ -98,6 +102,8 @@ bin/aidr check-readiness examples/business/sample-expense-approval-after.yaml
 # => Conclusion: PASS
 ```
 
+入力: [`examples/business/sample-expense-approval-after.yaml`](../examples/business/sample-expense-approval-after.yaml)(改善内容が回答のコメントで読めます)
+
 PASS になって初めて、次のステップに進めます。→ 詳細は [docs/01](01_four_layer_framework.md)(4 層)と [docs/05](05_organization_axis.md)(組織の受け皿)
 
 ### ステップ 3: どの判定を任せるか(判定の振り分け)
@@ -109,6 +115,8 @@ PASS になって初めて、次のステップに進めます。→ 詳細は [
 ```bash
 bin/aidr score-delegation examples/judgments/sample-judgments.yaml
 ```
+
+入力: [`examples/judgments/sample-judgments.yaml`](../examples/judgments/sample-judgments.yaml)(問いと回答が 1 ファイルで読めます)
 
 ミドリ精機では、領収書チェックとインボイスチェックが 🟢、採用面接の合否(境界比較の例)は
 🔴 になりました。→ 詳細は [docs/03](03_delegation_matrix.md)
@@ -123,8 +131,10 @@ bin/aidr check-task-contract examples/task-contracts/sample-green.yaml
 # => Region: GREEN — 契約充足
 ```
 
+入力: [`examples/task-contracts/sample-green.yaml`](../examples/task-contracts/sample-green.yaml)(問いと回答が 1 ファイルで読めます)
+
 AI が AI を単一の基準で採点する構成は、ここで 🔴 として止まります
-(`sample-red-ai-judge.yaml` が失敗例)。→ 詳細は [docs/06](06_task_contract_execution_rubric.md)
+([`sample-red-ai-judge.yaml`](../examples/task-contracts/sample-red-ai-judge.yaml) が失敗例)。→ 詳細は [docs/06](06_task_contract_execution_rubric.md)
 
 ### ステップ 5: 記録は残っているか(監査ログ検証)
 
@@ -136,7 +146,7 @@ bin/aidr validate-audit-log examples/audit-log-sample.json --level extended
 # => [OK] schema=audit_log_extended: valid
 ```
 
-サンプルは、交際費のグレーケースを AI が**自動承認せず人間にエスカレーションした**記録です。
+入力: [`examples/audit-log-sample.json`](../examples/audit-log-sample.json) — 交際費のグレーケースを AI が**自動承認せず人間にエスカレーションした**記録です。
 → 詳細は [docs/02](02_audit_log_schema.md)(スキーマ)と [docs/04](04_audit_log_gap_check.md)(既存基盤の点検)
 
 ### 拡張(任意): 自社ルールを足す

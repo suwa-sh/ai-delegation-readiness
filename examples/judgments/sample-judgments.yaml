@@ -1,35 +1,59 @@
 # `aidr score-delegation` のサンプル入力(物語ステップ 3: 判定単位の振り分け)。
+# `aidr init --target matrix` のテンプレートに回答を書き込んだものです
+# (問いのコメントは定義の text_ja と同一)。
 #
 # ミドリ精機株式会社(架空。examples/README.md 参照)の経理部が、再診断 PASS を受けて
 # 経費精算承認の中の判定単位を 委任 OK / LLM 補助 / 人間に残す に振り分ける場面です。
-#
-# 前半 3 件が経費精算の判定です。後半 2 件(採用面接・差別表現)は経費ではなく、
-# 「経費以外の判定にも同じ物差しが使える」ことを示す境界比較の例です。
-#
-# 回答キーは definitions/delegation-matrix.yaml の item id です。
-# 質問の日本語文は同ファイルの text_ja を参照してください。
-#   検証可能性:      verifiability.V1-V3(2/3 yes で high)
-#   正解定義可能性:  answer_definability.A1-A3(2/3 yes で high)
+# 前半 3 件が経費精算の判定、後半 2 件(採用面接・差別表現)は「経費以外の判定にも
+# 同じ物差しが使える」ことを示す境界比較の例です。
 
 judgments:
-  # --- 経費精算の判定(本線) ---
   - id: receipt_mandatory_items_check
     description: 領収書の必須項目チェック(日付・宛名・金額・発行者が揃っているか)
-    answers: { verifiability.V1: yes, verifiability.V2: yes, verifiability.V3: yes, answer_definability.A1: yes, answer_definability.A2: yes, answer_definability.A3: yes }
+    answers:
+      verifiability.V1: yes        # 問: 第三者が同一入力で同じ判定を採点できるか
+      verifiability.V2: yes        # 問: 正誤判定に必要な情報が入力データと規定文書だけで揃うか(個人の経験に依存しないか)
+      verifiability.V3: yes        # 問: 判定結果を機械的に再実行できるテストに落とせるか
+      answer_definability.A1: yes  # 問: 判定根拠を規定の条番号(または SOP のステップ番号)に紐付けられるか
+      answer_definability.A2: yes  # 問: 判定の妥当性がケース個別の文脈でなく規定で決まるか
+      answer_definability.A3: yes  # 問: ベテランの暗黙知に頼らず判定理由を文書化できるか
 
   - id: invoice_scheme_compliance
     description: インボイス制度(適格請求書)の要件充足チェック
-    answers: { verifiability.V1: yes, verifiability.V2: yes, verifiability.V3: yes, answer_definability.A1: yes, answer_definability.A2: yes, answer_definability.A3: yes }
+    answers:
+      verifiability.V1: yes        # 問: 第三者が同一入力で同じ判定を採点できるか
+      verifiability.V2: yes        # 問: 正誤判定に必要な情報が入力データと規定文書だけで揃うか(個人の経験に依存しないか)
+      verifiability.V3: yes        # 問: 判定結果を機械的に再実行できるテストに落とせるか
+      answer_definability.A1: yes  # 問: 判定根拠を規定の条番号(または SOP のステップ番号)に紐付けられるか
+      answer_definability.A2: yes  # 問: 判定の妥当性がケース個別の文脈でなく規定で決まるか
+      answer_definability.A3: yes  # 問: ベテランの暗黙知に頼らず判定理由を文書化できるか
 
   - id: entertainment_expense_judgment
     description: 税務上の交際費該当判定(金額・人数の閾値で機械化できるがグレーケースあり)
-    answers: { verifiability.V1: yes, verifiability.V2: yes, verifiability.V3: no,  answer_definability.A1: yes, answer_definability.A2: yes, answer_definability.A3: no }
+    answers:
+      verifiability.V1: yes        # 問: 第三者が同一入力で同じ判定を採点できるか
+      verifiability.V2: yes        # 問: 正誤判定に必要な情報が入力データと規定文書だけで揃うか(個人の経験に依存しないか)
+      verifiability.V3: no         # 問: 判定結果を機械的に再実行できるテストに落とせるか
+      answer_definability.A1: yes  # 問: 判定根拠を規定の条番号(または SOP のステップ番号)に紐付けられるか
+      answer_definability.A2: yes  # 問: 判定の妥当性がケース個別の文脈でなく規定で決まるか
+      answer_definability.A3: no   # 問: ベテランの暗黙知に頼らず判定理由を文書化できるか
 
-  # --- 境界比較の例(経費以外でも同じ物差しが使える) ---
   - id: new_hire_decision
     description: 採用面接の最終合否判定(境界比較例。正解を定義できず人間に残す)
-    answers: { verifiability.V1: no,  verifiability.V2: no,  verifiability.V3: no,  answer_definability.A1: no,  answer_definability.A2: no,  answer_definability.A3: no  }
+    answers:
+      verifiability.V1: no         # 問: 第三者が同一入力で同じ判定を採点できるか
+      verifiability.V2: no         # 問: 正誤判定に必要な情報が入力データと規定文書だけで揃うか(個人の経験に依存しないか)
+      verifiability.V3: no         # 問: 判定結果を機械的に再実行できるテストに落とせるか
+      answer_definability.A1: no   # 問: 判定根拠を規定の条番号(または SOP のステップ番号)に紐付けられるか
+      answer_definability.A2: no   # 問: 判定の妥当性がケース個別の文脈でなく規定で決まるか
+      answer_definability.A3: no   # 問: ベテランの暗黙知に頼らず判定理由を文書化できるか
 
   - id: discriminatory_language_detection
     description: 社内文書の差別表現チェック(境界比較例。LLM が候補を出し人間が最終判定)
-    answers: { verifiability.V1: yes, verifiability.V2: yes, verifiability.V3: no,  answer_definability.A1: no,  answer_definability.A2: no,  answer_definability.A3: yes }
+    answers:
+      verifiability.V1: yes        # 問: 第三者が同一入力で同じ判定を採点できるか
+      verifiability.V2: yes        # 問: 正誤判定に必要な情報が入力データと規定文書だけで揃うか(個人の経験に依存しないか)
+      verifiability.V3: no         # 問: 判定結果を機械的に再実行できるテストに落とせるか
+      answer_definability.A1: no   # 問: 判定根拠を規定の条番号(または SOP のステップ番号)に紐付けられるか
+      answer_definability.A2: no   # 問: 判定の妥当性がケース個別の文脈でなく規定で決まるか
+      answer_definability.A3: yes  # 問: ベテランの暗黙知に頼らず判定理由を文書化できるか

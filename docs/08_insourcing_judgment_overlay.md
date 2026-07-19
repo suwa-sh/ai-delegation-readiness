@@ -2,11 +2,12 @@
 
 ## TL;DR
 
-内製化は「どの作業を社内に戻すか」ではなく、**どの領域の判断責任を、自社の誰が持つか**です。
-AI 時代は作業(コーディング)がエージェントに移るため、残る本質は上流の判断責任の社内化です。
-本 overlay は base を変えずに、並列軸 **`L_insourcing`(内製化判断責任層)** を 1 本足します。
-5 問(**I0 コア/ノンコアの線引き** + **I1〜I4 の判断所有 4 問**)を等重みで採点し、
-**L1〜L4 をゲートしません**。「業務は委任できるが、内製化判断責任が未確立」を独立した穴として表面化させます。
+「AI を導入すれば内製化できる」は本当か? — **内製化の本質は、作業を社内に
+戻すことではなく、上流の判断責任(何を作るか・どんな構成にするか・何をもって
+合格とするか・例外を誰が引き取るか)に社内の固有名がつくこと**です。
+本 overlay は、この判断責任の所在を 5 問で採点する並列軸 **`L_insourcing`** を足します。
+業務の委任 readiness(L1〜L4)とは独立に採点されるので、
+「業務は委任できるが、判断責任の内製化は未確立」が独立した穴として現れます。
 
 骨格は **みずほ証券の内製化分析記事**から抽出しています。事実と一般化はラベルで分けます:
 **【観測事実】** / **【設計提案】**。
@@ -26,7 +27,7 @@ AI 時代は作業(コーディング)がエージェントに移るため、残
 - 顧客・自部門の「4 つの上流判断(要件優先順位 / アーキ / 受入基準 / 例外差し戻し)に社内の固有名がつくか」を点検したいとき
 - 業務プロセスの委任 readiness(L1〜L4)は整っていても、**判断責任の社内化**が別問題として残っていないか確認したいとき
 
-## Quick use
+## 事例で見る(架空の中堅企業)
 
 ```bash
 # 内製化判断責任を並列軸として採点(業務・組織の採点はそのまま)
@@ -37,6 +38,10 @@ bin/aidr check-readiness examples/business/sample-insourcing-readiness.yaml \
 bin/aidr list-definitions --target four-layer \
   --overlay examples/overlays/insourcing-judgment/four-layer.yaml
 ```
+
+入力: [`examples/business/sample-insourcing-readiness.yaml`](../examples/business/sample-insourcing-readiness.yaml)
+— 問いと回答が 1 ファイルで読めます。overlay の正本は
+[`examples/overlays/insourcing-judgment/four-layer.yaml`](../examples/overlays/insourcing-judgment/four-layer.yaml) です。
 
 サンプルは、業務(L1〜L4)も組織(organization)も整っているが、
 アーキテクチャの最終判断に社内の固有名がつかない(`I2: no`)架空企業です。

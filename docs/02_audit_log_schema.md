@@ -2,11 +2,12 @@
 
 ## TL;DR
 
-AI エージェントに承認業務を委任するなら、後から判断を再現できる **監査ログ**が
-必須です。最小スキーマは **Who/When/What/Why/Result** の 5 項目です。本リポは
-2 段階で提供します。**A. 記事整合の最低**(事例記事から観測できる最小)と
-**B. J-SOX グレードの設計拡張**(規定バージョン固定・離散 Result enum・
-エスカレーション先必須化)です。
+AI に任せた判断を、**後から「なぜこうなった?」と聞かれて答えられるか?** —
+それを保証するのが監査ログです。必要な項目は 5 つだけです:
+**誰が(Who)・いつ(When)・何を(What)・なぜ(Why)・どうしたか(Result)**。
+`aidr validate-audit-log` は、AI が書き出したログがこの 5 項目を満たすかを機械検証します。
+スキーマは 2 段階あります: **A. 最低限**(事例記事から観測できる最小)と
+**B. J-SOX グレード**(規定バージョン固定・結果の 3 値固定・エスカレーション先必須)です。
 
 正本は [`schemas/audit-log.schema.json`](../schemas/audit-log.schema.json)
 (JSON Schema Draft 2020-12)です。
@@ -30,16 +31,22 @@ AI エージェントに承認業務を委任するなら、後から判断を�
 - AI エージェントが書き出すログを CI で検証したい
 - 監査人やコンプライアンス担当に「設計が型安全であること」を示したい
 
-## Quick use
+## ミドリ精機の事例で見る
 
-サンプルログを **extended** レベルで検証します。
+運用を開始した経費チェックエージェントのログを **extended** レベルで検証します。
 
 ```bash
 bin/aidr validate-audit-log examples/audit-log-sample.json --level extended
 # [OK] schema=audit_log_extended: valid
 ```
 
-自社ログで試す場合は、`examples/audit-log-sample.json` を雛形にして JSON を作り、
+入力: [`examples/audit-log-sample.json`](../examples/audit-log-sample.json)
+— 交際費のグレーケース(1 人あたり金額が規程の境界)を、AI が**自動承認せず
+経理担当にエスカレーションした**記録です。Who に「委譲した人間(経理部長)」、
+Why に「参照した規程の版と条番号 + チェック項目」、Result に
+`escalated` とエスカレーション先が入っている様子が読めます。
+
+自社ログで試す場合は、このサンプルを雛形にして JSON を作り、
 同じコマンドに食わせてください。違反は JSON パスで報告されます。
 
 CI 連携例(GitHub Actions の snippet)です。

@@ -2,12 +2,14 @@
 
 ## TL;DR
 
-readiness(委任してよいか)を通したあと、**1 つのタスクをどう与え、出力をどう採点するか**を
-点検します。**委任実行ルーブリック 4 要素** — **意図**(合格条件)/ **境界**(禁止・エスカレーション)/
-**証跡**(記録範囲)/ **採点者**(人 / AI / 二段審査) — を各 presence 質問で採点し、
+任せると決めたタスクを、**どう渡せば安全に回るのか?** —
+合格条件が曖昧なまま、止めどきを決めないまま、記録も採点者も決めないまま
+タスクを渡すと、AI は「それらしい出力」を返し続けます。
+`aidr check-task-contract` は、渡し方の契約を 4 つの要素
+(**意図** = 何を満たせば合格か / **境界** = やってはいけないこと・いつ止めるか /
+**証跡** = 何を記録するか / **採点者** = 誰が出力を採点するか)で点検し、
 🟢 契約充足 / 🟡 要素に穴 / 🔴 委任不可 を返します。
-
-**採点者が AI(ai_judge)なのに iRULER 二重評価が無い契約は 🔴 で止めます**(安全ゲート)。
+**AI が AI を単一の基準で採点する構成は 🔴 で止まります**(安全ゲート)。
 
 正本は [`definitions/task-contract.yaml`](../definitions/task-contract.yaml) です。
 
@@ -28,24 +30,37 @@ readiness(委任してよいか)を通したあと、**1 つのタスクをど�
 - 開発職で「委任 → 採点 → 編集」の型を初めて作り、それを非開発職に展開する前
 - AI を採点者(AI-as-judge)に使う契約で、暴走(Goodhart / 捏造)への歯止めを CI ゲートで効かせたいとき
 
-## Quick use
+## ミドリ精機の事例で見る(🟢 と 🔴 の 2 例)
+
+ミドリ精機が、委任 OK と判定した経費チェックをエージェントに渡す前の契約点検です。
 
 ```bash
 bin/aidr check-task-contract examples/task-contracts/sample-green.yaml
+# => Region: GREEN — 契約充足(exit 0)
+
 bin/aidr check-task-contract examples/task-contracts/sample-red-ai-judge.yaml
+# => Region: RED — 委任不可(exit 2)
 ```
 
-`sample-red-ai-judge.yaml` は 4 要素がすべて宣言済みでも、採点者が AI で二重評価が無いため
-🔴 になります(exit 2)。終了コードは **0** 契約充足 / **1** 要素に穴 / **2** 委任不可 /
-**3** 入力エラー(`scorer.type` 欠落・不正 enum)です。CI ゲートに使えます。
+入力: [`examples/task-contracts/sample-green.yaml`](../examples/task-contracts/sample-green.yaml) /
+[`sample-red-ai-judge.yaml`](../examples/task-contracts/sample-red-ai-judge.yaml)
+— 問いと回答が 1 ファイルで読めます。
+
+| 例 | 読み方 |
+|---|---|
+| sample-green → 🟢 | 4 要素すべて宣言済みで、AI 採点者に iRULER 二重評価がある。そのまま回してよい |
+| sample-red-ai-judge → 🔴 | **他の要素がすべて宣言済みでも**、AI 採点者に二重評価が無いだけで委任不可。安全ゲートの働き |
+
+終了コードは **0** 契約充足 / **1** 要素に穴 / **2** 委任不可 /
+**3** 入力エラー(`scorer.type` 欠落・不正 enum)。CI ゲートに使えます。
 
 ## 想定ワークフロー(準備 → 実行 → 解釈)
 
-1. **準備**: 委任する 1 タスクについて、下の 4 要素を思い出しながら
-   `examples/task-contracts/sample-green.yaml` を複製し、各質問に yes/no で答えます。
+1. **準備**: `bin/aidr init --target task-contract > my-contract.yaml` で
+   問いコメント付きテンプレートを生成し、各質問に yes/no で答えます。
    `scorer.type` は必須(`human` / `ai_judge` / `two_stage`)、AI 採点なら
    `scorer.iruler_double_eval` も答えます。
-2. **実行**: `bin/aidr check-task-contract <自分の契約>.yaml` を走らせます。
+2. **実行**: `bin/aidr check-task-contract my-contract.yaml` を走らせます。
 3. **解釈**: 🔴 なら「欠落した要素を宣言」または「AI 採点者に二重評価 / 人の二段目を足す」まで
    委任しません。🟡 なら穴の要素を埋めます。🟢 で回します。
 

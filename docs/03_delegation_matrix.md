@@ -2,10 +2,12 @@
 
 ## TL;DR
 
-**2 軸**(検証可能性 × 正解定義可能性)を **各 3 採点質問**で測り、過半数 yes を
-「高」とする二値判定をします。(高 × 高)= 🟢 委任 OK、(高 × 低) または
-(低 × 高)= 🟡 LLM 推論補助、(低 × 低)= 🔴 人間に残す、です。境界事例(2/3 yes)は
-委任 OK でも `escalated` 比率が上がる前提で設計します。
+業務まるごとではなく、**中のどの判断を AI に任せるか?** —
+`aidr score-delegation` は、判定 1 つずつへの yes/no 回答から、
+🟢 **委任 OK**(AI が最終判定)/ 🟡 **LLM 推論補助**(AI は候補出し、人間が最終判定)/
+🔴 **人間に残す** の 3 領域に振り分けます。
+基準は 2 つだけです: **後から正誤を検証できるか**(検証可能性)と、
+**正解を一意に決められるか**(正解定義可能性)。両方が高いものだけが 🟢 になります。
 
 正本は [`definitions/delegation-matrix.yaml`](../definitions/delegation-matrix.yaml)
 です。
@@ -26,13 +28,17 @@
 - 「これは AI に任せて大丈夫?」の社内議論に客観的な採点根拠が欲しい
 - 既存の委任設計を見直したい(AI モデル更新時 / 税制改正時)
 
-## Quick use
+## ミドリ精機の事例で見る
+
+経理部は、経費精算の 3 判定に境界比較の 2 判定を加えて採点しました。
 
 ```bash
 bin/aidr score-delegation examples/judgments/sample-judgments.yaml
 ```
 
-ミドリ精機の経費 3 判定 + 境界比較 2 判定の出力です(抜粋)。
+入力: [`examples/judgments/sample-judgments.yaml`](../examples/judgments/sample-judgments.yaml)
+— 判定ごとの id・問い・回答が 1 ファイルで読めます(`aidr init --target matrix` の
+テンプレートに回答を書き込んだ形式)。出力の各行は、この入力の id に対応します。
 
 ```text
 [GREEN ] receipt_mandatory_items_check: GREEN  (verifiability=high(3/3), answer_definability=high(3/3))
@@ -42,39 +48,25 @@ bin/aidr score-delegation examples/judgments/sample-judgments.yaml
 [YELLOW] discriminatory_language_detection: YELLOW (verifiability=high(2/3), answer_definability=low(1/3))
 ```
 
-後半 2 件(採用面接の合否・差別表現の検出)は経費の判定ではありません。
-「経費以外の判定にも同じ物差しが使える」ことを示す**境界比較の例**です。
-自社判定リストを採点する場合は、`examples/judgments/sample-judgments.yaml` を
-複製してください。質問の日本語文は
-[`definitions/delegation-matrix.yaml`](../definitions/delegation-matrix.yaml) の `text_ja` にあります。
+この出力は、こう読みます。
 
-## The 2 axes
-
-### 検証可能性(verifiability)
-
-判定の正誤を後から機械的に検証できるかを問います。
-
-| 採点質問 | 答え yes ならポイント |
+| 行 | 読み方 |
 |---|---|
-| V1: 第三者が同一入力で同じ判定を採点できるか | 1 |
-| V2: 正誤判定に必要な情報が入力データ + 規定文書だけで揃うか(個人の経験に依存しないか) | 1 |
-| V3: 判定結果を機械的に再実行可能なテストに落とせるか | 1 |
+| 領収書チェック / インボイスチェック → 🟢 | 両軸とも満点。規定に照らして機械的に検証でき、正解が一意。**AI が最終判定してよい** |
+| 交際費判定 → 🟢(2/3 の境界) | 委任 OK だが両軸ぎりぎり。**グレーケースのエスカレーション率が上がる前提**で設計する |
+| 採用面接の合否 → 🔴 | 検証も正解定義もできない。**人間に残す**(境界比較の例。経費以外にも同じ物差しが使える) |
+| 差別表現チェック → 🟡 | 検証はできるが正解が文脈依存。**LLM が候補を出し、人間が最終判定**(境界比較の例) |
 
-**2 つ以上 yes で高**、それ以下は低になります。
+各判定には推奨アクション(監査ログにどう記録するか)が併記されます。
+自社の判定リストを採点するときは `bin/aidr init --target matrix > my-judgments.yaml` で
+問いコメント付きのテンプレートを生成して埋めてください。
 
-### 正解定義可能性(answer_definability)
+## Concept
 
-判定の「正解」を一意に決められるかを問います。
+ここからは、3 領域の意味(外側)→ 2 軸の仕組み → 採点質問(内側)→
+リファレンスケース → 見直しトリガー、の順に掘り下げます。
 
-| 採点質問 | 答え yes ならポイント |
-|---|---|
-| A1: 判定の根拠となる規定の条番号(または SOP のステップ番号)を引けるか | 1 |
-| A2: 判定の妥当性がケース個別の文脈ではなく規定で決まるか | 1 |
-| A3: ベテランの暗黙知に頼らず判定理由を文書化できるか | 1 |
-
-**2 つ以上 yes で高**、それ以下は低になります。
-
-## The region map
+### 3 つの領域 — 出力が意味するもの
 
 |   | **正解定義可能性 高** | **正解定義可能性 低** |
 |---|---|---|
@@ -87,7 +79,30 @@ bin/aidr score-delegation examples/judgments/sample-judgments.yaml
 | 🟡 LLM 推論補助 | LLM が候補を出し、**人間が最終判定**します。最終判定者を Who に記録し、LLM の貢献は Why に「補助証拠」として記録します(権威ではありません) |
 | 🔴 人間に残す | 人間が判定します。LLM 出力は参考のみで、決定権限ではありません。LLM 使用も透明性のため Why に残します |
 
-## Worked examples(定義内のリファレンスケース)
+### 2 つの軸 — なぜこの 2 つで決まるのか
+
+- **検証可能性(verifiability)**: 判定の正誤を、後から機械的に検証できるか。
+  検証できない判断を AI に任せると、**誤りに気づく手段がありません**
+- **正解定義可能性(answer_definability)**: 判定の「正解」を規定から一意に
+  決められるか。正解が文脈や暗黙知に依存する判断は、**採点のしようがありません**
+
+各軸は 3 つの観測可能な質問で測り、**2 つ以上 yes で「高」**の二値判定です。
+境界事例(2/3)は 🟢 でも `escalated` 比率が上がる前提で設計します。
+
+### 採点質問(詳細)
+
+質問の正本は定義 YAML の `text_ja` です。
+
+| 軸 | id | 質問(要旨) |
+|---|---|---|
+| 検証可能性 | V1 | 第三者が同一入力で同じ判定を採点できるか |
+| | V2 | 正誤判定に必要な情報が入力データと規定文書だけで揃うか |
+| | V3 | 判定結果を機械的に再実行できるテストに落とせるか |
+| 正解定義可能性 | A1 | 判定根拠を規定の条番号(または SOP のステップ番号)に紐付けられるか |
+| | A2 | 判定の妥当性がケース個別の文脈でなく規定で決まるか |
+| | A3 | ベテランの暗黙知に頼らず判定理由を文書化できるか |
+
+### Worked examples(定義内のリファレンスケース)
 
 `definitions/delegation-matrix.yaml` の `examples` に 9 件登録済みです。
 味の素事例 3 件 + コーディング委任 2 件 + 倫理・採用・ポリシー策定 などです。
@@ -112,7 +127,7 @@ bin/aidr score-delegation examples/judgments/sample-judgments.yaml
 【設計提案】上表の象限分類は **本マトリクスへの当てはめ**(本リポでの設計解釈)です。
 他の例(コーディング委任・倫理判断・採用面接など)は、完全に本リポでの一般化です。
 
-## When to re-score(見直しトリガー)
+### When to re-score(見直しトリガー)
 
 委任 OK の判定でも、以下のイベント時には再採点が必要になります。
 
@@ -125,9 +140,9 @@ bin/aidr score-delegation examples/judgments/sample-judgments.yaml
 
 ## References
 
-- 正本: [`definitions/delegation-matrix.yaml`](../definitions/delegation-matrix.yaml)
+- 正本: [`definitions/delegation-matrix.yaml`](../definitions/delegation-matrix.yaml)(日本語の質問文は `text_ja`)
 - サンプル入力: [`examples/judgments/sample-judgments.yaml`](../examples/judgments/sample-judgments.yaml)
-- CLI: `bin/aidr score-delegation --help`
+- CLI: `bin/aidr score-delegation --help` / テンプレート生成は `bin/aidr init --target matrix`
 - 物語の前後: 前のステップは [01 4 層フレーム](01_four_layer_framework.md)(readiness 診断)、
   次のステップは [06 タスク契約](06_task_contract_execution_rubric.md)(委任タスクの与え方)
 - 関連 doc: [`02_audit_log_schema.md`](02_audit_log_schema.md) / [`07_high_stakes_domain_overlay.md`](07_high_stakes_domain_overlay.md)(知財/法務/薬事向けに両軸の閾値を 3/3 へ強化するドメイン overlay。base の閾値 2/3 は変わりません)

@@ -34,6 +34,10 @@
 bin/aidr screen-transition examples/task-groups/sample-task-groups.yaml
 ```
 
+入力: [`examples/task-groups/sample-task-groups.yaml`](../examples/task-groups/sample-task-groups.yaml)
+— タスク群ごとの id・問い・回答が 1 ファイルで読めます(`aidr init --target transition` の
+テンプレートに回答を書き込んだ形式)。出力の各行は、この入力の id に対応します。
+
 ```text
 [REORG ] priority 1: financial_disclosure_draft: REORGANIZATION [HITL]  (technical_exposure=high(2/3), human_necessity=high(2/3), demand_elasticity=low(1/3))
 [AUTO  ] priority 2: expense_entry_check: HIGH_AUTOMATION  (technical_exposure=high(3/3), human_necessity=low(0/3), demand_elasticity=low(0/3))
@@ -59,6 +63,9 @@ readiness 診断([docs/01](01_four_layer_framework.md))へ進みます。
   未回答を no 扱いすると「人間は不要」側に誤分類されるのを防ぐためです
 - 成功時の exit code は**常に 0** です。分類は合否ゲートではないため、
   類型は exit code に写しません
+
+自社のタスク群でやるときは `bin/aidr init --target transition > my-task-groups.yaml` で
+問いコメント付きのテンプレートを生成して埋めてください。
 
 ## Concept
 

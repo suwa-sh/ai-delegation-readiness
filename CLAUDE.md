@@ -88,6 +88,10 @@ self-documenting** であると同時に、**マージ規則の実体**でもあ
   (各分類の判定基準の例示)であり、物語統一・日本語化の対象外
 - **質問文は `text`(英)と `text_ja`(日)を併記する**。text_ja の完全性は
   `tests/test_definitions_i18n.py` が検証する
+- **同梱 examples の入力ファイルは「`aidr init` で生成した体」で書く**: 各回答行に
+  `# 問: <text_ja>`(必要なら ` → <回答の背景>`)のコメントを付ける。問いの正本は
+  definitions / overlay の text_ja であり、examples 側コメントとのドリフトは
+  `tests/test_init_input.py::test_example_question_comments_match_definitions` が検出する
 
 ## 更新運用
 
