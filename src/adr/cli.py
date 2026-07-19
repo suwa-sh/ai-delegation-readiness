@@ -1,6 +1,7 @@
 """Command-line entry point for ``aidr``.
 
 Subcommands:
+    screen-transition      pre-delegation screening into the 4 AI-transition types
     check-readiness        4-layer + efficacy readiness check (delegate-or-not)
     score-delegation       delegation matrix scoring per judgment
     check-task-contract    execution rubric per delegated task (intent/boundary/evidence/scorer)
@@ -24,6 +25,7 @@ from . import (
     check_task_contract as _task,
     list_definitions as _list,
     score_delegation as _score,
+    screen_transition as _screen,
     validate_audit_log as _validate,
 )
 
@@ -70,6 +72,24 @@ def _cmd_check_readiness(args: argparse.Namespace) -> int:
     )
     print(output)
     return _check_readiness.exit_code_for(result)
+
+
+def _cmd_screen_transition(args: argparse.Namespace) -> int:
+    try:
+        result = _screen.screen(args.task_groups, overlay_paths=args.overlay)
+    except _check_readiness.OverlayError as e:
+        sys.stderr.write(f"[ERROR] {e}\n")
+        return 3
+    except _screen.InputError as e:
+        sys.stderr.write(f"[ERROR] {e}\n")
+        return 3
+    output = (
+        _screen.render_json(result)
+        if args.format == "json"
+        else _screen.render_text(result)
+    )
+    print(output)
+    return result.exit_code
 
 
 def _cmd_score_delegation(args: argparse.Namespace) -> int:
@@ -136,6 +156,8 @@ def _cmd_list_definitions(args: argparse.Namespace) -> int:
             summaries.append(_list.summarize_matrix(overlay_paths=args.overlay))
         if args.target in {"task-contract", "all"}:
             summaries.append(_list.summarize_task_contract(overlay_paths=args.overlay))
+        if args.target in {"transition", "all"}:
+            summaries.append(_list.summarize_transition(overlay_paths=args.overlay))
     except _check_readiness.OverlayError as e:
         sys.stderr.write(f"[ERROR] {e}\n")
         return 3
@@ -176,6 +198,14 @@ def build_parser() -> argparse.ArgumentParser:
     p_check.add_argument("business", help="Path to the business answers YAML")
     _shared_overlay_args(p_check)
     p_check.set_defaults(func=_cmd_check_readiness)
+
+    p_screen = sub.add_parser(
+        "screen-transition",
+        help="Screen task groups into the 4 AI-transition types (pre-delegation planning map)",
+    )
+    p_screen.add_argument("task_groups", help="Path to the task-groups YAML")
+    _shared_overlay_args(p_screen)
+    p_screen.set_defaults(func=_cmd_screen_transition)
 
     p_score = sub.add_parser(
         "score-delegation",
@@ -229,7 +259,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_list.add_argument(
         "--target",
-        choices=["four-layer", "matrix", "task-contract", "all"],
+        choices=["four-layer", "matrix", "task-contract", "transition", "all"],
         default="all",
         help="Which definition(s) to inspect",
     )

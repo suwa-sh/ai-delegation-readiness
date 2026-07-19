@@ -1,0 +1,69 @@
+# Sample input for `aidr screen-transition`.
+#
+# Task groups screened into the four AI-transition types before any
+# delegation scoring. Every question of every axis MUST be answered
+# (fail-closed): a missing answer is an input error, not a silent "no".
+# Question ids come from definitions/transition-screening.yaml:
+#   technical_exposure:  E1-E3 (2/3 yes => high)
+#   human_necessity:     H1-H3 (any 1 yes => high; H1 = default HITL domains)
+#   demand_elasticity:   D1-D3 (2/3 yes => high)
+
+task_groups:
+  # Digital rule-based work, capped demand, no human-necessity reason:
+  # lands in HIGH_AUTOMATION -> next step is `aidr score-delegation`.
+  - id: accounting_entry_check
+    description: Accounting entry check (receipt items, invoice scheme, account codes)
+    answers:
+      technical_exposure.E1: yes
+      technical_exposure.E2: yes
+      technical_exposure.E3: yes
+      human_necessity.H1: no
+      human_necessity.H2: no
+      human_necessity.H3: no
+      demand_elasticity.D1: no
+      demand_elasticity.D2: no
+      demand_elasticity.D3: no
+
+  # Exposed documentation work, but regulated (health) and relationship-centric,
+  # with capped demand: lands in REORGANIZATION (priority 1) with [HITL].
+  - id: clinical_documentation
+    description: Clinical documentation and care coordination in a ward
+    answers:
+      technical_exposure.E1: yes
+      technical_exposure.E2: no
+      technical_exposure.E3: yes
+      human_necessity.H1: yes
+      human_necessity.H2: yes
+      human_necessity.H3: yes
+      demand_elasticity.D1: no
+      demand_elasticity.D2: no
+      demand_elasticity.D3: yes
+
+  # Highly exposed and demand-elastic: lands in GROWTH. H1=yes shows the
+  # HITL flag is independent of the type (financial sign-off stays human).
+  - id: financial_advisory_reports
+    description: Financial advisory report drafting for clients
+    answers:
+      technical_exposure.E1: yes
+      technical_exposure.E2: yes
+      technical_exposure.E3: yes
+      human_necessity.H1: yes
+      human_necessity.H2: yes
+      human_necessity.H3: no
+      demand_elasticity.D1: yes
+      demand_elasticity.D2: yes
+      demand_elasticity.D3: yes
+
+  # Physical field work with low exposure: lands in MINIMAL_CHANGE.
+  - id: equipment_field_maintenance
+    description: On-site equipment inspection and repair
+    answers:
+      technical_exposure.E1: no
+      technical_exposure.E2: no
+      technical_exposure.E3: yes
+      human_necessity.H1: no
+      human_necessity.H2: no
+      human_necessity.H3: yes
+      demand_elasticity.D1: yes
+      demand_elasticity.D2: no
+      demand_elasticity.D3: no

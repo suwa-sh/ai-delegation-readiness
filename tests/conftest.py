@@ -71,6 +71,14 @@ def sample_insourcing_business_path() -> Path:
     return EXAMPLES_DIR / "business" / "sample-insourcing-readiness.yaml"
 
 
+def transition_path() -> Path:
+    return DEFINITIONS_DIR / "transition-screening.yaml"
+
+
+def sample_task_groups_path() -> Path:
+    return EXAMPLES_DIR / "task-groups" / "sample-task-groups.yaml"
+
+
 def sample_task_contract_green_path() -> Path:
     return EXAMPLES_DIR / "task-contracts" / "sample-green.yaml"
 

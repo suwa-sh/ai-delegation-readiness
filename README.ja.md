@@ -11,19 +11,24 @@
 まで点検します。味の素グループの経理 AI エージェント(2026 年 2 月本番稼働)の
 **公開分析からの抽出**です。
 
-主な特徴は、次の 4 点です。
+主な特徴は、次の 5 点です。
 
-1. **委任の可否を 2 つの面で診断します** — *業務*の標準化・構造化・委任範囲・統制を
+1. **委任の前に「どこから手を付けるか」を地図にします** — タスク群を 3 軸(理論 exposure /
+   人間必要性 / 需要弾力性)で AI 移行 4 類型(成長 / 高自動化 / 再編 / 変化小)に振り分け、
+   委任設計の優先度順に並べます。最優先は「再編」(人は残るが人員需要は減りうる、最も設計が
+   要るゾーン)で、各類型には「headcount は最後に決める」という意思決定順序の推奨が付きます。
+2. **委任の可否を 2 つの面で診断します** — *業務*の標準化・構造化・委任範囲・統制を
    機械的に採点し(導入効果の説明可能性を含む)、それと*並列に*、*組織*が委任を
    受け止められるか(撤退判断の権限・受け皿となるリテラシー層・知識移転契約・bus factor
    対策)を採点します。両者を別々の合否で返すので、「業務は委任できるが組織がまだ整って
    いない」が、緑の業務スコアに隠れず独立した穴として表れます。
-2. **委任した 1 タスクの回し方を点検します** — readiness を通した後、タスクの実行契約を
+3. **委任した 1 タスクの回し方を点検します** — readiness を通した後、タスクの実行契約を
    4 要素(意図・境界・証跡・採点者)で採点します。合格条件が曖昧・エスカレーション先が
    無い・AI 採点者が単一ルーブリックで自己採点する、といった状態でタスクを渡させません。
-3. **機械可読の正本を持ちます** — 4 層フレーム・委任マトリクス・タスク契約ルーブリック・
-   監査ログスキーマを定義として持ち、AI エージェントや CI から直接利用できます。
-4. **フォークせず拡張できます** — 各社固有の質問や厳格化した閾値を、overlay で
+4. **機械可読の正本を持ちます** — 移行 4 類型スクリーニング・4 層フレーム・委任マトリクス・
+   タスク契約ルーブリック・監査ログスキーマを定義として持ち、AI エージェントや CI から
+   直接利用できます。
+5. **フォークせず拡張できます** — 各社固有の質問や厳格化した閾値を、overlay で
    追加できます。
 
 > **用語集**:
@@ -50,6 +55,11 @@
 >   するのを防ぎます。
 > - **overlay(オーバーレイ)**は、正本をフォークせず、各社固有の質問追加・閾値強化を行う
 >   拡張ファイルです。
+> - **AI 移行 4 類型(transition screening)**は、委任採点の*前段*です。タスク群を
+>   成長 / 高自動化 / 再編 / 変化小 に振り分け、どこから委任設計に手を付けるかを決めます
+>   (OpenAI の EU AI Jobs Transition Framework から抽出した簡易スクリーニング)。
+> - **HITL**(human-in-the-loop)は、人間を実行経路(最終判断)に残す運用です。権利・財務・
+>   健康・規制に関わる領域は、本ツールでは既定で HITL 固定域として扱います。
 
 > **言語について**: `docs/` は日本語(著者の作業言語)で書いています。英語 README が
 > 入口、本ファイル(日本語)が正本テキストです。
@@ -60,25 +70,29 @@
 そのまま動きます。
 
 ```bash
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.5.0 --version
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.7.0 --version
 
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.5.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.7.0 \
+  screen-transition examples/task-groups/sample-task-groups.yaml
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.7.0 \
   check-readiness examples/business/sample-expense-approval.yaml
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.5.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.7.0 \
   score-delegation examples/judgments/sample-judgments.yaml
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.5.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.7.0 \
   validate-audit-log examples/audit-log-sample.json --level extended
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.5.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.7.0 \
   check-overlay examples/overlays/sample-company/extra-rules.yaml
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.5.0 list-definitions
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.7.0 list-definitions
 ```
 
 `--version` はアプリのバージョンと同梱の overlay エンジンのバージョンを表示します。例:
-`aidr 0.6.0 (overlay-scoring-skeleton 0.1.0)`。
+`aidr 0.7.0 (overlay-scoring-skeleton 0.1.0)`。
 
 各コマンドは決定的な終了コードを返すので、CI のゲートに使えます。
 **0** ok ・ **1** partial(yellow)・ **2** block(red: 欠落・SLA 違反・overlay 却下)・
 **3** 入力エラー。
+例外は `screen-transition` です。スクリーニングは合否ゲートでなく分類なので、成功時は
+類型によらず常に **0**(未回答の欠落・overlay 違反のみ **3**)を返します。
 
 ## 使い方(想定ワークフロー)
 
@@ -87,7 +101,7 @@ docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.5.0 list-definitions
 
 ```bash
 aidr() { docker run --rm -v "$PWD:/data" -w /data \
-  ghcr.io/suwa-sh/ai-delegation-readiness:v0.5.0 "$@"; }
+  ghcr.io/suwa-sh/ai-delegation-readiness:v0.7.0 "$@"; }
 ```
 
 [`examples/`](examples/) の各サンプルをひな型として書き換え、自社の値を入れてから
@@ -96,9 +110,32 @@ aidr() { docker run --rm -v "$PWD:/data" -w /data \
 ### ステップ 0 — 準備
 
 [`examples/`](examples/) のサンプルをひな型に、自社用の入力ファイルを作ります
-(`my-business.yaml`、`my-judgments.yaml`)。
+(`my-task-groups.yaml`、`my-business.yaml`、`my-judgments.yaml`)。
 
-### ステップ 1 — 業務が委任に耐えるかを診断する
+### ステップ 1 — どのタスク群から手を付けるかを地図にする
+
+`my-task-groups.yaml` にタスク群を並べ、3 軸(理論 exposure / 人間必要性 / 需要弾力性)の
+質問に `yes` / `no` を埋めて、AI 移行 4 類型に振り分けます。
+
+```bash
+aidr screen-transition my-task-groups.yaml
+```
+
+出力例(抜粋):
+
+```text
+[REORG ] priority 1: clinical_documentation: REORGANIZATION [HITL]  (technical_exposure=high(2/3), human_necessity=high(3/3), demand_elasticity=low(1/3))
+[AUTO  ] priority 2: accounting_entry_check: HIGH_AUTOMATION  (technical_exposure=high(3/3), human_necessity=low(0/3), demand_elasticity=low(0/3))
+```
+
+出力は委任設計の優先度順です。最優先は「再編」(人は残るが人員需要は減りうる、役割再設計が
+要るゾーン)、「高自動化」はステップ 3 の委任採点へ進む候補です。権利・財務・健康・規制に
+関わるタスク群には、類型によらず `[HITL]`(人間の最終判断が必須)が付きます。全質問への
+回答が必須で、未回答があると欠落 id を列挙してエラーになります(未回答を「人間不要」側に
+倒さないためです)。3 軸と 4 類型の設計、「headcount は最後」の意思決定順序は
+[docs/09](docs/09_transition_screening.md) を参照してください。
+
+### ステップ 2 — 業務が委任に耐えるかを診断する
 
 `my-business.yaml` の各層の問いに `yes` / `no` を埋め、対象業務を 4 層 + 効果測定 +
 組織 readiness で採点します。
@@ -134,7 +171,7 @@ Conclusion: BLOCK
 最下層から順に埋めます。各層の問いと合否基準は [docs/01](docs/01_four_layer_framework.md) を
 参照してください。
 
-### ステップ 2 — 判定単位の委任領域を決める
+### ステップ 3 — 判定単位の委任領域を決める
 
 `my-judgments.yaml` に判定リストを並べ、検証可能性 × 正解定義可能性 の 2 軸で、各判定を
 委任 OK / LLM 補助 / 人間に残す に振り分けます。
@@ -156,7 +193,7 @@ aidr score-delegation my-judgments.yaml
 各判定には推奨アクション(監査ログにどう記録するか)が併記されます。採点質問と象限の
 意味は [docs/03](docs/03_delegation_matrix.md) を参照してください。
 
-### ステップ 3 — 委任するタスクの契約を点検する
+### ステップ 4 — 委任するタスクの契約を点検する
 
 委任すると決めた 1 タスクについて、意図 / 境界 / 証跡 / 採点者 を宣言し、実行契約を点検します。
 `examples/task-contracts/sample-green.yaml` をひな型に複製して答えを書きます。
@@ -171,7 +208,7 @@ aidr check-task-contract my-contract.yaml
 4 要素・Goodhart 緩和・iRULER ゲートの詳細は [docs/06](docs/06_task_contract_execution_rubric.md)
 を参照してください。
 
-### ステップ 4 — 監査ログを検証する
+### ステップ 5 — 監査ログを検証する
 
 委任を始めたら、AI が書き出すログが Who/When/What/Why/Result を満たすかを検証します。
 `examples/audit-log-sample.json` をひな型に、自社のログ JSON を作ります。
@@ -192,7 +229,7 @@ enum・エスカレーション先必須化)で検証します。違反は JSON 
 設計と、既存ログ基盤への当てはめ例は [docs/02](docs/02_audit_log_schema.md) と
 [docs/04](docs/04_audit_log_gap_check.md) を参照してください。
 
-### ステップ 5 — 自社ルールで拡張する(任意)
+### ステップ 6 — 自社ルールで拡張する(任意)
 
 各社固有の質問や厳格化した閾値は overlay で追加し、適用前に検証します。
 
@@ -251,20 +288,22 @@ aidr check-readiness examples/business/sample-insourcing-readiness.yaml \
 ```
 ai-delegation-readiness/
 ├── definitions/                 # 機械可読の正本フレームワーク(YAML)
+│   ├── transition-screening.yaml #  3 軸 + 移行 4 類型マップ + extension_points
 │   ├── four-layer.yaml          #   4 層 + 効果測定軸・組織 readiness 軸 + extension_points
 │   ├── delegation-matrix.yaml   #   2 軸 + 領域マップ + extension_points
 │   └── task-contract.yaml       #   実行ルーブリック 4 要素 + ゲート policy + extension_points
 ├── schemas/
 │   └── audit-log.schema.json    # JSON Schema with $defs: minimum (A) / extended (B)
 ├── src/adr/                     # Python 診断ツール(コンテナイメージで配布)
-├── bin/aidr                     # CLI エントリポイント(単一コマンド、6 サブコマンド)
+├── bin/aidr                     # CLI エントリポイント(単一コマンド、7 サブコマンド)
 ├── examples/
+│   ├── task-groups/             # screen-transition のサンプル入力(4 類型 + HITL)
 │   ├── business/                # check-readiness のサンプル入力(ajinomoto-discovery-team / sample-ip-agent-readiness / sample-insourcing-readiness)
 │   ├── judgments/               # score-delegation のサンプル入力(汎用 / 知財 4 工程)
 │   ├── task-contracts/          # check-task-contract のサンプル入力(green / red-ai-judge)
 │   ├── audit-log-sample.json    # サンプル監査ログ(extended 有効)
 │   ├── overlays/                # overlay サンプル(Acme Corp / organization-readiness-ajinomoto / high-stakes-domain / insourcing-judgment)
-│   └── skills/                  # Claude Code skill サンプル 2 種
+│   └── skills/                  # Claude Code skill サンプル 3 種
 └── docs/
     ├── 01_four_layer_framework.md
     ├── 02_audit_log_schema.md
@@ -273,7 +312,8 @@ ai-delegation-readiness/
     ├── 05_organization_axis.md
     ├── 06_task_contract_execution_rubric.md
     ├── 07_high_stakes_domain_overlay.md
-    └── 08_insourcing_judgment_overlay.md
+    ├── 08_insourcing_judgment_overlay.md
+    └── 09_transition_screening.md
 ```
 
 ## How to extend(フレームワークの意図)
@@ -310,9 +350,9 @@ aidr check-readiness mybiz.yaml --overlay our-rules.yaml
 
 - **AI エージェント**: `definitions/four-layer.yaml` や
   `schemas/audit-log.schema.json` を system prompt や tool context にロードします。
-  [`examples/skills/`](examples/skills/) に Claude Code skill のラッパー 2 種を用意しています
+  [`examples/skills/`](examples/skills/) に Claude Code skill のラッパー 3 種を用意しています
 - **CI パイプライン**: 出力ログ 1 件ごとに
-  `docker run --rm -v "$PWD:/data" -w /data ghcr.io/suwa-sh/ai-delegation-readiness:v0.5.0 validate-audit-log <log>`
+  `docker run --rm -v "$PWD:/data" -w /data ghcr.io/suwa-sh/ai-delegation-readiness:v0.7.0 validate-audit-log <log>`
   を呼び、exit code でゲートします
 - **社内 overlay**: 自社固有の overlay をプライベートリポで管理し、`--overlay` で
   適用します。本リポはクリーンな upstream として pull できます

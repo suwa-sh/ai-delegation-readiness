@@ -14,7 +14,14 @@ since February 2026).
 
 Key features:
 
-1. **Diagnoses delegation readiness on two fronts** — it mechanically scores how
+1. **Maps where to start before you delegate** — it screens task groups on three
+   axes (theoretical exposure / human necessity / demand elasticity) into the
+   four AI-transition types (growth / high automation / reorganization / minimal
+   change), ordered by delegation-design priority. The top priority is
+   *reorganization* (humans stay central but headcount demand may shrink — the
+   zone that needs the most design), and every type carries a recommended
+   decision order that puts headcount **last**.
+2. **Diagnoses delegation readiness on two fronts** — it mechanically scores how
    far a *process* has standardized, structured and bounded its judgments (plus
    whether the claimed efficiency gain is explainable), and — in parallel —
    whether the *organization* can absorb the delegation (authority to pull the
@@ -22,14 +29,15 @@ Key features:
    bus-factor countermeasure). It returns a deterministic verdict for each, so
    "the process is delegable but the organization is not ready yet" shows up as
    its own gap instead of hiding behind a green process score.
-2. **Checks how each delegated task is run** — once readiness passes, it scores a
+3. **Checks how each delegated task is run** — once readiness passes, it scores a
    task's execution contract on four elements (intent, boundary, evidence,
    scorer), so a task is not handed to an agent with an unstated pass condition,
    no escalation path, or an AI judge that scores itself against a single rubric.
-3. **A machine-readable single source of truth** — the four-layer framework, the
-   delegation matrix, the task-contract rubric and the audit-log schema are kept
-   as definitions that AI agents and CI can consume directly.
-4. **Extensible without forking** — each company adds its own questions and
+4. **A machine-readable single source of truth** — the transition screening, the
+   four-layer framework, the delegation matrix, the task-contract rubric and the
+   audit-log schema are kept as definitions that AI agents and CI can consume
+   directly.
+5. **Extensible without forking** — each company adds its own questions and
    stricter thresholds through an overlay.
 
 > **Glossary**:
@@ -63,6 +71,13 @@ Key features:
 >   grading against a single visible rubric it can optimize (Goodhart).
 > - An **overlay** is a company-specific extension file that adds questions or
 >   strengthens thresholds without forking the canonical definitions.
+> - The **AI-transition screening** is the phase *before* delegation scoring: it
+>   sorts task groups into growth / high automation / reorganization / minimal
+>   change to decide where delegation design should start (a simplified lens
+>   derived from OpenAI's EU AI Jobs Transition Framework).
+> - **HITL** (human-in-the-loop) keeps a human on the execution path for the
+>   final decision. Work affecting rights, finances, health, or regulated
+>   matters is treated as a default HITL domain by this tool.
 
 > **A note on language**: Documents under `docs/` are written in Japanese (the
 > author's working language). This English README is the entry point;
@@ -74,25 +89,30 @@ No setup — pull the published image and run it. The bundled samples work out o
 the box:
 
 ```bash
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.5.0 --version
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.7.0 --version
 
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.5.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.7.0 \
+  screen-transition examples/task-groups/sample-task-groups.yaml
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.7.0 \
   check-readiness examples/business/sample-expense-approval.yaml
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.5.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.7.0 \
   score-delegation examples/judgments/sample-judgments.yaml
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.5.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.7.0 \
   validate-audit-log examples/audit-log-sample.json --level extended
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.5.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.7.0 \
   check-overlay examples/overlays/sample-company/extra-rules.yaml
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.5.0 list-definitions
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.7.0 list-definitions
 ```
 
 `--version` prints the app version and the bundled overlay engine version, e.g.
-`aidr 0.6.0 (overlay-scoring-skeleton 0.1.0)`.
+`aidr 0.7.0 (overlay-scoring-skeleton 0.1.0)`.
 
 Every command returns a deterministic exit code so you can gate CI on it:
 **0** ok · **1** partial (yellow) · **2** block (red: gaps, SLA breach, rejected
 overlay) · **3** input error.
+The exception is `screen-transition`: screening is a classification, not a
+pass/fail gate, so it exits **0** on success whatever the types are (missing
+answers and overlay violations still exit **3**).
 
 ## Usage workflow
 
@@ -101,31 +121,41 @@ into the container. A shell function keeps the rest of this guide readable:
 
 ```bash
 aidr() { docker run --rm -v "$PWD:/data" -w /data \
-  ghcr.io/suwa-sh/ai-delegation-readiness:v0.5.0 "$@"; }
+  ghcr.io/suwa-sh/ai-delegation-readiness:v0.7.0 "$@"; }
 ```
 
 Grab a sample from [`examples/`](examples/) as a template, edit it with your own
 values, then run the commands in this order — from diagnosis to extension.
 
-1. **Prepare** — start your own input file from a sample (`my-business.yaml`).
-2. **Diagnose the process and the organization** — fill each layer's questions
+1. **Prepare** — start your own input files from the samples
+   (`my-task-groups.yaml`, `my-business.yaml`).
+2. **Map where to start** — list your task groups, answer the three axes'
+   questions, then `aidr screen-transition my-task-groups.yaml`. The output is
+   ordered by delegation-design priority: *reorganization* first (role redesign
+   needed), *high automation* feeds step 4's judgment scoring. Groups touching
+   rights / finances / health / regulated matters carry a `[HITL]` marker
+   whatever their type. Every question must be answered — missing answers are an
+   input error, so an unanswered human-necessity question can never tip a group
+   toward the humans-not-needed side. See
+   [`docs/09_transition_screening.md`](docs/09_transition_screening.md).
+3. **Diagnose the process and the organization** — fill each layer's questions
    with `yes` / `no`, then `aidr check-readiness my-business.yaml`. The four
    layers stack (fix the layer named by `First gate to fix` first; lower layers
    gate the upper ones), while the efficacy and organization axes are scored in
    parallel — an organization gap does not gate the layers, it stands on its own.
-3. **Score the judgments** — list your judgments and run
+4. **Score the judgments** — list your judgments and run
    `aidr score-delegation my-judgments.yaml`. GREEN delegates, YELLOW is
    LLM-assist (a human decides), RED stays human-only.
-4. **Check the task contract** — for a task you decided to delegate, declare its
+5. **Check the task contract** — for a task you decided to delegate, declare its
    intent / boundary / evidence / scorer and run
    `aidr check-task-contract my-contract.yaml`. GREEN is ready to run, YELLOW has
    a thin element, RED blocks (a missing element, or an AI judge with no iRULER
    double-evaluation). Start from
    [`examples/task-contracts/sample-green.yaml`](examples/task-contracts/sample-green.yaml).
-5. **Validate the audit log** — once delegation starts, check that the emitted
+6. **Validate the audit log** — once delegation starts, check that the emitted
    log satisfies who / when / what / why / result:
    `aidr validate-audit-log my-log.json --level extended`.
-6. **Extend (optional)** — add your own questions / thresholds via an overlay,
+7. **Extend (optional)** — add your own questions / thresholds via an overlay,
    validated by `aidr check-overlay <path>` and applied with `--overlay`.
    A bundled domain overlay for high-stakes professional work (IP / legal /
    pharma) adds a hard prerequisite gate (L5) and cautious-side matrix
@@ -196,20 +226,22 @@ command in the workflow.
 ```
 ai-delegation-readiness/
 ├── definitions/                 # Machine-readable canonical framework (YAML)
+│   ├── transition-screening.yaml #  3 axes + 4 transition types map + extension_points
 │   ├── four-layer.yaml          #   4 layers + efficacy & organization axes + extension_points
 │   ├── delegation-matrix.yaml   #   2 axes + region map + extension_points
 │   └── task-contract.yaml       #   4 execution-rubric elements + gate policy + extension_points
 ├── schemas/
 │   └── audit-log.schema.json    # JSON Schema with $defs: minimum (A) / extended (B)
 ├── src/adr/                     # Python diagnostic tool (shipped as a container image)
-├── bin/aidr                     # CLI entry point (single command, 6 subcommands)
+├── bin/aidr                     # CLI entry point (single command, 7 subcommands)
 ├── examples/
+│   ├── task-groups/             # Sample input for screen-transition (all 4 types + HITL)
 │   ├── business/                # Sample input for check-readiness (ajinomoto-discovery-team / sample-ip-agent-readiness / sample-insourcing-readiness)
 │   ├── judgments/               # Sample input for score-delegation (generic / 4 patent-work steps)
 │   ├── task-contracts/          # Sample input for check-task-contract (green / red-ai-judge)
 │   ├── audit-log-sample.json    # Sample audit log (extended-level valid)
 │   ├── overlays/                # Sample overlays (Acme Corp; organization-readiness-ajinomoto; high-stakes-domain; insourcing-judgment)
-│   └── skills/                  # Two Claude Code skill samples
+│   └── skills/                  # Three Claude Code skill samples
 └── docs/
     ├── 01_four_layer_framework.md
     ├── 02_audit_log_schema.md
@@ -218,7 +250,8 @@ ai-delegation-readiness/
     ├── 05_organization_axis.md
     ├── 06_task_contract_execution_rubric.md
     ├── 07_high_stakes_domain_overlay.md
-    └── 08_insourcing_judgment_overlay.md
+    ├── 08_insourcing_judgment_overlay.md
+    └── 09_transition_screening.md
 ```
 
 ## How to extend
@@ -257,9 +290,9 @@ The framework is reused in three ways:
 
 - **AI agents**: load `definitions/four-layer.yaml` and
   `schemas/audit-log.schema.json` into the system prompt or tool context.
-  See [`examples/skills/`](examples/skills/) for two ready-to-adapt Claude
+  See [`examples/skills/`](examples/skills/) for three ready-to-adapt Claude
   Code skill wrappers.
-- **CI pipelines**: run `docker run --rm -v "$PWD:/data" -w /data ghcr.io/suwa-sh/ai-delegation-readiness:v0.5.0 validate-audit-log <log>` on each emitted log; gate
+- **CI pipelines**: run `docker run --rm -v "$PWD:/data" -w /data ghcr.io/suwa-sh/ai-delegation-readiness:v0.7.0 validate-audit-log <log>` on each emitted log; gate
   on exit code.
 - **Internal overlays**: keep your company-specific overlay in a private repo and
   apply with `--overlay`. The framework stays a clean upstream you can pull from.

@@ -1,0 +1,206 @@
+version: 1
+name: transition-screening
+separator: "."
+description: |
+  Pre-delegation screening: classify task groups into the four AI-transition
+  types (growth / high_automation / reorganization / minimal_change) BEFORE
+  scoring individual judgments with the delegation matrix. Three axes are
+  each scored via observable yes/no questions; the (high|low) triple maps to
+  one type with a delegation-design priority and a recommended decision
+  order (task decomposition -> sort -> role redesign -> reskill -> headcount
+  LAST).
+
+  Positioning: this decision tree is NOT a reproduction of OpenAI's EU
+  framework. The original is a quantitative net-effect estimation over ESCO
+  occupations; this definition is a simplified screening lens derived from
+  the framework's conceptual structure (confidence: design_proposal). Treat
+  the result as a planning map ("where do adjustment pressure and
+  opportunity appear"), never as a job-loss prediction.
+
+# 拡張ポイント: 各社のオーバーレイで採点質問・具体例を追加できる(add のみ)。
+# threshold の strengthen は本定義では意図的に開けない:
+#   委任ゲート(delegation-matrix)では「threshold を上げる = green に入りにくい = 安全側」
+#   が自明だが、スクリーニングでは threshold を上げると exposure=high に入りにくくなり、
+#   再編(reorganization)対象が minimal_change(監視のみ)へ落ちて見逃される。
+#   準備の地図では見逃し(false negative)が害なので、閾値操作の拡張点は無し。
+extension_points:
+  - {group: "technical_exposure", allow: add}
+  - {group: "human_necessity", allow: add}
+  - {group: "demand_elasticity", allow: add}
+  - {group: "examples", allow: add}
+
+items:
+  # --- technical_exposure axis (theoretical exposure) ------------------------
+  # Eloundou et al. 2023 "GPTs are GPTs" のタスク採点(タスク時間のうち AI に
+  # 晒される割合)を観測可能な 3 問に落とした簡易版。2/3 yes => high。
+  - id: "technical_exposure"
+    name: technical_exposure
+    name_ja: 理論 exposure
+    description: |
+      How much of the task group's time is theoretically exposed to current
+      AI capability. Follows the task-scoring idea of Eloundou et al. 2023
+      ("GPTs are GPTs"): exposure means AI could halve the time of the task
+      at equal quality, not that adoption has happened.
+    threshold: 2          # >=2 Yes => high; otherwise low
+  - id: "technical_exposure.E1"
+    text: Is the majority of task time spent on information work (documents, data, code) rather than physical or face-to-face work?
+  - id: "technical_exposure.E2"
+    text: Are the main tasks' inputs and outputs fully digital (no physical handling required to complete them)?
+  - id: "technical_exposure.E3"
+    text: Could current AI tools halve the time of at least some core tasks while keeping quality (the exposure criterion of Eloundou et al. 2023)?
+
+  # --- human_necessity axis (regulation / relationship / physical) -----------
+  # 記事の「規制・関係性・物理の いずれか で人間が役割に残る必要」に対応するため
+  # threshold は 1(1 つでも yes なら high = 人間必要)。
+  # H1 は HITL 既定固定域(権利・財務・健康・規制)の正本。flag: human_control により
+  # screen-transition は類型と独立に human_control_required を立てる(growth 経路でも
+  # H1=yes の HITL 指示が握りつぶされない)。
+  - id: "human_necessity"
+    name: human_necessity
+    name_ja: 人間必要性
+    description: |
+      Whether a human must remain in the role for any of three reasons:
+      regulation (a human decision/signature is legally or audit-wise
+      required), relationship (interpersonal trust/care is the core value),
+      or physical (on-site physical work is indispensable). ANY single yes
+      keeps humans in the loop, hence threshold 1.
+    threshold: 1          # >=1 Yes => high (any one reason keeps humans)
+  - id: "human_necessity.H1"
+    text: Does the work affect rights, finances, health, or regulated matters such that a human decision or signature is required by law, regulation, or audit (the default HITL domains)?
+    flag: human_control
+  - id: "human_necessity.H2"
+    text: Is the interpersonal relationship itself (trust, negotiation, care) the core value the work delivers?
+  - id: "human_necessity.H3"
+    text: Is physical on-site work or embodied skill indispensable to deliver the work?
+
+  # --- demand_elasticity axis ------------------------------------------------
+  # AI がコストを下げたときに需要が拡大するか。2/3 yes => high(弾力的)。
+  - id: "demand_elasticity"
+    name: demand_elasticity
+    name_ja: 需要弾力性
+    description: |
+      Whether demand for the work expands when AI lowers its cost or lead
+      time. Elastic demand turns cost reduction into volume growth (and
+      possibly employment growth); inelastic demand turns it into workforce
+      pressure.
+    threshold: 2          # >=2 Yes => high (elastic); otherwise low
+  - id: "demand_elasticity.D1"
+    text: Would the number of requests (from customers or internal users) grow if cost or lead time dropped substantially?
+  - id: "demand_elasticity.D2"
+    text: Is there unmet latent demand today because price or speed is the bottleneck?
+  - id: "demand_elasticity.D3"
+    text: Is demand free of hard caps such as regulatory quotas or fixed budgets that would stop it from growing?
+
+  # --- type map: 3 軸の (high|low) から 4 類型へ -----------------------------
+  # 評価はソース順・部分マッチ(minimal_change は exposure=low のみで確定)。
+  # 記事の決定木: exposure 低 => 変化小 / exposure 高 & 弾力的 => 成長 /
+  # exposure 高 & 非弾力 & 人間必要 => 再編 / exposure 高 & 非弾力 & 人間不要 => 高自動化。
+  # delegation_priority は「委任設計にどの順で手を付けるか」(1 が最優先)。
+  # 再編が 1 位である理由: 人は残るが人員需要は減りうる最難ゾーンで、役割再定義・
+  # reskill・権限移譲の設計コストが最も高く、augmentation に混ぜると見えなくなるため。
+  # WEF の redeploy 目安数値は claim_needs_verification のため action には埋め込まず、
+  # case_evidence と docs/09 に確度ラベル付きで置く。
+  - id: "types"
+    label: AI-transition type map ((technical_exposure, demand_elasticity, human_necessity) -> type)
+    case_evidence:
+      - text: EU employment shares are growth 12% / higher near-term automation 14% / likely to reorganize 27% / less immediate change 47% (sums to 100%)
+        confidence: observed_fact
+        source: https://openai.com/index/mapping-ai-jobs-transition-eu/
+      - text: Some secondary media report the EU numbers as "automation 18% / reorganize 24% / growth 12% / minimal 46%" — that is the US figure set misattributed to the EU. OpenAI's EU report states EU automation share (14%) is LOWER than the US (18%). Use EU=12/14/27/47 as primary and US=18/24/12/46 only as comparison
+        confidence: observed_fact
+        source: https://cdn.openai.com/pdf/the-ai-jobs-transition-framework-for-the-eu.pdf
+      - text: Capability overhang — for automation-risk occupations OpenAI reports theoretical exposure 92.8% vs realized (observed usage) exposure 24.6%, so exposure-based maps overstate near-term adoption
+        confidence: observed_fact
+        source: https://openai.com/index/mapping-ai-jobs-transition-eu/
+      - text: Exposure-only models explain about 14% of actual AI-adoption variation vs about 60% for a comparative-advantage model, diverging for roughly 30% of workers (primary PDF returned 403; figures are from a secondary summary and need re-verification)
+        confidence: claim_needs_verification
+        source: https://www.nber.org/papers/w35271
+      - text: 95% of organizations that adopted generative AI report no measurable return (MIT NANDA "The GenAI Divide", cited via Fortune), so treat screening output as the start of small validated pilots, not a mandate for large-scale redesign
+        confidence: claim_needs_verification
+        source: https://fortune.com/2025/08/18/mit-report-95-percent-generative-ai-pilots-at-companies-failing-cfo/
+      - text: WEF Future of Jobs Report 2025 estimates that of 100 workers, 29 can upskill in place, 19 can be redeployed, and 11 face hard transition by 2030 (primary PDF timed out; figures via secondary summary — do not assert as fact in client-facing output)
+        confidence: claim_needs_verification
+        source: https://reports.weforum.org/docs/WEF_Future_of_Jobs_Report_2025.pdf
+  - id: "types.reorganization"
+    name: reorganization
+    name_ja: 再編
+    delegation_priority: 1
+    when:
+      - { technical_exposure: high, demand_elasticity: low, human_necessity: high }
+    action: |
+      Highest priority for delegation design. Humans stay central to
+      delivery, but headcount demand may shrink — the hardest zone to
+      design. Follow the order: decompose into tasks -> sort each into
+      automate / augment / human -> redefine roles -> reskill and transfer
+      authority -> decide headcount LAST. Before any reduction, evaluate
+      redeploy paths (skill adjacency); see the WEF section of docs/09 for
+      reference figures and their confidence labels.
+  - id: "types.high_automation"
+    name: high_automation
+    name_ja: 高自動化
+    delegation_priority: 2
+    when:
+      - { technical_exposure: high, demand_elasticity: low, human_necessity: low }
+    action: |
+      Score the concrete judgments with `aidr score-delegation` to find the
+      green (delegate OK) region, then run `aidr check-readiness` before
+      delegating. Decide headcount LAST, after redeploy paths have been
+      evaluated — high automation potential is not a layoff mandate.
+  - id: "types.growth"
+    name: growth
+    name_ja: 成長
+    delegation_priority: 3
+    when:
+      - { technical_exposure: high, demand_elasticity: high }
+    action: |
+      Invest in augmentation and role expansion: cost reduction is expected
+      to expand demand, so capacity freed by AI feeds growth rather than
+      reduction. Revisit headcount (including additions) only after the
+      redesigned workflow shows its outcome.
+  - id: "types.minimal_change"
+    name: minimal_change
+    name_ja: 変化小
+    delegation_priority: 4
+    when:
+      - { technical_exposure: low }
+    action: |
+      Monitor only. Low exposure or physical barriers shield this group for
+      now; avoid over-investment. Re-screen when tooling or regulation
+      changes the exposure answers.
+
+  # --- worked examples: 採点済みの具体例(職種例は米国版フレームの公表例を参考にした
+  # 本マトリクスへの当てはめ = design_proposal。EU 版の職種リストは未公表) ---------
+  - id: "examples"
+    label: Worked examples (classification is this definition's design proposal; occupation examples reference the US-version framework)
+  - id: "examples.court_reporter_transcription"
+    task_group: Court reporting / transcription
+    technical_exposure_yes: [E1, E2, E3]
+    human_necessity_yes: []
+    demand_elasticity_yes: []
+    type: high_automation
+    rationale: Fully digital language work with capped demand (court volume does not grow with cheaper transcription)
+    confidence: design_proposal
+  - id: "examples.nurse_ward_operations"
+    task_group: Nursing (ward operations and documentation)
+    technical_exposure_yes: [E1, E3]
+    human_necessity_yes: [H1, H2, H3]
+    demand_elasticity_yes: [D3]
+    type: reorganization
+    rationale: Documentation is exposed, but health-domain regulation and care relationships keep humans central while workflows change
+    confidence: design_proposal
+  - id: "examples.software_consulting"
+    task_group: Software development consulting
+    technical_exposure_yes: [E1, E2, E3]
+    human_necessity_yes: [H2]
+    demand_elasticity_yes: [D1, D2, D3]
+    type: growth
+    rationale: Highly exposed, but lower delivery cost unlocks latent demand from clients who could not previously afford it
+    confidence: design_proposal
+  - id: "examples.plumbing_field_service"
+    task_group: Plumbing / field service
+    technical_exposure_yes: [E3]
+    human_necessity_yes: [H3]
+    demand_elasticity_yes: [D1]
+    type: minimal_change
+    rationale: Physical on-site work dominates task time; only scheduling and reporting are exposed
+    confidence: design_proposal

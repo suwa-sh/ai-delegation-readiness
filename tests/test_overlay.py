@@ -19,6 +19,7 @@ from conftest import (
     matrix_path,
     sample_overlay_path,
     task_contract_path,
+    transition_path,
 )
 
 
@@ -34,6 +35,10 @@ def task_contract() -> dict:
     return ov.load_yaml(task_contract_path())
 
 
+def transition() -> dict:
+    return ov.load_yaml(transition_path())
+
+
 def _ids(defn: dict) -> list[str]:
     return [it["id"] for it in defn["items"]]
 
@@ -43,6 +48,7 @@ def _ids(defn: dict) -> list[str]:
 def test_base_definitions_validate():
     assert ov.validate_definition(four_layer()) == []
     assert ov.validate_definition(matrix()) == []
+    assert ov.validate_definition(transition()) == []
 
 
 def test_definition_with_orphan_leaf_is_rejected():
@@ -382,3 +388,49 @@ def test_task_contract_gates_order_and_opaque_when_preserved():
     red = groups["gates"]["leaves"][0]
     assert red["when"] == ["any_element_absent", "ai_judge_without_iruler"]
     assert red["exit_code"] == 2
+
+
+# --- transition-screening: axes are add-only (no threshold strengthening) ----
+# The screening definition deliberately declares NO strengthen extension
+# points: raising a threshold makes exposure=high harder to reach and drops
+# reorganization candidates into minimal_change (a silent miss on a planning
+# map). See the extension_points comment in transition-screening.yaml.
+
+def test_transition_add_question_to_axis():
+    overlay = {"extends": "transition-screening",
+               "add": [{"id": "technical_exposure.E4", "text": "extra question"}]}
+    r = ov.apply_overlay(transition(), overlay)
+    assert r.ok, r.violations
+    assert "technical_exposure.E4" in _ids(r.merged)
+
+
+def test_transition_add_example():
+    overlay = {"extends": "transition-screening",
+               "add": [{"id": "examples.acme_support_desk",
+                        "task_group": "Acme support desk", "type": "reorganization"}]}
+    r = ov.apply_overlay(transition(), overlay)
+    assert r.ok, r.violations
+    assert "examples.acme_support_desk" in _ids(r.merged)
+
+
+def test_transition_strengthen_threshold_is_rejected():
+    # Even a "stricter" threshold is rejected: no strengthen point is declared.
+    overlay = {"extends": "transition-screening",
+               "strengthen": {"technical_exposure": {"threshold": 3}}}
+    r = ov.apply_overlay(transition(), overlay)
+    assert not r.ok
+
+
+def test_transition_weaken_human_necessity_threshold_is_rejected():
+    overlay = {"extends": "transition-screening",
+               "strengthen": {"human_necessity": {"threshold": 2}}}
+    r = ov.apply_overlay(transition(), overlay)
+    assert not r.ok
+
+
+def test_transition_add_to_types_is_rejected():
+    # types is a fixed lookup, not an extension point: overlays cannot grow it.
+    overlay = {"extends": "transition-screening",
+               "add": [{"id": "types.hybrid", "when": [], "action": "n/a"}]}
+    r = ov.apply_overlay(transition(), overlay)
+    assert not r.ok

@@ -78,10 +78,27 @@ def summarize_task_contract(
     )
 
 
-# delegation-matrix の "regions"/"examples"、task-contract の "gates"/"examples" は
-# axis ではなくルックアップ/データ group なので summarize から除外する。
-# four-layer の "efficacy" は axis と並列の独立 group。
-_NON_AXIS_GROUPS = {"regions", "examples", "gates"}
+# delegation-matrix の "regions"/"examples"、task-contract の "gates"/"examples"、
+# transition-screening の "types"/"examples" は axis ではなくルックアップ/データ group
+# なので summarize から除外する。four-layer の "efficacy" は axis と並列の独立 group。
+_NON_AXIS_GROUPS = {"regions", "examples", "gates", "types"}
+
+
+def summarize_transition(
+    overlay_paths: list[str | Path] | None = None,
+    definition_path: str | Path | None = None,
+) -> DefinitionSummary:
+    # The 3 screening axes (technical_exposure / human_necessity /
+    # demand_elasticity) score like matrix axes (absolute threshold over
+    # question leaves); "types" and "examples" are lookup/data groups and
+    # are excluded via _NON_AXIS_GROUPS.
+    return _summarize(
+        name="transition-screening",
+        default_filename="transition-screening.yaml",
+        overlay_paths=overlay_paths,
+        definition_path=definition_path,
+        is_axes=True,
+    )
 
 
 def _summarize(
