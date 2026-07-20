@@ -111,22 +111,12 @@ def _summarize(
     overlay_paths = overlay_paths or []
     base_path = Path(definition_path) if definition_path else DEFAULT_DEFINITIONS_DIR / default_filename
     base = overlay_mod.load_yaml(base_path)
-
-    if overlay_paths:
-        result = overlay_mod.apply_overlays(base, overlay_paths)
-        if not result.ok:
-            from .check_readiness import OverlayError
-            raise OverlayError(result.violations)
-        merged = result.merged
-        applied = [str(p) for p in overlay_paths]
-    else:
-        merged = base
-        applied = []
+    merged = _merge_overlays(base, overlay_paths)
 
     summary = DefinitionSummary(
         name=name,
         base_path=str(base_path),
-        overlays_applied=applied,
+        overlays_applied=[str(p) for p in overlay_paths],
     )
 
     base_groups = overlay_mod.group_items(base)
@@ -134,27 +124,58 @@ def _summarize(
     threshold_keys = ("threshold",) if is_axes else ("pass", "revise")
 
     if is_axes:
-        # delegation-matrix: regions/examples はデータ group なので axis から除外。
-        for group_id, group in merged_groups.items():
-            if group_id in _NON_AXIS_GROUPS:
-                continue
-            summary.axes.append(
-                _summarize_group(group_id, group, base_groups.get(group_id), threshold_keys)
-            )
+        _fill_axes(summary, merged_groups, base_groups, threshold_keys)
     else:
-        # four-layer: header の role でゲート層 (layers) と並列軸 (parallel_axes) に振り分ける。
-        # efficacy / organization は並列軸として同じ枠で要約する(overlay で add/strengthen 可能)。
-        from .check_readiness import axis_role, ROLE_PARALLEL
-
-        for group_id, group in merged_groups.items():
-            summary_item = _summarize_group(
-                group_id, group, base_groups.get(group_id), threshold_keys
-            )
-            if axis_role(group_id, group["header"] or {}) == ROLE_PARALLEL:
-                summary.parallel_axes.append(summary_item)
-            else:
-                summary.layers.append(summary_item)
+        _fill_layers(summary, merged_groups, base_groups, threshold_keys)
     return summary
+
+
+def _merge_overlays(base: dict, overlay_paths: list[str | Path]) -> dict:
+    if not overlay_paths:
+        return base
+    result = overlay_mod.apply_overlays(base, overlay_paths)
+    if not result.ok:
+        from .check_readiness import OverlayError
+        raise OverlayError(result.violations)
+    return result.merged
+
+
+def _fill_axes(
+    summary: DefinitionSummary,
+    merged_groups: dict,
+    base_groups: dict,
+    threshold_keys: tuple[str, ...],
+) -> None:
+    """delegation-matrix: regions/examples はデータ group なので axis から除外。"""
+    for group_id, group in merged_groups.items():
+        if group_id in _NON_AXIS_GROUPS:
+            continue
+        summary.axes.append(
+            _summarize_group(group_id, group, base_groups.get(group_id), threshold_keys)
+        )
+
+
+def _fill_layers(
+    summary: DefinitionSummary,
+    merged_groups: dict,
+    base_groups: dict,
+    threshold_keys: tuple[str, ...],
+) -> None:
+    """four-layer: header の role でゲート層と並列軸に振り分ける。
+
+    efficacy / organization は並列軸として同じ枠で要約する(overlay で
+    add/strengthen 可能)。
+    """
+    from .check_readiness import axis_role, ROLE_PARALLEL
+
+    for group_id, group in merged_groups.items():
+        summary_item = _summarize_group(
+            group_id, group, base_groups.get(group_id), threshold_keys
+        )
+        if axis_role(group_id, group["header"] or {}) == ROLE_PARALLEL:
+            summary.parallel_axes.append(summary_item)
+        else:
+            summary.layers.append(summary_item)
 
 
 def _summarize_group(
@@ -194,6 +215,29 @@ def _strengthened_thresholds(base: dict, merged: dict) -> dict:
     return out
 
 
+def _render_section(
+    title: str, items: list[LayerSummary], *, label_thresholds: bool
+) -> list[str]:
+    """Render one summary section, or nothing when the section is empty.
+
+    ``label_thresholds`` keeps the historical difference in the axes section,
+    which prints the thresholds bare while layers/parallel_axes prefix them.
+    """
+    if not items:
+        return []
+    lines = ["", f"{title}:"]
+    for item in items:
+        thresholds = f"thresholds={item.thresholds}" if label_thresholds else f"{item.thresholds}"
+        lines.append(
+            f"  {item.id} {item.name}: {item.question_count} questions, {thresholds}"
+        )
+        if item.added_question_ids:
+            lines.append(f"    +added: {', '.join(item.added_question_ids)}")
+        if item.strengthened_thresholds:
+            lines.append(f"    !strengthened: {item.strengthened_thresholds}")
+    return lines
+
+
 def render_text(summary: DefinitionSummary) -> str:
     lines = [
         f"definition: {summary.name}",
@@ -201,44 +245,14 @@ def render_text(summary: DefinitionSummary) -> str:
     ]
     if summary.overlays_applied:
         lines.append("overlays:")
-        for o in summary.overlays_applied:
-            lines.append(f"  - {o}")
+        lines.extend(f"  - {o}" for o in summary.overlays_applied)
     else:
         lines.append("overlays:   (none)")
-    if summary.layers:
-        lines.append("")
-        lines.append("layers:")
-        for layer in summary.layers:
-            lines.append(
-                f"  {layer.id} {layer.name}: {layer.question_count} questions, "
-                f"thresholds={layer.thresholds}"
-            )
-            if layer.added_question_ids:
-                lines.append(f"    +added: {', '.join(layer.added_question_ids)}")
-            if layer.strengthened_thresholds:
-                lines.append(f"    !strengthened: {layer.strengthened_thresholds}")
-    if summary.axes:
-        lines.append("")
-        lines.append("axes:")
-        for a in summary.axes:
-            lines.append(
-                f"  {a.id} {a.name}: {a.question_count} questions, {a.thresholds}"
-            )
-            if a.added_question_ids:
-                lines.append(f"    +added: {', '.join(a.added_question_ids)}")
-            if a.strengthened_thresholds:
-                lines.append(f"    !strengthened: {a.strengthened_thresholds}")
-    if summary.parallel_axes:
-        lines.append("")
-        lines.append("parallel_axes:")
-        for e in summary.parallel_axes:
-            lines.append(
-                f"  {e.id} {e.name}: {e.question_count} questions, thresholds={e.thresholds}"
-            )
-            if e.added_question_ids:
-                lines.append(f"    +added: {', '.join(e.added_question_ids)}")
-            if e.strengthened_thresholds:
-                lines.append(f"    !strengthened: {e.strengthened_thresholds}")
+    lines.extend(_render_section("layers", summary.layers, label_thresholds=True))
+    lines.extend(_render_section("axes", summary.axes, label_thresholds=False))
+    lines.extend(
+        _render_section("parallel_axes", summary.parallel_axes, label_thresholds=True)
+    )
     return "\n".join(lines)
 
 
