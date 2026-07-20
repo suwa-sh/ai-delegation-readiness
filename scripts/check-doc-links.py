@@ -62,35 +62,48 @@ def iter_md_files():
     yield from (REPO / "examples").rglob("*.md")
 
 
+def iter_links(md: Path):
+    """Yield (lineno, raw_link) for every inline link outside a code fence."""
+    in_fence = False
+    for lineno, line in enumerate(md.read_text(encoding="utf-8").splitlines(), 1):
+        if CODE_FENCE_RE.match(line):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+        for m in LINK_RE.finditer(line):
+            yield lineno, m.group(1)
+
+
+def check_link(md: Path, raw: str, anchor_cache: dict[Path, set[str]]) -> str | None:
+    """Return an error description for one link, or None when it resolves."""
+    if raw.startswith(("http://", "https://", "mailto:")):
+        return None
+    path_part, _, fragment = raw.partition("#")
+    target = md if not path_part else (md.parent / path_part).resolve()
+    if path_part and not target.exists():
+        return f"broken path -> {raw}"
+    if not fragment:
+        return None
+    if target.is_dir() or target.suffix.lower() != ".md":
+        return None  # md 以外へのアンカーは検査対象外
+    if target not in anchor_cache:
+        anchor_cache[target] = anchors_of(target)
+    frag = unicodedata.normalize("NFC", fragment.lower())
+    if frag not in anchor_cache[target]:
+        return f"missing anchor -> {raw}"
+    return None
+
+
 def main() -> int:
     errors: list[str] = []
     anchor_cache: dict[Path, set[str]] = {}
     for md in iter_md_files():
-        in_fence = False
-        for lineno, line in enumerate(md.read_text(encoding="utf-8").splitlines(), 1):
-            if CODE_FENCE_RE.match(line):
-                in_fence = not in_fence
-                continue
-            if in_fence:
-                continue
-            for m in LINK_RE.finditer(line):
-                raw = m.group(1)
-                if raw.startswith(("http://", "https://", "mailto:")):
-                    continue
-                path_part, _, fragment = raw.partition("#")
-                target = md if not path_part else (md.parent / path_part).resolve()
-                rel = md.relative_to(REPO)
-                if path_part and not target.exists():
-                    errors.append(f"{rel}:{lineno}: broken path -> {raw}")
-                    continue
-                if fragment:
-                    if target.is_dir() or target.suffix.lower() != ".md":
-                        continue  # md 以外へのアンカーは検査対象外
-                    if target not in anchor_cache:
-                        anchor_cache[target] = anchors_of(target)
-                    frag = unicodedata.normalize("NFC", fragment.lower())
-                    if frag not in anchor_cache[target]:
-                        errors.append(f"{rel}:{lineno}: missing anchor -> {raw}")
+        rel = md.relative_to(REPO)
+        for lineno, raw in iter_links(md):
+            problem = check_link(md, raw, anchor_cache)
+            if problem:
+                errors.append(f"{rel}:{lineno}: {problem}")
     if errors:
         print(f"[NG] {len(errors)} broken link(s):")
         for e in errors:
