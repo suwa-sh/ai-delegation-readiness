@@ -208,14 +208,15 @@ def render_text(summary: DefinitionSummary) -> str:
     if summary.layers:
         lines.append("")
         lines.append("layers:")
-        for l in summary.layers:
+        for layer in summary.layers:
             lines.append(
-                f"  {l.id} {l.name}: {l.question_count} questions, thresholds={l.thresholds}"
+                f"  {layer.id} {layer.name}: {layer.question_count} questions, "
+                f"thresholds={layer.thresholds}"
             )
-            if l.added_question_ids:
-                lines.append(f"    +added: {', '.join(l.added_question_ids)}")
-            if l.strengthened_thresholds:
-                lines.append(f"    !strengthened: {l.strengthened_thresholds}")
+            if layer.added_question_ids:
+                lines.append(f"    +added: {', '.join(layer.added_question_ids)}")
+            if layer.strengthened_thresholds:
+                lines.append(f"    !strengthened: {layer.strengthened_thresholds}")
     if summary.axes:
         lines.append("")
         lines.append("axes:")
@@ -249,14 +250,14 @@ def render_json(summary: DefinitionSummary) -> str:
             "overlays": summary.overlays_applied,
             "layers": [
                 {
-                    "id": l.id,
-                    "name": l.name,
-                    "question_count": l.question_count,
-                    "thresholds": l.thresholds,
-                    "added_question_ids": l.added_question_ids,
-                    "strengthened_thresholds": l.strengthened_thresholds,
+                    "id": layer.id,
+                    "name": layer.name,
+                    "question_count": layer.question_count,
+                    "thresholds": layer.thresholds,
+                    "added_question_ids": layer.added_question_ids,
+                    "strengthened_thresholds": layer.strengthened_thresholds,
                 }
-                for l in summary.layers
+                for layer in summary.layers
             ],
             "axes": [
                 {

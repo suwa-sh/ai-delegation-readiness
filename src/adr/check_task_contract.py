@@ -300,8 +300,10 @@ def render_text(result: ContractResult) -> str:
         if e.no_ids:
             lines.append(f"    no: {', '.join(e.no_ids)}")
     lines.append("")
-    iruler = "yes" if result.iruler_double_eval is True else ("no" if result.iruler_double_eval is False else "unset")
-    lines.append(f"scorer: {result.scorer_type} (iRULER double-eval: {iruler})")
+    lines.append(
+        f"scorer: {result.scorer_type} "
+        f"(iRULER double-eval: {_iruler_label(result.iruler_double_eval)})"
+    )
     lines.append("")
     lines.append(f"Region: {result.region.upper()} — {result.region_name}")
     lines.append(f"  {result.rationale}")
@@ -338,6 +340,13 @@ def _level_marker(level: str) -> str:
     return {"present": "[GREEN ]", "partial": "[YELLOW]", "absent": "[RED   ]"}.get(level, "[?     ]")
 
 
+def _iruler_label(value: bool | None) -> str:
+    """Render the tri-state iRULER flag. Unanswered stays distinct from 'no'."""
+    if value is None:
+        return "unset"
+    return "yes" if value else "no"
+
+
 def render_csv_rows(result: ContractResult) -> list[list[str]]:
     """レポートの CSV 行列。task 列を全行に持たせ、連結集計に耐える形にする。
 
@@ -354,12 +363,11 @@ def render_csv_rows(result: ContractResult) -> list[list[str]]:
             "element", task, e.id, e.name, e.level, str(e.score), str(e.threshold),
             "; ".join(e.no_ids), "",
         ])
-    iruler = (
-        "yes" if result.iruler_double_eval is True
-        else ("no" if result.iruler_double_eval is False else "unset")
-    )
     rows.append(["scorer", task, "type", result.scorer_type, "", "", "", "", ""])
-    rows.append(["scorer", task, "iruler_double_eval", iruler, "", "", "", "", ""])
+    rows.append([
+        "scorer", task, "iruler_double_eval",
+        _iruler_label(result.iruler_double_eval), "", "", "", "", "",
+    ])
     rows.append([
         "summary", task, "region", result.region_name, result.region, "", "", "",
         " ".join(result.rationale.split()),

@@ -23,12 +23,9 @@ the full picture and the first gate at the same time.
 from __future__ import annotations
 
 import json
-import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
-
-import yaml
 
 import overlay_scoring as overlay_mod
 
@@ -233,7 +230,7 @@ def render_text(result: CheckResult) -> str:
         if layer.unknown_ids:
             lines.append(f"    unknown: {', '.join(layer.unknown_ids)}")
         if result.blocked_from == layer.id and layer.verdict != "pass":
-            lines.append(f"    -> upper layers are gated by this verdict")
+            lines.append("    -> upper layers are gated by this verdict")
     for axis in result.parallel_axes:
         bar = _verdict_marker(axis.verdict)
         lines.append(
@@ -260,7 +257,7 @@ def render_json(result: CheckResult) -> str:
         "target": result.target,
         "conclusion": result.conclusion,
         "blocked_from": result.blocked_from,
-        "layers": [_axis_to_dict(l) for l in result.layers],
+        "layers": [_axis_to_dict(layer) for layer in result.layers],
         "parallel_axes": [_axis_to_dict(a) for a in result.parallel_axes],
     }
     return json.dumps(payload, indent=2, ensure_ascii=False)

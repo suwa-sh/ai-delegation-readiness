@@ -16,7 +16,6 @@ from __future__ import annotations
 import argparse
 import sys
 from importlib.metadata import PackageNotFoundError, version as _pkg_version
-from pathlib import Path
 
 import overlay_scoring
 
