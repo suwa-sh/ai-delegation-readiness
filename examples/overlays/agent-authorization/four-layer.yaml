@@ -69,25 +69,34 @@ add:
       this axis separately surfaces "no amount of consent design will open
       this" as its own finding.
     case_evidence:
-      - text: Android protection levels such as internal|preinstalled gate on how an app was shipped, not on its quality or the user's wishes, so capability and consent are independent axes
+      - text: Android 16 CDD 9.8 forbids a user-installed app from providing a hotword detection service, so the capability is closed by the compatibility policy rather than by a technical limit — user consent cannot open it
         confidence: observed_fact
         source: https://source.android.com/docs/compatibility/cdd
-      - text: Capability-based systems that ship (seL4, Capsicum, Fuchsia) carry no notion of user consent; seL4's design goal is that a capability is exercised "without referring back to Alice", so consent cannot be retrofitted inside the capability layer
+      - text: seL4's design goal is that a capability is exercised "without referring back to Alice", so a consent prompt contradicts the capability layer's purpose and cannot be retrofitted inside it
         confidence: observed_fact
         source: https://sel4.systems/About/seL4-whitepaper.pdf
+      - text: The cross-system pattern that stronger capability systems (seL4, Capsicum, Fuchsia, WASI) carry no notion of user consent while the weakest (Deno) does is the source analysis's generalization; only the seL4 half is supported by the whitepaper cited here
+        confidence: claim_needs_verification
+        source: https://suwa-sh.github.io/zenn-contents/articles/agent-authorization-os-capability-consent_20260720/
       - text: The seL4 whitepaper frames delegating a judgment to a deputy as including that deputy in the TCB, which makes "do we accept the LLM inside the trusted computing base?" an explicit design question
         confidence: observed_fact
         source: https://sel4.systems/About/seL4-whitepaper.pdf
       - text: The DMA decision enumerated 11 Android features for AI interoperability, but one published analysis calls Article 6(7) "the exact opposite of the principle of least privilege"; the count also moved from 13 to 11 in three months, so the list is a vendor snapshot rather than a universal design principle
         confidence: gap_in_source
         source: https://digital-markets-act.ec.europa.eu/commission-provides-guidance-google-ai-interoperability-android-and-sharing-google-search-data-under-2026-07-16_en
+  # C1 asks for the inventory, not just the deny list. Scoring only the denied
+  # capabilities would give an agent that is granted everything an empty set and
+  # therefore an automatic yes.
   - id: "L_capability.C1"
-    text: For each capability the agent is denied, is it recorded whether the denial is a technical necessity or is merely closed by policy or contract?
-    text_ja: "エージェントに許していない能力それぞれについて、技術的な必然による制約か、方針・契約で閉じているだけかを区別して記録しているか"
+    text: Are the capabilities the agent can reach inventoried, and is each closed one recorded as either a technical necessity or a policy/contract decision?
+    text_ja: "エージェントが到達しうる能力を棚卸しし、閉じている能力それぞれについて技術的な必然か方針・契約上の判断かを記録しているか"
     weight: 1.0
+  # C2 asks for a standing review with a completed latest round, not a one-time
+  # track record: "we deleted two scopes once" must not stay yes forever while
+  # permissions accumulate again afterwards.
   - id: "L_capability.C2"
-    text: Have you measured which of the granted permissions were never exercised in practice, and removed them?
-    text_ja: "付与した権限のうち実際には行使されなかったものを実測で特定し、削除したことがあるか"
+    text: Is there a standing review that finds granted permissions which went unexercised and removes them, and has the latest round been completed?
+    text_ja: "付与済み権限のうち未行使のものを洗い出して削除する棚卸しを定期的に行う運用があり、直近の回を完了しているか"
     weight: 1.0
   - id: "L_capability.C3"
     text: Is the decision to let the LLM judge whether to call a tool (i.e. to include the LLM in the trusted computing base) made explicitly and written down?
@@ -115,8 +124,8 @@ add:
       - text: IAB TCF enumerates consent as 11 purposes and a machine-readable list of roughly 5000 vendors, yet the Brussels Market Court ruled on 2025-05-14 that the framework had not established a valid legal basis under GDPR — enumeration gives consent a form, not validity
         confidence: observed_fact
         source: https://suwa-sh.github.io/zenn-contents/articles/agent-authorization-os-capability-consent_20260720/
-      - text: W3C TAG treats permission prompts as a failure mode, noting each prompt increases the risk that users ignore the contents of all prompts; agents act often, so this degrades linearly
-        confidence: observed_fact
+      - text: W3C TAG treats permission prompts as a design failure mode and advises prompting only in exceptional cases; the further claim that the problem degrades linearly with an agent's action count is the source analysis's generalization, and the exact prompt-fatigue wording was not re-confirmed against the current TAG text
+        confidence: claim_needs_verification
         source: https://www.w3.org/TR/design-principles/
       - text: MCP URL mode elicitation requires the client not to fetch the URL automatically, not to open it without explicit consent, and to show the full URL to the user — routing the sensitive consent outside the agent's context rather than granting the agent authority
         confidence: observed_fact
@@ -124,6 +133,10 @@ add:
       - text: Capability propagation in pure capability systems has been an open problem since 1984, and delegation chains make it worse; no ratified standard for agent delegation authority exists yet
         confidence: gap_in_source
         source: https://cap-lore.com/CapTheory/ConfusedDeputy.html
+  # S1 scores whether informedness was *measured*, which is observable. It does
+  # not determine legal validity — that is a lawyer's or a regulator's call, not
+  # a diagnostic tool's. Measured comprehension is a proxy: TCF answers no here
+  # because no such measurement exists, but a yes is not a finding of validity.
   - id: "L_consent.S1"
     text: Have you confirmed by observation that the consenting users can state what they consented to and how far it extends (rather than only that the consent flow is well-formed)?
     text_ja: "同意した利用者が「何にどこまで同意したか」を説明できることを実測で確認しているか(同意の形式が整っていることの確認ではなく)"

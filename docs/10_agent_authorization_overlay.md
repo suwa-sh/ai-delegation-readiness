@@ -82,18 +82,30 @@ bin/aidr check-task-contract examples/task-contracts/sample-agent-authz-contract
 入力: [`examples/task-contracts/sample-agent-authz-contract.csv`](../examples/task-contracts/sample-agent-authz-contract.csv)
 
 ```text
+Task: 問い合わせ 1 件への一次回答ドラフト作成(架空)
+
 [GREEN ] intent 意図: PRESENT (3/2)
 [YELLOW] boundary 境界: PARTIAL (4/5)
     no: boundary.AZ2
 [GREEN ] evidence 証跡: PRESENT (3/2)
 [GREEN ] scorer 採点者: PRESENT (2/2)
 
+scorer: two_stage (iRULER double-eval: no)
+
 Region: YELLOW — 要素に穴
+  Every element is addressed but at least one is below threshold. Fill the
+thin element before delegating; the contract is incomplete, not unsafe by
+itself.
 ```
 
-この契約は base 定義だけなら GREEN です。担当者が対象の 1 件を選択し、その 1 件だけが
-読み取り範囲になる設計(AZ1)まではできています。overlay を当てると、関連案件を辿る過程で
-参照範囲が広がりうる点(AZ2)が露出して YELLOW に落ちます。
+担当者が対象の 1 件を選択し、その 1 件だけが読み取り範囲になる設計(AZ1)まではできています。
+関連案件を辿る過程で参照範囲が広がりうる点(AZ2)が露出して YELLOW に落ちました。
+
+**同じ回答内容を base 定義だけで採点すると GREEN です。** boundary は 3 問中 2 問で present に
+なるため、B1〜B3 が yes ならその時点で通ります。この差が、閾値を強化した効果です。
+なおこのサンプル自体を `--overlay` なしで実行することはできません。CSV は未知の質問 id を
+拒否するため、AZ1 / AZ2 の行が入力エラー(exit 3)になります。base との比較は
+`tests/test_check_task_contract.py` が同一回答を両方の定義で採点して固定しています。
 
 ## Concept
 
@@ -102,10 +114,18 @@ Region: YELLOW — 要素に穴
 正本は [`examples/overlays/agent-authorization/four-layer.yaml`](../examples/overlays/agent-authorization/four-layer.yaml)
 の `L_capability` group です。値はここに二重保持しません。
 
-【観測事実】Android の protection level には `internal|preinstalled` のように、
-アプリの品質でもユーザーの意思でもなく **どう出荷されたか** で判定するものがあります。
-ユーザーがどれだけ同意しても開きません。同様に、実際に出荷されている capability ベース OS
-(seL4 / Capsicum / Fuchsia)は**ユーザー同意という概念自体を持ちません**。
+【観測事実】Android 16 の CDD 9.8 は、ユーザーがインストールしたアプリが hotword detection
+service を提供することを禁じています。技術的に不可能なのではなく、互換性の方針で閉じている
+状態です。ユーザーがどれだけ同意しても開きません。
+
+【観測事実】seL4 の設計思想では、capability は「without referring back to Alice」に行使できる
+ことが要点です。**非対話性こそが capability の目的**なので、そこにユーザーへの問い合わせを
+差し込む行為は設計目標そのものに反します。同意は capability レイヤの中に後付けできません。
+
+【設計提案】この非対話性は seL4 に限らないというのが出典分析の一般化です。capability が強い
+システム(Capsicum / Fuchsia / WASI)ほどユーザー同意の概念を持たず、最も弱い Deno だけが
+まともな同意機構を持つ、という横断の観察です。ここで引用している seL4 白書が裏付けるのは
+seL4 の分だけなので、残りは一般化として扱ってください。
 
 【設計提案】能力を閉じる仕組みは 1 種類ではありません。設計の議論では 4 つを区別すると
 噛み合います。
@@ -129,9 +149,11 @@ Region: YELLOW — 要素に穴
 GDPR の有効な法的根拠を確立できていないと判示しました。列挙は同意に**表現形式**を与えますが、
 **有効性**は与えません。
 
-【観測事実】W3C TAG の設計原則は、パーミッションプロンプトを**失敗モード**として扱います。
-確認を 1 つ増やすたびに、すべての確認が読まれなくなるリスクが上がるためです。エージェントは
-行動回数が多いため、この問題が線形に悪化します。
+【観測事実】W3C TAG の設計原則は、パーミッションプロンプトを**失敗モード**として扱い、
+確認は例外的な場合にのみ行うべきだとしています。
+
+【設計提案】エージェントは行動回数が多いため、この問題が行動数に比例して悪化する、というのが
+出典分析の一般化です。悪化の度合いそのものは TAG が示した観測値ではありません。
 
 【設計提案】したがって狙うべきは確認の回数を増やすことではなく、**同意の形を変える**ことです。
 iOS のファイル選択では、利用者は「写真へのアクセス権」という抽象的な権限に同意しているのでは
@@ -149,8 +171,18 @@ yes になってしまいます**。DMA は 11 機能を列挙しましたし、
 
 | 設問 | 反例 | 反例での回答 |
 |---|---|---|
-| C2 付与した権限のうち未行使のものを実測で特定し削除したか | DMA の 11 機能列挙 | **no**(列挙・開放はしたが未使用権限の実測削除はしていない) |
-| S1 利用者が何にどこまで同意したか説明できると実測で確認したか | IAB TCF | **no**(機械可読な列挙はあるが有効性は確立できていない) |
+| C2 未行使権限を洗い出して削除する棚卸しを定期的に行い、直近の回を完了したか | DMA の 11 機能列挙 | **no**(列挙・開放はしたが、未使用権限を継続的に削る運用ではない) |
+| S1 利用者が何にどこまで同意したか説明できると実測で確認したか | IAB TCF | **no**(機械可読な列挙はあるが、利用者の理解度は測っていない) |
+
+設問の書き方にも同じ配慮を入れています。
+
+- **C1 は拒否した能力だけでなく棚卸しを求めます。** 拒否した能力だけを採点対象にすると、
+  すべてを許可しているエージェントは対象集合が空になり、自動的に yes になってしまいます
+- **C2 は過去の実績でなく継続運用を求めます。** 「一度 2 件削除した」が永久に yes のままだと、
+  その後に権限が積み上がっても検出できません
+- **S1 が測るのは理解度であって法的有効性ではありません。** 有効性の判断は法務や規制当局の
+  領分で、診断ツールが下せる判定ではありません。理解度の実測は観測可能な代理指標です。
+  TCF がここで no になるのは「測っていないから」であり、yes が有効性の証明になるわけではありません
 
 ### 閾値の読み方
 
