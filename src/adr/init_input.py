@@ -83,69 +83,61 @@ def _axis_groups(target: str, defn: dict) -> dict:
     return {**gating, **parallel}
 
 
+# target ごとの YAML テンプレート: (先頭ブロック, 質問行のインデント)。
+_YAML_TEMPLATE: dict[str, tuple[list[str], str]] = {
+    "four-layer": ([
+        "# aidr check-readiness の入力テンプレート(aidr init --target four-layer で生成)",
+        "# 各問いに yes / no を書き込んでください。未回答は unknown(採点上 no)になります。",
+        "",
+        "target: <対象業務名を書く>",
+        "",
+        "answers:",
+    ], "  "),
+    "transition": ([
+        "# aidr screen-transition の入力テンプレート(aidr init --target transition で生成)",
+        "# 各問いに yes / no を書き込んでください。このコマンドは全問回答が必須です",
+        "# (未回答のまま実行すると、欠落 id を列挙したエラーになります)。",
+        "# タスク群を増やすときは `- id:` からのブロックを複製してください。",
+        "",
+        "task_groups:",
+        "  - id: <タスク群のスラグを書く>",
+        "    description: <タスク群の名前を書く>",
+        "    answers:",
+    ], "      "),
+    "matrix": ([
+        "# aidr score-delegation の入力テンプレート(aidr init --target matrix で生成)",
+        "# 各問いに yes / no を書き込んでください。未回答は no として採点されます。",
+        "# 判定を増やすときは `- id:` からのブロックを複製してください。",
+        "",
+        "judgments:",
+        "  - id: <判定のスラグを書く>",
+        "    description: <判定の名前を書く>",
+        "    answers:",
+    ], "      "),
+    "task-contract": ([
+        "# aidr check-task-contract の入力テンプレート(aidr init --target task-contract で生成)",
+        "# 各問いに yes / no を書き込んでください。scorer.type は必須です",
+        "# (human | ai_judge | two_stage。ai_judge のときは scorer.iruler_double_eval も必須)。",
+        "",
+        "task: <委任するタスク名を書く>",
+        "",
+        "answers:",
+    ], "  "),
+}
+
+
 def generate(target: str, overlay_paths: list | None = None) -> str:
     """テンプレート YAML(文字列)を生成する。"""
     if target not in TARGETS:
         raise ValueError(f"unknown target: {target} (choose from {', '.join(TARGETS)})")
-    overlay_paths = overlay_paths or []
-    defn = _merged_definition(target, overlay_paths)
+    defn = _merged_definition(target, overlay_paths or [])
     groups = _axis_groups(target, defn)
 
-    out: list[str] = []
-    if target == "four-layer":
-        out += [
-            "# aidr check-readiness の入力テンプレート(aidr init --target four-layer で生成)",
-            "# 各問いに yes / no を書き込んでください。未回答は unknown(採点上 no)になります。",
-            "",
-            "target: <対象業務名を書く>",
-            "",
-            "answers:",
-        ]
-        for group in groups.values():
-            out += _question_lines(group, "  ")
-            out.append("")
-    elif target == "transition":
-        out += [
-            "# aidr screen-transition の入力テンプレート(aidr init --target transition で生成)",
-            "# 各問いに yes / no を書き込んでください。このコマンドは全問回答が必須です",
-            "# (未回答のまま実行すると、欠落 id を列挙したエラーになります)。",
-            "# タスク群を増やすときは `- id:` からのブロックを複製してください。",
-            "",
-            "task_groups:",
-            "  - id: <タスク群のスラグを書く>",
-            "    description: <タスク群の名前を書く>",
-            "    answers:",
-        ]
-        for group in groups.values():
-            out += _question_lines(group, "      ")
-            out.append("")
-    elif target == "matrix":
-        out += [
-            "# aidr score-delegation の入力テンプレート(aidr init --target matrix で生成)",
-            "# 各問いに yes / no を書き込んでください。未回答は no として採点されます。",
-            "# 判定を増やすときは `- id:` からのブロックを複製してください。",
-            "",
-            "judgments:",
-            "  - id: <判定のスラグを書く>",
-            "    description: <判定の名前を書く>",
-            "    answers:",
-        ]
-        for group in groups.values():
-            out += _question_lines(group, "      ")
-            out.append("")
-    elif target == "task-contract":
-        out += [
-            "# aidr check-task-contract の入力テンプレート(aidr init --target task-contract で生成)",
-            "# 各問いに yes / no を書き込んでください。scorer.type は必須です",
-            "# (human | ai_judge | two_stage。ai_judge のときは scorer.iruler_double_eval も必須)。",
-            "",
-            "task: <委任するタスク名を書く>",
-            "",
-            "answers:",
-        ]
-        for group in groups.values():
-            out += _question_lines(group, "  ")
-            out.append("")
+    header, indent = _YAML_TEMPLATE[target]
+    out = list(header)
+    for group in groups.values():
+        out += _question_lines(group, indent)
+        out.append("")
     while out and out[-1] == "":
         out.pop()
     return "\n".join(out) + "\n"
@@ -161,6 +153,16 @@ _WIDE_PLACEHOLDER = {
     "transition": "<タスク群の名前を書く>",
     "matrix": "<判定の名前を書く>",
 }
+
+
+def _leaf_prompt(leaf: dict) -> str | None:
+    """CSV の質問列に出す文言。出力対象でない leaf は None を返す。"""
+    kind = leaf.get("kind", "question")
+    if kind == "question":
+        return _one_line(leaf.get("text_ja") or leaf.get("text") or "")
+    if kind == "data":
+        return _one_line(leaf.get("label_ja") or leaf.get("label") or "")
+    return None
 
 
 def generate_csv(target: str, overlay_paths: list | None = None) -> list[list[str]]:
@@ -179,14 +181,10 @@ def generate_csv(target: str, overlay_paths: list | None = None) -> list[list[st
         rows: list[list[str]] = []
         for group in groups.values():
             for leaf in group["leaves"]:
-                kind = leaf.get("kind", "question")
-                if kind == "question":
-                    q = _one_line(leaf.get("text_ja") or leaf.get("text") or "")
-                elif kind == "data":
-                    q = _one_line(leaf.get("label_ja") or leaf.get("label") or "")
-                else:
+                cell = _leaf_prompt(leaf)
+                if cell is None:
                     continue
-                rows.append([leaf["id"], q] + [""] * prefix_cols)
+                rows.append([leaf["id"], cell] + [""] * prefix_cols)
         return rows
 
     if target in _SINGLE_META:
