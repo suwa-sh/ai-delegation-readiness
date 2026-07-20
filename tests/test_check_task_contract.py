@@ -292,8 +292,9 @@ def test_authz_overlay_strengthened_boundary_downgrades_a_base_green(tmp_path):
     """A contract that is GREEN on the base definition drops to YELLOW.
 
     All three base boundary questions are yes, so boundary is present under the
-    base threshold of 2. Under the overlay the group needs 5 of 5, and AZ2 is
-    unanswered — the added requirement actually bites instead of riding along.
+    base threshold of 2. Under the overlay the group needs 5 of 5 and neither
+    added question is answered, so it drops to partial — the strengthened
+    threshold actually bites instead of riding along.
     """
     path = _write(tmp_path, _ALL_PRESENT.format(stype="two_stage", iruler="no"))
 
