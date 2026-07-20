@@ -119,31 +119,28 @@ def _resolve_region(region_leaves: list[dict], axis_levels: dict[str, str], sep:
     raise ValueError(f"no region matches axis levels: {axis_levels}")
 
 
-def score(
-    judgments_path: str | Path,
-    overlay_paths: list[str | Path] | None = None,
-    definition_path: str | Path | None = None,
-) -> ScoreResult:
-    overlay_paths = overlay_paths or []
-    definition_path = definition_path or DEFAULT_DEFINITION
-    base = overlay_mod.load_yaml(definition_path)
-    if overlay_paths:
-        result = overlay_mod.apply_overlays(base, overlay_paths)
-        if not result.ok:
-            raise OverlayError(result.violations)
-        defn = result.merged
-    else:
-        defn = base
+def _resolve_definition(
+    overlay_paths: list[str | Path],
+    definition_path: str | Path | None,
+) -> dict:
+    """Load the base definition and apply any overlays, or raise on violation."""
+    base = overlay_mod.load_yaml(definition_path or DEFAULT_DEFINITION)
+    if not overlay_paths:
+        return base
+    result = overlay_mod.apply_overlays(base, overlay_paths)
+    if not result.ok:
+        raise OverlayError(result.violations)
+    return result.merged
 
-    sep = overlay_mod.separator_of(defn)
-    groups = overlay_mod.group_items(defn)
-    axis_groups = {gid: g for gid, g in groups.items() if gid not in _NON_AXIS_GROUPS}
-    region_leaves = groups["regions"]["leaves"]
 
-    # Input contract (mirrors screen_transition): a missing/None 'judgments'
-    # key or a non-list value is an input error (exit 3), not a silent
-    # zero-judgment success — a mistyped path/format in CI must not pass as
-    # "scored everything". An explicitly empty list is still allowed.
+def _load_judgments(judgments_path: str | Path, defn: dict) -> list:
+    """Read the input and return the judgments list.
+
+    Input contract (mirrors screen_transition): a missing/None 'judgments' key
+    or a non-list value is an input error (exit 3), not a silent zero-judgment
+    success — a mistyped path/format in CI must not pass as "scored
+    everything". An explicitly empty list is still allowed.
+    """
     from . import io_input
 
     try:
@@ -155,11 +152,27 @@ def score(
         io_input.validate_known_ids(row_ids, known, Path(judgments_path).name)
     if not isinstance(input_data, dict):
         raise InputError("input must be a mapping with a 'judgments' list")
-    if "judgments" not in input_data or input_data["judgments"] is None:
+    if input_data.get("judgments") is None:
         raise InputError("input must contain a 'judgments' list")
     judgments_in = input_data["judgments"]
     if not isinstance(judgments_in, list):
         raise InputError("'judgments' must be a list")
+    return judgments_in
+
+
+def score(
+    judgments_path: str | Path,
+    overlay_paths: list[str | Path] | None = None,
+    definition_path: str | Path | None = None,
+) -> ScoreResult:
+    defn = _resolve_definition(overlay_paths or [], definition_path)
+
+    sep = overlay_mod.separator_of(defn)
+    groups = overlay_mod.group_items(defn)
+    axis_groups = {gid: g for gid, g in groups.items() if gid not in _NON_AXIS_GROUPS}
+    region_leaves = groups["regions"]["leaves"]
+
+    judgments_in = _load_judgments(judgments_path, defn)
 
     results: list[JudgmentResult] = []
     for j in judgments_in:

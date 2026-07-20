@@ -138,44 +138,48 @@ def _score_axis(
     )
 
 
-def check(
-    target_path: str | Path,
-    overlay_paths: list[str | Path] | None = None,
-    definition_path: str | Path | None = None,
-) -> CheckResult:
-    overlay_paths = overlay_paths or []
-    definition_path = definition_path or DEFAULT_DEFINITION
-    base = overlay_mod.load_yaml(definition_path)
-    if overlay_paths:
-        result = overlay_mod.apply_overlays(base, overlay_paths)
-        if not result.ok:
-            raise OverlayError(result.violations)
-        defn = result.merged
-    else:
-        defn = base
+def _resolve_definition(
+    overlay_paths: list[str | Path],
+    definition_path: str | Path | None,
+) -> dict:
+    """Load the base definition and apply any overlays, or raise on violation."""
+    base = overlay_mod.load_yaml(definition_path or DEFAULT_DEFINITION)
+    if not overlay_paths:
+        return base
+    result = overlay_mod.apply_overlays(base, overlay_paths)
+    if not result.ok:
+        raise OverlayError(result.violations)
+    return result.merged
 
+
+def _load_answers(target_path: str | Path, defn: dict) -> tuple[dict, dict]:
+    """Read the input and return (target, answers), validating CSV question ids."""
     from . import io_input
 
     target, input_format, row_ids = io_input.load_input(target_path, "four-layer")
-    answers = target.get("answers", {}) or {}
     if input_format == "csv":
         # CSV は Excel 経由の typo が起きやすいので、質問行の id(回答が空の行も
         # 含む)を定義と照合する(YAML は後方互換のため従来どおり未知キーを無視する)。
         known = io_input.collect_question_ids(defn, non_question_groups=set())
         io_input.validate_known_ids(row_ids, known, Path(target_path).name)
+    return target, target.get("answers", {}) or {}
 
-    # group を role で振り分ける: ゲート層 (L1..L4) と 並列軸 (efficacy, organization, ...)。
-    # source order を保つ (group_items() のキー順)。leaf 0 個の並列軸は overlay 前提の
-    # 未評価軸として採点対象から外す (誤 BLOCK を防ぐ)。ゲート層は元から leaf を持つ。
-    groups = overlay_mod.group_items(defn)
+
+def _score_groups(defn: dict, answers: dict) -> tuple[list[AxisResult], list[AxisResult]]:
+    """Split groups by role and score each, returning (gating layers, parallel axes).
+
+    Source order is preserved (group_items() key order). A parallel axis with no
+    leaves is an overlay-only placeholder and is skipped rather than scored, so
+    it cannot produce a spurious BLOCK. Gating layers always carry leaves.
+    """
     layer_results: list[AxisResult] = []
     parallel_results: list[AxisResult] = []
-    for group_id, group in groups.items():
+    for group_id, group in overlay_mod.group_items(defn).items():
         header = group["header"] or {}
         role = axis_role(group_id, header)
         leaves = group["leaves"]
         if role == ROLE_PARALLEL and not leaves:
-            continue  # 未評価の並列軸 (空) はスキップ
+            continue
         axis = _score_axis(
             axis_id=group_id,
             axis_name=header.get("name_ja") or header.get("name"),
@@ -183,32 +187,40 @@ def check(
             header=header,
             answers=answers,
         )
-        if role == ROLE_PARALLEL:
-            parallel_results.append(axis)
-        else:
-            layer_results.append(axis)
+        target = parallel_results if role == ROLE_PARALLEL else layer_results
+        target.append(axis)
+    return layer_results, parallel_results
 
-    # ゲート層のみが blocked_from を作る (並列軸は上層をゲートしない)。
-    blocked_from: str | None = None
-    for layer in layer_results:
-        if blocked_from is None and layer.verdict != "pass":
-            blocked_from = layer.id
 
-    overall_axes = layer_results + parallel_results
-    verdicts = {axis.verdict for axis in overall_axes}
+def _first_blocking_layer(layer_results: list[AxisResult]) -> str | None:
+    """The lowest gating layer that is not passing. Parallel axes never gate."""
+    return next((layer.id for layer in layer_results if layer.verdict != "pass"), None)
+
+
+def _conclude(axes: list[AxisResult]) -> str:
+    verdicts = {axis.verdict for axis in axes}
     if verdicts == {"pass"}:
-        conclusion = "PASS"
-    elif "block" in verdicts:
-        conclusion = "BLOCK"
-    else:
-        conclusion = "REVISE"
+        return "PASS"
+    if "block" in verdicts:
+        return "BLOCK"
+    return "REVISE"
+
+
+def check(
+    target_path: str | Path,
+    overlay_paths: list[str | Path] | None = None,
+    definition_path: str | Path | None = None,
+) -> CheckResult:
+    defn = _resolve_definition(overlay_paths or [], definition_path)
+    target, answers = _load_answers(target_path, defn)
+    layer_results, parallel_results = _score_groups(defn, answers)
 
     return CheckResult(
         target=target.get("target", str(target_path)),
         layers=layer_results,
         parallel_axes=parallel_results,
-        conclusion=conclusion,
-        blocked_from=blocked_from,
+        conclusion=_conclude(layer_results + parallel_results),
+        blocked_from=_first_blocking_layer(layer_results),
     )
 
 
