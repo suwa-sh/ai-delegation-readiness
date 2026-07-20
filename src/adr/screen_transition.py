@@ -152,29 +152,22 @@ def _flagged_question_ids(axis_groups: dict, flag: str) -> set[str]:
     }
 
 
-def screen(
-    task_groups_path: str | Path,
-    overlay_paths: list[str | Path] | None = None,
-    definition_path: str | Path | None = None,
-) -> ScreenResult:
-    overlay_paths = overlay_paths or []
-    definition_path = definition_path or DEFAULT_DEFINITION
-    base = overlay_mod.load_yaml(definition_path)
-    if overlay_paths:
-        result = overlay_mod.apply_overlays(base, overlay_paths)
-        if not result.ok:
-            raise OverlayError(result.violations)
-        defn = result.merged
-    else:
-        defn = base
+def _resolve_definition(
+    overlay_paths: list[str | Path],
+    definition_path: str | Path | None,
+) -> dict:
+    """Load the base definition and apply any overlays, or raise on violation."""
+    base = overlay_mod.load_yaml(definition_path or DEFAULT_DEFINITION)
+    if not overlay_paths:
+        return base
+    result = overlay_mod.apply_overlays(base, overlay_paths)
+    if not result.ok:
+        raise OverlayError(result.violations)
+    return result.merged
 
-    sep = overlay_mod.separator_of(defn)
-    groups = overlay_mod.group_items(defn)
-    axis_groups = {gid: g for gid, g in groups.items() if gid not in _NON_AXIS_GROUPS}
-    type_leaves = groups["types"]["leaves"]
-    type_evidence = (groups["types"]["header"] or {}).get("case_evidence", []) or []
-    human_control_ids = _flagged_question_ids(axis_groups, _HUMAN_CONTROL_FLAG)
 
+def _load_task_groups(task_groups_path: str | Path, defn: dict) -> list:
+    """Read the input and return the task_groups list."""
     from . import io_input
 
     try:
@@ -186,11 +179,65 @@ def screen(
         io_input.validate_known_ids(row_ids, known, Path(task_groups_path).name)
     if not isinstance(input_data, dict):
         raise InputError("input must be a YAML mapping with a 'task_groups' list")
-    if "task_groups" not in input_data or input_data["task_groups"] is None:
+    if input_data.get("task_groups") is None:
         raise InputError("input must contain a 'task_groups' list")
     groups_in = input_data["task_groups"]
     if not isinstance(groups_in, list):
         raise InputError("'task_groups' must be a list")
+    return groups_in
+
+
+def _read_group_answers(group: dict, gid: str) -> dict:
+    answers = group.get("answers")
+    if answers is None:
+        return {}
+    if not isinstance(answers, dict):
+        raise InputError(f"task group '{gid}': 'answers' must be a mapping")
+    return answers
+
+
+def _score_all_axes(axis_groups: dict, answers: dict, gid: str) -> dict[str, AxisScore]:
+    """Score every axis, failing closed if any answer is missing or unparseable.
+
+    A silent "missing/typo = no" would tip human_necessity low and misclassify
+    toward high_automation (see module docstring), so both are hard errors.
+    """
+    axis_scores: dict[str, AxisScore] = {}
+    missing_all: list[str] = []
+    invalid_all: list[str] = []
+    for aid, group in axis_groups.items():
+        score, missing, invalid = _score_axis_strict(
+            aid, group["leaves"], group["header"], answers
+        )
+        axis_scores[aid] = score
+        missing_all.extend(missing)
+        invalid_all.extend(invalid)
+
+    problems = []
+    if missing_all:
+        problems.append(f"missing answers for: {', '.join(missing_all)}")
+    if invalid_all:
+        problems.append(f"invalid answers (use yes/no) for: {', '.join(invalid_all)}")
+    if problems:
+        raise InputError(f"task group '{gid}': " + "; ".join(problems))
+    return axis_scores
+
+
+def screen(
+    task_groups_path: str | Path,
+    overlay_paths: list[str | Path] | None = None,
+    definition_path: str | Path | None = None,
+) -> ScreenResult:
+    defn = _resolve_definition(overlay_paths or [], definition_path)
+
+    sep = overlay_mod.separator_of(defn)
+    groups = overlay_mod.group_items(defn)
+    axis_groups = {gid: g for gid, g in groups.items() if gid not in _NON_AXIS_GROUPS}
+    type_leaves = groups["types"]["leaves"]
+    type_evidence = (groups["types"]["header"] or {}).get("case_evidence", []) or []
+    human_control_ids = _flagged_question_ids(axis_groups, _HUMAN_CONTROL_FLAG)
+
+    groups_in = _load_task_groups(task_groups_path, defn)
 
     results: list[TaskGroupResult] = []
     for idx, g in enumerate(groups_in):
@@ -198,32 +245,8 @@ def screen(
             raise InputError(f"task_groups[{idx}] must be a mapping (got: {g!r})")
         gid = g.get("id") or g.get("description", "<unnamed>")
         desc = g.get("description") or gid
-        answers = g.get("answers")
-        if answers is None:
-            answers = {}
-        if not isinstance(answers, dict):
-            raise InputError(f"task group '{gid}': 'answers' must be a mapping")
-
-        axis_scores: dict[str, AxisScore] = {}
-        missing_all: list[str] = []
-        invalid_all: list[str] = []
-        for aid, group in axis_groups.items():
-            score, missing, invalid = _score_axis_strict(
-                aid, group["leaves"], group["header"], answers
-            )
-            axis_scores[aid] = score
-            missing_all.extend(missing)
-            invalid_all.extend(invalid)
-        # Fail-closed: every question must carry an unambiguous yes/no. A
-        # silent "missing/typo = no" would tip human_necessity low and
-        # misclassify toward high_automation (see module docstring).
-        problems = []
-        if missing_all:
-            problems.append(f"missing answers for: {', '.join(missing_all)}")
-        if invalid_all:
-            problems.append(f"invalid answers (use yes/no) for: {', '.join(invalid_all)}")
-        if problems:
-            raise InputError(f"task group '{gid}': " + "; ".join(problems))
+        answers = _read_group_answers(g, gid)
+        axis_scores = _score_all_axes(axis_groups, answers, gid)
 
         axis_levels = {aid: s.level for aid, s in axis_scores.items()}
         type_leaf = _resolve_region(type_leaves, axis_levels, sep)
