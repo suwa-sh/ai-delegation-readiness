@@ -1,0 +1,138 @@
+# overlay(応用例): エージェント権限設計の 2 軸(four-layer-delegation-readiness を拡張)。
+#
+# 「エージェントの権限は、能力軸(実行基盤が閉じるゲート)と同意軸(利用者が何を許すか)
+# という独立した 2 軸に分解できる」という分析から抽出しています。Android の protection
+# level が出荷形態でゲートしている事実と、capability ベース OS(seL4 / Capsicum /
+# Fuchsia)がユーザー同意の概念を持たない事実が、2 軸の独立性の根拠です。
+#
+# この overlay がやること:
+#   並列軸を 2 本追加します — "L_capability"(能力軸)と "L_consent"(同意軸)。
+#   どちらも role: parallel で、L1〜L4 をゲートしません。各軸 3 問の等重みです。
+#
+# 1 本の軸にまとめない理由:
+#   2 軸の要点は独立性(非代替性)です。1 スコアに統合すると、能力側が満点で同意側が
+#   全滅でも中間の REVISE に丸められ、両者が相殺されます。それでは採点モデル自体が
+#   「能力と同意は互いに代替しない」という主張を壊します。別々の verdict として
+#   表面化させるために軸を分けています。
+#
+# id が "L_capability" / "L_consent" である理由("capability" でない理由):
+#   base の extension_points が add を許すのは `L*` / `efficacy` / `organization`
+#   に合致する group だけです。新規の `capability` group は `aidr check-overlay` に
+#   拒否されます。`L*` セレクタは L で始まる任意の名前を受け、gating か parallel かは
+#   name でなく `role` フィールドだけで決まります(`L_insourcing` と同じ回避です)。
+#   高責任ドメイン overlay の `L5` とも衝突しないため、両方を同時適用できます。
+#
+# 設問設計の判定基準(自己申告で yes にならないこと):
+#   この分析の中心主張は「列挙 ≠ 最小化」「列挙 ≠ 有効性」です。したがって
+#   「〜を検討したか」型の設問は使えません — 分析自身が挙げた反例(DMA の 11 機能列挙 /
+#   IAB TCF の同意列挙)でも yes になってしまい、批判した構造をそのまま再現します。
+#   C2 と S1 は実測・実績の有無を問う形にしており、この 2 つの反例では no になります。
+#
+# 適用範囲の限定(重要):
+#   この 2 軸はプロンプトインジェクション対策ではありません。攻撃者が LLM の判断を
+#   操作した場合、権限も同意も正規のまま、対象の指定だけが攻撃者の制御下に入ります。
+#   2 軸は問題を分解する語彙であり、攻撃を防ぐ機構は別のレイヤに必要です。
+#
+# 自分のフレームへの再利用: このファイルをコピーし、2 軸 3 問ずつの構造を保ったまま
+# 質問を書き換え、case_evidence を自分の出典に差し替えます。
+# `aidr check-overlay <your-file>` で検証してください。
+#
+# マージ規則(`aidr check-overlay` が機械的に検証します):
+#   add          : 項目の追加のみ(既存項目は read-only)
+#   strengthen   : 数値閾値を厳しい方向に変えることのみ
+# それ以外(削除・置換・緩和)は検証エラーになります。
+
+version: 1
+extends: four-layer-delegation-readiness
+
+add:
+  # --- L_capability: what the runtime lets the agent exercise (parallel) -------
+  # pass: 1.0 (3/3), revise: 0.66 (2/3) => one gap is REVISE, two or more is
+  # BLOCK. The axis is parallel, so it never gates L1-L4; but a BLOCK verdict
+  # does drive the overall conclusion to BLOCK, the same as `organization`.
+  # That is intended: delegating a high-risk judgment with essentially no
+  # authorization design is a legitimate stop, and the scope limit above
+  # (no prompt-injection defense) is a limit on what the axis *claims*, not a
+  # reason to treat missing authorization design as minor.
+  - id: "L_capability"
+    name: capability_axis
+    name_ja: 能力軸
+    role: parallel
+    pass: 1.0
+    revise: 0.66
+    purpose: |
+      What the execution platform lets the agent exercise at all, independent
+      of what the user consents to. Gates come in four kinds — technical
+      constraint, shipping-form gate, allowlist gate, distribution-policy gate
+      — and only the first is a technical necessity; the other three are closed
+      by policy or contract and open again when the policy changes. Scoring
+      this axis separately surfaces "no amount of consent design will open
+      this" as its own finding.
+    case_evidence:
+      - text: Android protection levels such as internal|preinstalled gate on how an app was shipped, not on its quality or the user's wishes, so capability and consent are independent axes
+        confidence: observed_fact
+        source: https://source.android.com/docs/compatibility/cdd
+      - text: Capability-based systems that ship (seL4, Capsicum, Fuchsia) carry no notion of user consent; seL4's design goal is that a capability is exercised "without referring back to Alice", so consent cannot be retrofitted inside the capability layer
+        confidence: observed_fact
+        source: https://sel4.systems/About/seL4-whitepaper.pdf
+      - text: The seL4 whitepaper frames delegating a judgment to a deputy as including that deputy in the TCB, which makes "do we accept the LLM inside the trusted computing base?" an explicit design question
+        confidence: observed_fact
+        source: https://sel4.systems/About/seL4-whitepaper.pdf
+      - text: The DMA decision enumerated 11 Android features for AI interoperability, but one published analysis calls Article 6(7) "the exact opposite of the principle of least privilege"; the count also moved from 13 to 11 in three months, so the list is a vendor snapshot rather than a universal design principle
+        confidence: gap_in_source
+        source: https://digital-markets-act.ec.europa.eu/commission-provides-guidance-google-ai-interoperability-android-and-sharing-google-search-data-under-2026-07-16_en
+  - id: "L_capability.C1"
+    text: For each capability the agent is denied, is it recorded whether the denial is a technical necessity or is merely closed by policy or contract?
+    text_ja: "エージェントに許していない能力それぞれについて、技術的な必然による制約か、方針・契約で閉じているだけかを区別して記録しているか"
+    weight: 1.0
+  - id: "L_capability.C2"
+    text: Have you measured which of the granted permissions were never exercised in practice, and removed them?
+    text_ja: "付与した権限のうち実際には行使されなかったものを実測で特定し、削除したことがあるか"
+    weight: 1.0
+  - id: "L_capability.C3"
+    text: Is the decision to let the LLM judge whether to call a tool (i.e. to include the LLM in the trusted computing base) made explicitly and written down?
+    text_ja: "ツールを呼ぶかどうかの判断を LLM に委ねること(LLM を信頼計算基盤に含めること)を明示的に決定し、記録しているか"
+    weight: 1.0
+
+  # --- L_consent: what the user actually permits (parallel) --------------------
+  # Same thresholds as L_capability. The two axes are deliberately symmetric so
+  # that a report shows which side is thin, rather than one averaged score.
+  - id: "L_consent"
+    name: consent_axis
+    name_ja: 同意軸
+    role: parallel
+    pass: 1.0
+    revise: 0.66
+    purpose: |
+      What the user actually permits, and whether that permission is valid
+      rather than merely well-formed. Enumerating consents in machine-readable
+      form does not establish that the consent is legally valid, and adding
+      one more confirmation prompt degrades every other prompt. The design
+      that works is to make the act of choosing itself the grant of authority,
+      so the user designates "these three files" rather than consenting to an
+      abstract permission.
+    case_evidence:
+      - text: IAB TCF enumerates consent as 11 purposes and a machine-readable list of roughly 5000 vendors, yet the Brussels Market Court ruled on 2025-05-14 that the framework had not established a valid legal basis under GDPR — enumeration gives consent a form, not validity
+        confidence: observed_fact
+        source: https://suwa-sh.github.io/zenn-contents/articles/agent-authorization-os-capability-consent_20260720/
+      - text: W3C TAG treats permission prompts as a failure mode, noting each prompt increases the risk that users ignore the contents of all prompts; agents act often, so this degrades linearly
+        confidence: observed_fact
+        source: https://www.w3.org/TR/design-principles/
+      - text: MCP URL mode elicitation requires the client not to fetch the URL automatically, not to open it without explicit consent, and to show the full URL to the user — routing the sensitive consent outside the agent's context rather than granting the agent authority
+        confidence: observed_fact
+        source: https://modelcontextprotocol.io/specification/2025-11-25
+      - text: Capability propagation in pure capability systems has been an open problem since 1984, and delegation chains make it worse; no ratified standard for agent delegation authority exists yet
+        confidence: gap_in_source
+        source: https://cap-lore.com/CapTheory/ConfusedDeputy.html
+  - id: "L_consent.S1"
+    text: Have you confirmed by observation that the consenting users can state what they consented to and how far it extends (rather than only that the consent flow is well-formed)?
+    text_ja: "同意した利用者が「何にどこまで同意したか」を説明できることを実測で確認しているか(同意の形式が整っていることの確認ではなく)"
+    weight: 1.0
+  - id: "L_consent.S2"
+    text: Have you identified the operations that need sensitive consent, and where any exist, is that consent routed outside the agent's context?
+    text_ja: "機微な同意を要する操作を洗い出し、該当する操作があるものはエージェントの文脈の外で同意を取る形にしているか"
+    weight: 1.0
+  - id: "L_consent.S3"
+    text: Does the consent design avoid relying on adding more per-action confirmation prompts?
+    text_ja: "同意の設計が、行動ごとの確認プロンプトを増やす方向に依存していないか"
+    weight: 1.0

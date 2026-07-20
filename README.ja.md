@@ -110,7 +110,7 @@ docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.10.1 list-definitions
 | 6 | [05 タスク契約](docs/05_task_contract_execution_rubric.md) | ステップ 4: どう渡し、誰が採点するか |
 | 7 | [06 監査ログスキーマ](docs/06_audit_log_schema.md) | ステップ 5: 記録の設計 |
 | 8 | [07 ログ基盤の点検](docs/07_audit_log_gap_check.md) | ステップ 5 応用: 既存基盤への当てはめ |
-| 応用 | [08 高責任ドメイン overlay](docs/08_high_stakes_domain_overlay.md) / [09 内製化 overlay](docs/09_insourcing_judgment_overlay.md) | 知財/法務/薬事、内製化の判断責任 |
+| 応用 | [08 高責任ドメイン overlay](docs/08_high_stakes_domain_overlay.md) / [09 内製化 overlay](docs/09_insourcing_judgment_overlay.md) / [10 権限設計 overlay](docs/10_agent_authorization_overlay.md) | 知財/法務/薬事、内製化の判断責任、能力軸と同意軸 |
 
 > **言語について**: `docs/` は日本語(著者の作業言語)で書いています。英語 README が
 > 入口、本ファイル(日本語)が正本テキストです。定義ファイルの質問文は英語(`text`)と
@@ -251,9 +251,22 @@ aidr score-delegation examples/judgments/sample-ip-judgments.csv \
 aidr check-readiness examples/business/sample-insourcing-readiness.csv \
   --overlay examples/overlays/insourcing-judgment/four-layer.yaml
 # => L1-L4・組織が全 PASS でも、上流判断に社内の固有名が欠ければ L_insourcing が REVISE/BLOCK
+
+# エージェント権限設計: 並列軸 L_capability / L_consent(各 3 問)を追加
+aidr check-readiness examples/business/sample-agent-authz-readiness.csv \
+  --overlay examples/overlays/agent-authorization/four-layer.yaml
+# => 能力軸と同意軸を別々に採点。能力側が満点でも同意側の BLOCK は相殺されない
+
+aidr check-task-contract examples/task-contracts/sample-agent-authz-contract.csv \
+  --overlay examples/overlays/agent-authorization/task-contract.yaml
+# => base では green の契約が、権限範囲の上限を確定していないため yellow に落ちる
 ```
 
-→ [docs/08](docs/08_high_stakes_domain_overlay.md) / [docs/09](docs/09_insourcing_judgment_overlay.md)
+→ [docs/08](docs/08_high_stakes_domain_overlay.md) / [docs/09](docs/09_insourcing_judgment_overlay.md) /
+[docs/10](docs/10_agent_authorization_overlay.md)
+
+権限設計 overlay の 2 軸は**プロンプトインジェクション対策ではありません**。攻撃者が LLM の
+判断を操作した場合、権限も同意も正規のまま、対象の指定だけが攻撃者の制御下に入るためです。
 
 ## What's in this repo
 
@@ -279,8 +292,8 @@ ai-delegation-readiness/
 │   └── skills/                  #   AI 取り込み口: Claude Code skill サンプル 3 種
 └── docs/                        # 解説(読み順は「学習パス」参照)
     ├── 00_overview.md           #   全体像(最初に読む)
-    ├── 01〜06, 09               #   本線 5 ステップの詳細
-    └── 04, 07, 08               #   応用(ログ基盤点検 / 高責任ドメイン / 内製化)
+    ├── 01〜06                   #   本線 5 ステップの詳細
+    └── 07〜10                   #   応用(ログ基盤点検 / 高責任ドメイン / 内製化 / 権限設計)
 ```
 
 ## How to extend(フレームワークの意図)

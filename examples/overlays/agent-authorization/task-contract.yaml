@@ -1,0 +1,46 @@
+# overlay(応用例): エージェント権限設計の 2 軸 — タスク単位側(task-contract を拡張)。
+#
+# 兄弟ファイル four-layer.yaml が業務プロセス全体の権限設計を並列軸で採点するのに対し、
+# こちらは「1 タスクをどう渡すか」の境界(boundary)要素に 2 問足します。
+#
+# この overlay がやること:
+#   1. boundary に 2 問追加します。どちらも「同意の形を変える」設計 — 抽象的な権限に
+#      同意させるのでなく、ユーザーの具体的な指定そのものを権限範囲にする形(iOS の
+#      document picker が security-scoped URL で実現している形)を採点します。
+#   2. boundary の threshold を 2 → 5(全問必須)に強化します。
+#
+# threshold を強化する理由:
+#   task-contract は比率でなく件数で判定します。base は 3 問中 2 問(67%)が基準なので、
+#   2 問足して threshold を据え置くと 5 問中 2 問(40%)になり、相対的に緩みます
+#   (base の extension_points コメントと docs/05 の「overlay 単調性」注記を参照)。
+#   算術的には 4 で単調性を保てますが、4 だと新設 2 問が互いに代替可能になり、
+#   どちらか一方が no でも present と判定されます。件数閾値では「この項目は必須」を
+#   個別に表現できないため、全問必須にして穴を塞いでいます。boundary は
+#   「エージェントがやってはいけないこと」を扱う要素であり、権限設計を点検する目的で
+#   この overlay を当てる利用者に全項目の宣言を求めるのは妥当です。
+#
+# 適用範囲の限定(重要):
+#   この 2 軸はプロンプトインジェクション対策ではありません。攻撃者が LLM の判断を
+#   操作した場合、権限も同意も正規のまま、対象の指定だけが攻撃者の制御下に入ります。
+#   2 軸は問題を分解する語彙であり、攻撃を防ぐ機構は別のレイヤに必要です。
+#
+# マージ規則(`aidr check-overlay` が機械的に検証します):
+#   add          : 項目の追加のみ(既存項目は read-only)
+#   strengthen   : 数値閾値を厳しい方向に変えることのみ
+# それ以外(削除・置換・緩和)は検証エラーになります。
+
+version: 1
+extends: task-contract
+
+strengthen:
+  "boundary": {threshold: 5}
+
+add:
+  - id: "boundary.AZ1"
+    kind: question
+    text: Is authority granted by the user's own act of designation (this file, this record), rather than by consenting to an abstract permission the agent then interprets?
+    text_ja: "権限が、抽象的な権限への同意でなく、利用者が対象を指定する行為そのもの(この 1 件・このファイル)によって与えられているか"
+  - id: "boundary.AZ2"
+    kind: question
+    text: Is the upper bound of the agent's authority fixed when the task starts, so it cannot widen mid-run?
+    text_ja: "エージェントの権限範囲がタスク開始時点で上限つきで確定し、実行の途中で広がらないようになっているか"

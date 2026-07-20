@@ -12,6 +12,8 @@ from copy import deepcopy
 
 import overlay_scoring as ov
 from conftest import (
+    authz_overlay_four_layer_path,
+    authz_overlay_task_contract_path,
     four_layer_path,
     hs_overlay_four_layer_path,
     hs_overlay_matrix_path,
@@ -272,6 +274,47 @@ def test_roundtrip_insourcing_overlay():
     # parallel axis (does not gate L1-L4) with a strict bar: 5/5 pass, 4/5 revise
     assert axis["role"] == "parallel"
     assert axis["pass"] == 1.0 and axis["revise"] == 0.8
+
+
+def test_roundtrip_authz_four_layer_overlay():
+    r = ov.apply_overlay(four_layer(), ov.load_yaml(authz_overlay_four_layer_path()))
+    assert r.ok, r.violations
+    ids = _ids(r.merged)
+    # two independent parallel axes, never merged into one score: capability
+    # full and consent empty must stay distinguishable in the report.
+    for axis_id, leaf_prefix in (("L_capability", "C"), ("L_consent", "S")):
+        assert axis_id in ids
+        for n in (1, 2, 3):
+            assert f"{axis_id}.{leaf_prefix}{n}" in ids
+        axis = next(i for i in r.merged["items"] if i["id"] == axis_id)
+        assert axis["role"] == "parallel"
+        assert axis["pass"] == 1.0 and axis["revise"] == 0.66
+
+
+def test_roundtrip_authz_task_contract_overlay():
+    r = ov.apply_overlay(ov.load_yaml(task_contract_path()),
+                         ov.load_yaml(authz_overlay_task_contract_path()))
+    assert r.ok, r.violations
+    ids = _ids(r.merged)
+    assert "boundary.AZ1" in ids and "boundary.AZ2" in ids
+    boundary = next(i for i in r.merged["items"] if i["id"] == "boundary")
+    # Monotonicity: adding presence questions without raising the count
+    # threshold makes the group relatively easier to pass. 3 base + 2 added
+    # questions must not stay at "2 of 5"; this overlay requires all five.
+    assert boundary["threshold"] == 5
+
+
+def test_authz_and_high_stakes_overlays_compose_without_collision():
+    """Both bundled four-layer overlays must be applicable together.
+
+    They add sibling groups under the same ``L*`` extension point, so an id
+    clash here would make the two domains mutually exclusive.
+    """
+    r = ov.apply_overlays(four_layer(), [hs_overlay_four_layer_path(),
+                                         authz_overlay_four_layer_path()])
+    assert r.ok, r.violations
+    ids = _ids(r.merged)
+    assert {"L5", "L_capability", "L_consent"} <= set(ids)
 
 
 def test_roundtrip_high_stakes_matrix_overlay():

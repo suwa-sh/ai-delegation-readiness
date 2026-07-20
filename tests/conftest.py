@@ -75,6 +75,22 @@ def sample_insourcing_business_path() -> Path:
     return EXAMPLES_DIR / "business" / "sample-insourcing-readiness.csv"
 
 
+def authz_overlay_four_layer_path() -> Path:
+    return EXAMPLES_DIR / "overlays" / "agent-authorization" / "four-layer.yaml"
+
+
+def authz_overlay_task_contract_path() -> Path:
+    return EXAMPLES_DIR / "overlays" / "agent-authorization" / "task-contract.yaml"
+
+
+def sample_authz_business_path() -> Path:
+    return EXAMPLES_DIR / "business" / "sample-agent-authz-readiness.csv"
+
+
+def sample_authz_contract_path() -> Path:
+    return EXAMPLES_DIR / "task-contracts" / "sample-agent-authz-contract.csv"
+
+
 def transition_path() -> Path:
     return DEFINITIONS_DIR / "transition-screening.yaml"
 

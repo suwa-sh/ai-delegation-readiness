@@ -171,7 +171,7 @@ bin/aidr check-readiness my-business.csv --overlay examples/overlays/sample-comp
 | 6 | [05 タスク契約](05_task_contract_execution_rubric.md) | 委任タスクの与え方・採点者 |
 | 7 | [06 監査ログスキーマ](06_audit_log_schema.md) | 記録の設計 |
 | 8 | [07 ログ基盤の点検](07_audit_log_gap_check.md) | 既存基盤への当てはめ |
-| 応用 | [08 高責任ドメイン overlay](08_high_stakes_domain_overlay.md) / [09 内製化 overlay](09_insourcing_judgment_overlay.md) | 知財/法務/薬事、内製化の判断責任 |
+| 応用 | [08 高責任ドメイン overlay](08_high_stakes_domain_overlay.md) / [09 内製化 overlay](09_insourcing_judgment_overlay.md) / [10 権限設計 overlay](10_agent_authorization_overlay.md) | 知財/法務/薬事、内製化の判断責任、能力軸と同意軸 |
 
 ## References
 

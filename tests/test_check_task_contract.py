@@ -271,3 +271,48 @@ def test_exit_codes_match_regions():
         for leaf in ov.group_items(defn)["gates"]["leaves"]
     }
     assert by_slug == {"green": 0, "yellow": 1, "red": 2}
+
+
+# --- agent-authorization overlay (examples/overlays/agent-authorization) -----
+# boundary gains AZ1/AZ2 and its count threshold is strengthened 2 -> 5. These
+# pin the monotonicity rule the definition only states in a comment: adding
+# presence questions without raising the threshold would make the group
+# relatively easier to pass.
+
+def _authz_contract_overlay_path():
+    from conftest import authz_overlay_task_contract_path
+    return authz_overlay_task_contract_path()
+
+
+def _element(result, element_id):
+    return next(e for e in result.elements if e.id == element_id)
+
+
+def test_authz_overlay_strengthened_boundary_downgrades_a_base_green(tmp_path):
+    """A contract that is GREEN on the base definition drops to YELLOW.
+
+    All three base boundary questions are yes, so boundary is present under the
+    base threshold of 2. Under the overlay the group needs 5 of 5, and AZ2 is
+    unanswered — the added requirement actually bites instead of riding along.
+    """
+    path = _write(tmp_path, _ALL_PRESENT.format(stype="two_stage", iruler="no"))
+
+    base = tc.score(path)
+    assert base.region == "green"
+    assert _element(base, "boundary").level == "present"
+
+    overlaid = tc.score(path, overlay_paths=[_authz_contract_overlay_path()])
+    assert _element(overlaid, "boundary").level == "partial"
+    assert overlaid.region == "yellow"
+    assert overlaid.exit_code == 1
+
+
+def test_sample_authz_contract_is_yellow_on_the_added_question():
+    """The bundled sample: everything declared except a bounded authority scope."""
+    from conftest import sample_authz_contract_path
+    result = tc.score(sample_authz_contract_path(),
+                      overlay_paths=[_authz_contract_overlay_path()])
+    boundary = _element(result, "boundary")
+    assert boundary.level == "partial"
+    assert boundary.no_ids == ["boundary.AZ2"]
+    assert result.region == "yellow"

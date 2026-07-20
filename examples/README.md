@@ -82,6 +82,7 @@
 | 組織 readiness の実事例 | 味の素グループの分析記事由来。業務は整っているが組織が未成熟なチーム | [`business/ajinomoto-discovery-team.csv`](business/ajinomoto-discovery-team.csv) / [`overlays/organization-readiness-ajinomoto.yaml`](overlays/organization-readiness-ajinomoto.yaml) |
 | 高責任ドメイン(知財/法務/薬事) | 成立条件 4 つのハードゲート層 L5 + 慎重側の閾値強化 | [`business/sample-ip-agent-readiness.csv`](business/sample-ip-agent-readiness.csv) / [`judgments/sample-ip-judgments.csv`](judgments/sample-ip-judgments.csv) / [`overlays/high-stakes-domain/`](overlays/high-stakes-domain/) |
 | 内製化の判断責任 | 「どの判断責任を社内に残すか」を並列軸で採点 | [`business/sample-insourcing-readiness.csv`](business/sample-insourcing-readiness.csv) / [`overlays/insourcing-judgment/`](overlays/insourcing-judgment/) |
+| エージェント権限設計 | 能力軸と同意軸を独立した並列軸 2 本で採点 + 境界要素の閾値強化 | [`business/sample-agent-authz-readiness.csv`](business/sample-agent-authz-readiness.csv) / [`task-contracts/sample-agent-authz-contract.csv`](task-contracts/sample-agent-authz-contract.csv) / [`overlays/agent-authorization/`](overlays/agent-authorization/) |
 
 ## definitions/ 内の examples について
 

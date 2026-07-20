@@ -155,8 +155,9 @@ Japanese (`text_ja`) in `definitions/*.yaml`.
 7. **Extend (optional)** — add your own questions / thresholds via an overlay,
    validated by `aidr check-overlay <path>` and applied with `--overlay`.
    Bundled domain overlays: high-stakes professional work (IP / legal / pharma,
-   [docs/08](docs/08_high_stakes_domain_overlay.md)) and insourcing judgment
-   responsibility ([docs/09](docs/09_insourcing_judgment_overlay.md)):
+   [docs/08](docs/08_high_stakes_domain_overlay.md)), insourcing judgment
+   responsibility ([docs/09](docs/09_insourcing_judgment_overlay.md)), and agent
+   authorization design ([docs/10](docs/10_agent_authorization_overlay.md)):
 
    ```bash
    aidr check-readiness examples/business/sample-ip-agent-readiness.csv \
@@ -170,7 +171,17 @@ Japanese (`text_ja`) in `definitions/*.yaml`.
    aidr check-readiness examples/business/sample-insourcing-readiness.csv \
      --overlay examples/overlays/insourcing-judgment/four-layer.yaml
    # => L1-L4 and organization all PASS, yet a missing in-house owner is REVISE/BLOCK
+
+   aidr check-readiness examples/business/sample-agent-authz-readiness.csv \
+     --overlay examples/overlays/agent-authorization/four-layer.yaml
+   # => capability and consent score as two independent axes; a full capability
+   #    axis does not offset a blocked consent axis
    ```
+
+   The agent-authorization overlay's two axes are **not** a defense against
+   prompt injection: when an attacker steers the LLM's judgment, both the
+   authority and the consent stay legitimate and only the designation falls
+   under the attacker's control.
 
 See [`README.ja.md`](README.ja.md#使い方想定ワークフロー) for sample output of every
 command in the workflow.
@@ -199,8 +210,8 @@ ai-delegation-readiness/
 │   └── skills/                  #   AI entry point: three Claude Code skill samples
 └── docs/                        # Explanations, Japanese (reading order: the learning path in README.ja.md)
     ├── 00_overview.md           #   The big picture (read first)
-    ├── 01-06, 09                #   The 5 main-line steps in detail
-    └── 04, 07, 08               #   Applied: log-platform check / high-stakes domains / insourcing
+    ├── 01-06                    #   The 5 main-line steps in detail
+    └── 07-10                    #   Applied: log-platform check / high-stakes domains / insourcing / agent authorization
 ```
 
 ## How to extend

@@ -322,3 +322,87 @@ def test_sample_insourcing_business_revises():
     assert axis.no_ids == ["L_insourcing.I2"]
     assert result.conclusion == "REVISE"
     assert result.blocked_from is None
+
+
+# --- agent-authorization overlay (examples/overlays/agent-authorization) -----
+# Two PARALLEL axes, L_capability and L_consent, scored independently: the
+# whole point of the source framing is that capability and consent do not
+# substitute for each other. pass 1.0 / revise 0.66 over 3 equal-weight
+# questions each -> 3/3 PASS, 2/3 REVISE, <=1/3 BLOCK.
+
+def _authz_overlay_path():
+    from conftest import authz_overlay_four_layer_path
+    return authz_overlay_four_layer_path()
+
+
+def _merged_all_yes_authz_answers() -> dict:
+    base = yaml.safe_load(four_layer_path().read_text())
+    merged = ov.apply_overlays(base, [_authz_overlay_path()]).merged
+    sep = ov.separator_of(merged)
+    return {item["id"]: "yes" for item in merged["items"] if ov.is_leaf(item["id"], sep)}
+
+
+def _authz_axis(result, axis_id):
+    return next(a for a in result.parallel_axes if a.id == axis_id)
+
+
+def test_authz_all_yes_passes(tmp_path):
+    """3/3 on both axes (and all other axes) -> PASS."""
+    biz_path = tmp_path / "biz.yaml"
+    biz_path.write_text(yaml.safe_dump({"target": "authz-all-yes", "answers": _merged_all_yes_authz_answers()}))
+    result = cr.check(biz_path, overlay_paths=[_authz_overlay_path()])
+    for axis_id in ("L_capability", "L_consent"):
+        axis = _authz_axis(result, axis_id)
+        assert axis.verdict == "pass" and axis.score == 1.0
+    assert result.conclusion == "PASS"
+    assert result.blocked_from is None
+
+
+def test_authz_single_no_revises_without_gating(tmp_path):
+    """2/3 on the capability axis -> REVISE, and it does NOT gate L1-L4."""
+    answers = _merged_all_yes_authz_answers()
+    answers["L_capability.C2"] = "no"
+    biz_path = tmp_path / "biz.yaml"
+    biz_path.write_text(yaml.safe_dump({"target": "authz-one-no", "answers": answers}))
+    result = cr.check(biz_path, overlay_paths=[_authz_overlay_path()])
+    axis = _authz_axis(result, "L_capability")
+    assert axis.verdict == "revise"
+    assert _authz_axis(result, "L_consent").verdict == "pass"
+    assert result.conclusion == "REVISE"
+    assert all(layer.verdict == "pass" for layer in result.layers)
+    assert result.blocked_from is None
+
+
+def test_authz_axes_do_not_offset_each_other(tmp_path):
+    """A full capability axis must not mask an empty consent axis.
+
+    Averaged into a single 6-question axis these answers would score 4/6 and
+    land in the revise band, hiding the block. Scored as two axes, capability
+    passes and consent blocks — which is the distinction the framing exists
+    to preserve.
+    """
+    answers = _merged_all_yes_authz_answers()
+    for qid in ("L_consent.S1", "L_consent.S2", "L_consent.S3"):
+        answers[qid] = "no"
+    biz_path = tmp_path / "biz.yaml"
+    biz_path.write_text(yaml.safe_dump({"target": "authz-split", "answers": answers}))
+    result = cr.check(biz_path, overlay_paths=[_authz_overlay_path()])
+    assert _authz_axis(result, "L_capability").verdict == "pass"
+    assert _authz_axis(result, "L_consent").verdict == "block"
+    assert result.conclusion == "BLOCK"
+    # a parallel axis drives the conclusion but never becomes a gate
+    assert all(layer.verdict == "pass" for layer in result.layers)
+    assert result.blocked_from is None
+
+
+def test_sample_authz_business_blocks_on_consent_axis():
+    """The bundled sample: process passes, capability passes, consent BLOCKs."""
+    from conftest import sample_authz_business_path
+    result = cr.check(sample_authz_business_path(), overlay_paths=[_authz_overlay_path()])
+    assert all(layer.verdict == "pass" for layer in result.layers)
+    assert _authz_axis(result, "L_capability").verdict == "pass"
+    consent = _authz_axis(result, "L_consent")
+    assert consent.verdict == "block"
+    assert consent.no_ids == ["L_consent.S1", "L_consent.S3"]
+    assert result.conclusion == "BLOCK"
+    assert result.blocked_from is None
