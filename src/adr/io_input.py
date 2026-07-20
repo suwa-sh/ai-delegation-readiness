@@ -190,12 +190,8 @@ def _load_single(path: Path, rows: list[list[str]], kind: str) -> tuple[dict, li
     return {out_key: meta[0], "answers": answers}, row_ids
 
 
-def _load_wide(path: Path, rows: list[list[str]], kind: str) -> tuple[dict, list[str]]:
-    out_key = _WIDE_KINDS[kind]
-    header = rows[0]
-    # 末尾の空ヘッダ列(Excel の余剰列)は落とす。内部の空ヘッダ列はエラー。
-    while len(header) > 2 and header[-1] == "":
-        header = header[:-1]
+def _wide_entity_ids(path: Path, header: list[str]) -> list[str]:
+    """Validate the wide-format header and return the entity column ids."""
     entity_ids = header[2:]
     if not entity_ids:
         raise InputFormatError(
@@ -208,7 +204,31 @@ def _load_wide(path: Path, rows: list[list[str]], kind: str) -> tuple[dict, list
             f"{path.name}: entity column names must be non-empty, unique, single-line "
             f"(got: {entity_ids})"
         )
+    return entity_ids
+
+
+def _wide_row_id(path: Path, row: list[str], lineno: int, seen: set[str]) -> str | None:
+    """Return the row's id, or None for a blank spacer row."""
+    rid = row[0]
+    if not rid:
+        if any(row):
+            raise InputFormatError(f"{path.name}:{lineno}: row has values but no id")
+        return None
+    if rid in seen:
+        raise InputFormatError(f"{path.name}:{lineno}: duplicate row id '{rid}'")
+    seen.add(rid)
+    return rid
+
+
+def _load_wide(path: Path, rows: list[list[str]], kind: str) -> tuple[dict, list[str]]:
+    out_key = _WIDE_KINDS[kind]
+    header = rows[0]
+    # 末尾の空ヘッダ列(Excel の余剰列)は落とす。内部の空ヘッダ列はエラー。
+    while len(header) > 2 and header[-1] == "":
+        header = header[:-1]
+    entity_ids = _wide_entity_ids(path, header)
     width = len(header)
+
     descriptions: dict[str, str] = {}
     answers: dict[str, dict[str, str]] = {e: {} for e in entity_ids}
     desc_rows = 0
@@ -220,21 +240,16 @@ def _load_wide(path: Path, rows: list[list[str]], kind: str) -> tuple[dict, list
             raise InputFormatError(
                 f"{path.name}:{lineno}: row has non-empty cells beyond the entity columns"
             )
-        rid = row[0]
-        if not rid:
-            if any(row):
-                raise InputFormatError(f"{path.name}:{lineno}: row has values but no id")
+        rid = _wide_row_id(path, row, lineno, seen)
+        if rid is None:
             continue
-        if rid in seen:
-            raise InputFormatError(f"{path.name}:{lineno}: duplicate row id '{rid}'")
-        seen.add(rid)
+        cells = list(zip(entity_ids, row[2:width]))
         if rid == _DESCRIPTION_ROW:
             desc_rows += 1
-            for e, cell in zip(entity_ids, row[2:width]):
-                descriptions[e] = cell
+            descriptions.update(cells)
             continue
         row_ids.append(rid)
-        for e, cell in zip(entity_ids, row[2:width]):
+        for e, cell in cells:
             if cell != "":
                 answers[e][rid] = cell
     if desc_rows != 1:
