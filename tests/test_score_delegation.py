@@ -16,9 +16,12 @@ def _write(tmp_path, text, name="j.yaml"):
     return p
 
 
-def test_sample_judgments_produce_expected_regions():
+def test_score_サンプル判定ファイルを読み込んだ場合_各判定が期待どおりのregionに分類されること():
+    # Act
     result = sd.score(sample_judgments_path())
     by_id = {j.id: j.region for j in result.judgments}
+
+    # Assert
     assert by_id["receipt_mandatory_items_check"] == "green"
     assert by_id["invoice_scheme_compliance"] == "green"
     assert by_id["entertainment_expense_judgment"] == "green"
@@ -26,8 +29,9 @@ def test_sample_judgments_produce_expected_regions():
     assert by_id["discriminatory_language_detection"] == "yellow"
 
 
-def test_boundary_high_axis(tmp_path):
-    """2/3 Yes on each axis -> still high (binary majority)."""
+def test_score_各軸で3件中2件がyesの場合_greenに分類されること(tmp_path):
+    """Axes use binary majority thresholds, not unanimity - a single per-axis 'no' still counts as high."""
+    # Arrange
     j = _write(
         tmp_path,
         """
@@ -43,12 +47,17 @@ def test_boundary_high_axis(tmp_path):
               answer_definability.A3: no
         """,
     )
+
+    # Act
     result = sd.score(j)
+
+    # Assert
     assert len(result.judgments) == 1
     assert result.judgments[0].region == "green"
 
 
-def test_low_x_low_is_red(tmp_path):
+def test_score_両軸とも低い場合_redに分類されること(tmp_path):
+    # Arrange
     j = _write(
         tmp_path,
         """
@@ -58,11 +67,16 @@ def test_low_x_low_is_red(tmp_path):
             answers: {}
         """,
     )
+
+    # Act
     result = sd.score(j)
+
+    # Assert
     assert result.judgments[0].region == "red"
 
 
-def test_mixed_axis_is_yellow(tmp_path):
+def test_score_verifiabilityのみ高い場合_yellowに分類されること(tmp_path):
+    # Arrange
     j = _write(
         tmp_path,
         """
@@ -72,11 +86,16 @@ def test_mixed_axis_is_yellow(tmp_path):
             answers: { verifiability.V1: yes, verifiability.V2: yes, verifiability.V3: yes }
         """,
     )
+
+    # Act
     result = sd.score(j)
+
+    # Assert
     assert result.judgments[0].region == "yellow"
 
 
-def test_exit_code_2_when_any_red(tmp_path):
+def test_score_red判定が1件でも含まれる場合_conclusion_exit_codeが2になること(tmp_path):
+    # Arrange
     j = _write(
         tmp_path,
         """
@@ -87,11 +106,16 @@ def test_exit_code_2_when_any_red(tmp_path):
             answers: {}
         """,
     )
+
+    # Act
     result = sd.score(j)
+
+    # Assert
     assert result.conclusion_exit_code == 2
 
 
-def test_exit_code_1_when_only_yellows(tmp_path):
+def test_score_yellow判定のみの場合_conclusion_exit_codeが1になること(tmp_path):
+    # Arrange
     j = _write(
         tmp_path,
         """
@@ -100,11 +124,16 @@ def test_exit_code_1_when_only_yellows(tmp_path):
             answers: { verifiability.V1: yes, verifiability.V2: yes, verifiability.V3: yes }
         """,
     )
+
+    # Act
     result = sd.score(j)
+
+    # Assert
     assert result.conclusion_exit_code == 1
 
 
-def test_exit_code_0_when_only_greens(tmp_path):
+def test_score_green判定のみの場合_conclusion_exit_codeが0になること(tmp_path):
+    # Arrange
     j = _write(
         tmp_path,
         """
@@ -113,7 +142,11 @@ def test_exit_code_0_when_only_greens(tmp_path):
             answers: { verifiability.V1: yes, verifiability.V2: yes, verifiability.V3: yes, answer_definability.A1: yes, answer_definability.A2: yes, answer_definability.A3: yes }
         """,
     )
+
+    # Act
     result = sd.score(j)
+
+    # Assert
     assert result.conclusion_exit_code == 0
 
 
@@ -129,16 +162,22 @@ def _ip_judgments_path():
     return sample_ip_judgments_path()
 
 
-def test_sample_ip_judgments_without_overlay_all_green():
-    """Under base thresholds (2/3), every patent-work step scores green."""
+def test_score_overlayなしでbase閾値の場合_全件greenになること():
+    """Base thresholds are majority-only (2/3), lenient enough that every patent-work step clears both axes."""
+    # Act
     result = sd.score(_ip_judgments_path())
+
+    # Assert
     assert {j.region for j in result.judgments} == {"green"}
 
 
-def test_sample_ip_judgments_with_overlay_regions():
-    """Under strengthened thresholds (3/3), only classification stays green."""
+def test_score_high_stakes_overlayで閾値を強化した場合_項目ごとにregionが変わること():
+    """The overlay tightens both axes to unanimity (3/3), so only the step with full agreement stays green."""
+    # Act
     result = sd.score(_ip_judgments_path(), overlay_paths=[_hs_matrix_overlay_path()])
     by_id = {j.id: j.region for j in result.judgments}
+
+    # Assert
     assert by_id == {
         "patent_classification": "green",
         "prior_art_candidate_retrieval": "yellow",
@@ -183,13 +222,16 @@ _HS_EXAMPLE_IDS = {
 }
 
 
-def test_high_stakes_examples_consistent_and_base_divergence_pinned():
+def test_apply_overlays_high_stakesを適用した場合_examplesのregionが閾値通りでbase乖離が既知集合と一致すること():
+    # Act
     merged = _merged_matrix_with_hs_overlay()
     thresholds = {
         i["id"]: i["threshold"]
         for i in merged["items"]
         if i["id"] in ("verifiability", "answer_definability")
     }
+
+    # Assert
     stale: dict[str, tuple[str, str]] = {}
     for item in merged["items"]:
         if "verifiability_yes" not in item:

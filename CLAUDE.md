@@ -98,7 +98,7 @@ self-documenting** であると同時に、**マージ規則の実体**でもあ
 - **同梱 examples の入力は CSV が主、YAML は 1 例だけ**(`business/sample-expense-approval.yaml`
   = CSV 版との双子。結果同値は `tests/test_io_input.py` が固定): CSV は
   「`aidr init --format csv` で生成した体」で書き、質問列 = text_ja の複製。ドリフトは
-  `tests/test_init_input.py::test_example_csv_question_column_matches_definitions` が検出する。
+  `tests/test_init_input.py` のドリフト検査が検出する。
   **CSV は未知の質問 id を拒否する**(typo 防止)ため、overlay の追加質問に回答する例は
   別ファイル(`*-with-overlay.csv`)に分ける。変換の同値性は
   `tests/fixtures/normalized_inputs.json`(変換前 YAML の正規化 dict)が正本
@@ -119,6 +119,42 @@ self-documenting** であると同時に、**マージ規則の実体**でもあ
   高責任専門業務(知財/法務/薬事)向けの L5 ゲート層・閾値強化を足す実例(`docs/08`)。
   新ドメインを足すときは同じ形(overlay ディレクトリ + サンプル入力 + docs/NN)を踏襲する。
   case_evidence の出典が更新されたら overlay 側も追随する
+
+## テスト規約
+
+pkm の新規リポ規約([`p3-new-repo-claude-md.md`](https://github.com/suwa-sh/pkm) のテスト規約節)を
+Python / pytest 向けに翻案したもの。**新規・変更するテストは必ずこの形で書く**。
+
+- **AAA パターン**: テスト本文を `# Arrange` `# Act` `# Assert` のコメントで 3 区画に分ける
+  (準備・実行・検証を混ぜない)。準備が不要なテストは `# Arrange` を省いてよい。
+  空の区画にコメントだけ置かない
+  - `pytest.raises` のテストは Act と Assert が同一文になるので `# Act & Assert` に統合する
+- **テスト関数名**: `test_{テスト対象}_{XXXの場合}_{YYYであること}` 形式
+  - テスト対象 = 関数・メソッド名(英語のまま)、条件と期待は日本語
+  - 例: `test_score_overlayで閾値を強化した場合_境界例がyellowに落ちること`
+  - **テスト対象は実際に呼んでいる関数に合わせる**。ファイル名から機械的に決めない
+    (`test_score_delegation.py` の中で `apply_overlays` を検証するテストは `test_apply_overlays_...`)
+  - **CLI を実プロセス起動するテストは `aidr_<subcommand>` を対象にする**
+    (例: `test_aidr_check_readiness_...`)。同名の Python 関数のテストと混ざらないようにするため
+  - `test_` 接頭辞は pytest の既定収集規則に合わせるため必須(`python_functions` は設定しない)
+  - 識別子に使えない記号(`「」` 等)は名前に入れない
+  - `@pytest.mark.parametrize` の `ids` も「{XXXの場合}_{YYYであること}」に合わせる
+- **1 テスト 1 主張**: 条件と期待が 2 つ以上あるなら関数を分ける。名前が書けないテストは
+  スコープが広すぎる合図
+- **docstring は「なぜそう振る舞うべきか」を書く**。関数名で言い切れる「何を確認するか」は
+  繰り返さない(名前と docstring の二重保持を避ける)
+- **I/O 境界は実体でテストする**(一時ディレクトリ・実ファイル・実プロセス)。モックで
+  誤魔化さない。CLI は `subprocess` で実際に起動して exit code を確認する
+- **バグ修正は再現テストを先に書く**
+- **doc からテストを参照するときは関数名でなくファイル単位にする**
+  (`tests/test_init_input.py` のドリフト検査が検出する、のように書く)。
+  テスト名を `::` 付きで書くと改名のたびに doc が壊れる — 実際に本規約への移行で 2 度陳腐化した
+- **リファクタで出力が変わらないことを主張するテストは、出力そのものを固定する**
+  (前後の diff を取る等)。「例外が出ないこと」だけでは退行を捕まえられない
+
+`tests/` は qlty の解析対象外(`.qlty/qlty.toml` の `exclude_patterns`)。pytest は assert で
+テストを書き、smoke テストで CLI を実プロセス起動するため、bandit の指摘は所見でなくノイズになる。
+出荷コード側は全面解析のままで `qlty check` 指摘ゼロを維持する。
 
 ## リリース手順(タグ push だけ。Release は手動作成しない)
 

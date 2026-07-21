@@ -26,24 +26,30 @@ def _all_yes_answers() -> dict:
     return {item["id"]: "yes" for item in base["items"] if ov.is_leaf(item["id"], ov.separator_of(base))}
 
 
-def test_all_yes_passes(tmp_path):
+def test_check_全項目yesの場合_PASSしblocked_fromがNoneであること(tmp_path):
+    # Arrange
     biz_path = tmp_path / "biz.yaml"
     biz_path.write_text(yaml.safe_dump({"target": "all-yes", "answers": _all_yes_answers()}))
+    # Act
     result = cr.check(biz_path)
+    # Assert
     assert result.conclusion == "PASS"
     assert cr.exit_code_for(result) == 0
     assert result.blocked_from is None
 
 
-def test_sample_business_returns_block():
+def test_check_同梱サンプルbusinessの場合_L1でBLOCKすること():
     """The bundled sample business is intentionally L4-incomplete."""
+    # Act
     result = cr.check(sample_business_path())
+    # Assert
     assert result.conclusion == "BLOCK"
     assert cr.exit_code_for(result) == 2
     assert result.blocked_from == "L1"  # L1 is the first non-PASS layer
 
 
-def test_all_no_blocks(tmp_path):
+def test_check_全回答なしの場合_BLOCKすること(tmp_path):
+    # Arrange
     biz = _write(
         tmp_path,
         """
@@ -51,11 +57,14 @@ def test_all_no_blocks(tmp_path):
         answers: {}
         """,
     )
+    # Act
     result = cr.check(biz)
+    # Assert
     assert result.conclusion == "BLOCK"
 
 
-def test_unknown_answer_is_treated_as_unknown(tmp_path):
+def test_check_未知の回答値の場合_unknown_idsに含まれること(tmp_path):
+    # Arrange
     biz = _write(
         tmp_path,
         """
@@ -64,12 +73,15 @@ def test_unknown_answer_is_treated_as_unknown(tmp_path):
           L1.Q1: maybe
         """,
     )
+    # Act
     result = cr.check(biz)
+    # Assert
     l1 = next(l for l in result.layers if l.id == "L1")
     assert "L1.Q1" in l1.unknown_ids
 
 
-def test_overlay_added_question_is_scored(tmp_path):
+def test_check_overlayで質問を追加した場合_追加質問がunknownとして採点されること(tmp_path):
+    # Arrange
     overlay = _write(
         tmp_path,
         """
@@ -93,7 +105,8 @@ def test_overlay_added_question_is_scored(tmp_path):
     assert "L1.NEW_Q" in l1.unknown_ids
 
 
-def test_overlay_error_propagates(tmp_path):
+def test_check_overlayのextendsが不正な場合_OverlayErrorを送出すること(tmp_path):
+    # Arrange
     overlay = _write(
         tmp_path,
         """
@@ -109,13 +122,15 @@ def test_overlay_error_propagates(tmp_path):
         """,
         name="biz.yaml",
     )
+    # Act & Assert
     with pytest.raises(cr.OverlayError):
         cr.check(biz, overlay_paths=[overlay])
 
 
 # --- organization axis (parallel, non-gating) --------------------------------
 
-def test_axis_role_classification():
+def test_axis_role_role指定と既定値の場合_ROLEを正しく判定すること():
+    # Assert
     # explicit role wins
     assert cr.axis_role("organization", {"role": "parallel"}) == cr.ROLE_PARALLEL
     assert cr.axis_role("X", {"role": "gating"}) == cr.ROLE_GATING
@@ -124,13 +139,15 @@ def test_axis_role_classification():
     assert cr.axis_role("efficacy", {}) == cr.ROLE_PARALLEL
 
 
-def test_axis_role_unknown_value_is_loud_error():
+def test_axis_role_role値が不正な場合_ValueErrorを送出すること():
     """A role typo must not silently demote a parallel axis to a gating layer."""
+    # Act & Assert
     with pytest.raises(ValueError):
         cr.axis_role("organization", {"role": "paralell"})
 
 
-def test_unknown_role_in_definition_surfaces_on_check(tmp_path):
+def test_check_定義内のroleが不正な場合_ValueErrorを送出すること(tmp_path):
+    # Arrange
     defn = _write(
         tmp_path,
         """
@@ -146,13 +163,16 @@ def test_unknown_role_in_definition_surfaces_on_check(tmp_path):
         name="defn.yaml",
     )
     biz = _write(tmp_path, "target: x\nanswers: {L1.Q1: yes, org.C1: yes}\n")
+    # Act & Assert
     with pytest.raises(ValueError):
         cr.check(biz, definition_path=defn)
 
 
-def test_organization_is_parallel_not_gating():
+def test_check_organization軸がBLOCKの場合_gating層をblockしないこと():
     """organization BLOCK must not gate the layers (blocked_from stays None)."""
+    # Act
     result = cr.check(ajinomoto_discovery_team_path())
+    # Assert
     assert result.conclusion == "BLOCK"
     assert result.blocked_from is None  # all gating layers pass
     layer_ids = {l.id for l in result.layers}
@@ -162,8 +182,9 @@ def test_organization_is_parallel_not_gating():
     assert {a.id for a in result.parallel_axes} == {"efficacy", "organization"}
 
 
-def test_empty_parallel_axis_is_skipped(tmp_path):
+def test_check_parallel軸に葉がない場合_評価対象から除外されること(tmp_path):
     """A parallel axis with zero leaves is unassessed, not a silent BLOCK."""
+    # Arrange
     defn = _write(
         tmp_path,
         """
@@ -178,13 +199,16 @@ def test_empty_parallel_axis_is_skipped(tmp_path):
         name="defn.yaml",
     )
     biz = _write(tmp_path, "target: x\nanswers: {L1.Q1: yes}\n")
+    # Act
     result = cr.check(biz, definition_path=defn)
+    # Assert
     assert result.conclusion == "PASS"  # empty org axis skipped, not blocking
     assert {a.id for a in result.parallel_axes} == set()
 
 
-def test_organization_overlay_strengthen_and_add(tmp_path):
+def test_check_organization軸にoverlayでadd_strengthenした場合_追加質問がunknownとして採点されること(tmp_path):
     """add/strengthen work on the organization axis just like on efficacy."""
+    # Arrange
     overlay = _write(
         tmp_path,
         """
@@ -198,7 +222,9 @@ def test_organization_overlay_strengthen_and_add(tmp_path):
         """,
         name="overlay.yaml",
     )
+    # Act
     result = cr.check(ajinomoto_discovery_team_path(), overlay_paths=[overlay])
+    # Assert
     org = next(a for a in result.parallel_axes if a.id == "organization")
     assert "organization.NEW_C" in org.unknown_ids  # added question is scored
 
@@ -217,32 +243,39 @@ def _merged_all_yes_answers() -> dict:
     return {item["id"]: "yes" for item in merged["items"] if ov.is_leaf(item["id"], sep)}
 
 
-def test_high_stakes_all_yes_passes(tmp_path):
-    """4/4 on L5 (and all other layers) -> PASS."""
+def test_check_high_stakesで全項目yesの場合_PASSすること(tmp_path):
+    # Arrange
     biz_path = tmp_path / "biz.yaml"
     biz_path.write_text(yaml.safe_dump({"target": "hs-all-yes", "answers": _merged_all_yes_answers()}))
+    # Act
     result = cr.check(biz_path, overlay_paths=[_hs_overlay_path()])
+    # Assert
     assert result.conclusion == "PASS"
     assert result.blocked_from is None
 
 
-def test_high_stakes_single_no_blocks(tmp_path):
+def test_check_high_stakesで1問noの場合_revise帯なしでBLOCKすること(tmp_path):
     """The L5 gate has no revise band: 3/4 -> BLOCK, not REVISE."""
+    # Arrange
     answers = _merged_all_yes_answers()
     answers["L5.Q4"] = "no"
     biz_path = tmp_path / "biz.yaml"
     biz_path.write_text(yaml.safe_dump({"target": "hs-one-no", "answers": answers}))
+    # Act
     result = cr.check(biz_path, overlay_paths=[_hs_overlay_path()])
+    # Assert
     assert result.conclusion == "BLOCK"
     assert result.blocked_from == "L5"
     l5 = next(layer for layer in result.layers if layer.id == "L5")
     assert l5.verdict == "block"
 
 
-def test_sample_ip_business_blocks_at_l5():
-    """The bundled IP sample: process layers pass, the prerequisite gate blocks."""
+def test_check_同梱IPサンプルの場合_L5でBLOCKすること():
+    # Arrange
     from conftest import sample_ip_business_path
+    # Act
     result = cr.check(sample_ip_business_path(), overlay_paths=[_hs_overlay_path()])
+    # Assert
     verdicts = {layer.id: layer.verdict for layer in result.layers}
     assert verdicts == {"L1": "pass", "L2": "pass", "L3": "pass", "L4": "pass", "L5": "block"}
     assert result.conclusion == "BLOCK"
@@ -270,24 +303,28 @@ def _insourcing_axis(result):
     return next(a for a in result.parallel_axes if a.id == "L_insourcing")
 
 
-def test_insourcing_all_yes_passes(tmp_path):
-    """5/5 on L_insourcing (and all other axes) -> PASS."""
+def test_check_insourcingで全項目yesの場合_PASSすること(tmp_path):
+    # Arrange
     biz_path = tmp_path / "biz.yaml"
     biz_path.write_text(yaml.safe_dump({"target": "ins-all-yes", "answers": _merged_all_yes_insourcing_answers()}))
+    # Act
     result = cr.check(biz_path, overlay_paths=[_insourcing_overlay_path()])
+    # Assert
     axis = _insourcing_axis(result)
     assert axis.verdict == "pass" and axis.score == 1.0
     assert result.conclusion == "PASS"
     assert result.blocked_from is None
 
 
-def test_insourcing_single_no_revises_without_gating(tmp_path):
-    """4/5 (one missing owner) -> the axis REVISEs but does NOT gate L1-L4."""
+def test_check_insourcingで1問noの場合_gatingせずREVISEすること(tmp_path):
+    # Arrange
     answers = _merged_all_yes_insourcing_answers()
     answers["L_insourcing.I2"] = "no"
     biz_path = tmp_path / "biz.yaml"
     biz_path.write_text(yaml.safe_dump({"target": "ins-one-no", "answers": answers}))
+    # Act
     result = cr.check(biz_path, overlay_paths=[_insourcing_overlay_path()])
+    # Assert
     axis = _insourcing_axis(result)
     assert axis.verdict == "revise" and axis.score == 0.8
     assert result.conclusion == "REVISE"
@@ -296,14 +333,16 @@ def test_insourcing_single_no_revises_without_gating(tmp_path):
     assert result.blocked_from is None
 
 
-def test_insourcing_two_no_blocks_without_gating(tmp_path):
-    """3/5 -> the axis BLOCKs but still does NOT gate L1-L4 (parallel)."""
+def test_check_insourcingで2問noの場合_gatingせずBLOCKすること(tmp_path):
+    # Arrange
     answers = _merged_all_yes_insourcing_answers()
     answers["L_insourcing.I0"] = "no"
     answers["L_insourcing.I1"] = "no"
     biz_path = tmp_path / "biz.yaml"
     biz_path.write_text(yaml.safe_dump({"target": "ins-two-no", "answers": answers}))
+    # Act
     result = cr.check(biz_path, overlay_paths=[_insourcing_overlay_path()])
+    # Assert
     axis = _insourcing_axis(result)
     assert axis.verdict == "block" and axis.score == 0.6
     assert result.conclusion == "BLOCK"
@@ -312,10 +351,12 @@ def test_insourcing_two_no_blocks_without_gating(tmp_path):
     assert result.blocked_from is None
 
 
-def test_sample_insourcing_business_revises():
-    """The bundled sample: process + organization pass, L_insourcing REVISEs (I2)."""
+def test_check_同梱insourcingサンプルの場合_REVISEすること():
+    # Arrange
     from conftest import sample_insourcing_business_path
+    # Act
     result = cr.check(sample_insourcing_business_path(), overlay_paths=[_insourcing_overlay_path()])
+    # Assert
     assert all(layer.verdict == "pass" for layer in result.layers)
     axis = _insourcing_axis(result)
     assert axis.verdict == "revise"
@@ -346,11 +387,13 @@ def _authz_axis(result, axis_id):
     return next(a for a in result.parallel_axes if a.id == axis_id)
 
 
-def test_authz_all_yes_passes(tmp_path):
-    """3/3 on both axes (and all other axes) -> PASS."""
+def test_check_authzで全項目yesの場合_PASSすること(tmp_path):
+    # Arrange
     biz_path = tmp_path / "biz.yaml"
     biz_path.write_text(yaml.safe_dump({"target": "authz-all-yes", "answers": _merged_all_yes_authz_answers()}))
+    # Act
     result = cr.check(biz_path, overlay_paths=[_authz_overlay_path()])
+    # Assert
     for axis_id in ("L_capability", "L_consent"):
         axis = _authz_axis(result, axis_id)
         assert axis.verdict == "pass" and axis.score == 1.0
@@ -358,13 +401,15 @@ def test_authz_all_yes_passes(tmp_path):
     assert result.blocked_from is None
 
 
-def test_authz_single_no_revises_without_gating(tmp_path):
-    """2/3 on the capability axis -> REVISE, and it does NOT gate L1-L4."""
+def test_check_capability軸で1問noの場合_gatingせずREVISEすること(tmp_path):
+    # Arrange
     answers = _merged_all_yes_authz_answers()
     answers["L_capability.C2"] = "no"
     biz_path = tmp_path / "biz.yaml"
     biz_path.write_text(yaml.safe_dump({"target": "authz-one-no", "answers": answers}))
+    # Act
     result = cr.check(biz_path, overlay_paths=[_authz_overlay_path()])
+    # Assert
     axis = _authz_axis(result, "L_capability")
     assert axis.verdict == "revise"
     assert _authz_axis(result, "L_consent").verdict == "pass"
@@ -373,7 +418,7 @@ def test_authz_single_no_revises_without_gating(tmp_path):
     assert result.blocked_from is None
 
 
-def test_authz_axes_do_not_offset_each_other(tmp_path):
+def test_check_capability軸yesかつconsent軸全noの場合_相殺されずBLOCKすること(tmp_path):
     """A full capability axis must not mask an empty consent axis.
 
     Averaged into a single 6-question axis these answers would score 4/6 and
@@ -381,12 +426,15 @@ def test_authz_axes_do_not_offset_each_other(tmp_path):
     passes and consent blocks — which is the distinction the framing exists
     to preserve.
     """
+    # Arrange
     answers = _merged_all_yes_authz_answers()
     for qid in ("L_consent.S1", "L_consent.S2", "L_consent.S3"):
         answers[qid] = "no"
     biz_path = tmp_path / "biz.yaml"
     biz_path.write_text(yaml.safe_dump({"target": "authz-split", "answers": answers}))
+    # Act
     result = cr.check(biz_path, overlay_paths=[_authz_overlay_path()])
+    # Assert
     assert _authz_axis(result, "L_capability").verdict == "pass"
     assert _authz_axis(result, "L_consent").verdict == "block"
     assert result.conclusion == "BLOCK"
@@ -395,10 +443,12 @@ def test_authz_axes_do_not_offset_each_other(tmp_path):
     assert result.blocked_from is None
 
 
-def test_sample_authz_business_blocks_on_consent_axis():
-    """The bundled sample: process passes, capability passes, consent BLOCKs."""
+def test_check_同梱authzサンプルの場合_consent軸でBLOCKすること():
+    # Arrange
     from conftest import sample_authz_business_path
+    # Act
     result = cr.check(sample_authz_business_path(), overlay_paths=[_authz_overlay_path()])
+    # Assert
     assert all(layer.verdict == "pass" for layer in result.layers)
     assert _authz_axis(result, "L_capability").verdict == "pass"
     consent = _authz_axis(result, "L_consent")

@@ -40,10 +40,17 @@ def _question_ids(defn_path: Path, exclude_groups: set[str]) -> set[str]:
     }
 
 
-@pytest.mark.parametrize("target", sorted(ii.TARGETS))
-def test_template_is_valid_yaml_and_covers_all_questions(target):
+@pytest.mark.parametrize(
+    "target",
+    sorted(ii.TARGETS),
+    ids=[f"{t}を指定した場合_有効なyamlで全質問を網羅すること" for t in sorted(ii.TARGETS)],
+)
+def test_generate_targetを指定した場合_有効なyamlで全質問を網羅すること(target):
+    # Act
     text = ii.generate(target)
     data = yaml.safe_load(text)
+
+    # Assert
     assert isinstance(data, dict)
     filename, exclude = ii.TARGETS[target]
     expected = _question_ids(_DEF_PATHS[target](), exclude)
@@ -54,25 +61,29 @@ def test_template_is_valid_yaml_and_covers_all_questions(target):
     assert "# 問: " in text
 
 
-def test_template_includes_overlay_added_questions():
+def test_generate_overlayを渡した場合_追加質問と問いコメントが出力に含まれること():
+    # Act
     text = ii.generate("four-layer", overlay_paths=[sample_overlay_path()])
+
+    # Assert
     assert "L1.MIDORI_Q5:" in text and "L4.MIDORI_Q6:" in text
     assert "法務のレビュー" in text  # overlay の text_ja がコメントに出る
     # overlay 付き出力も valid YAML であること
     assert isinstance(yaml.safe_load(text), dict)
 
 
-def test_task_contract_template_includes_data_leaves():
-    """scorer.type / scorer.iruler_double_eval(kind: data)もテンプレートに出る。
-
-    これが欠けたテンプレートは check-task-contract で exit 3 になる。"""
+def test_generate_task_contractの場合_dataリーフのキーを含むこと():
+    """これが欠けたテンプレートは check-task-contract で exit 3 になる。"""
+    # Act
     text = ii.generate("task-contract")
+
+    # Assert
     assert "scorer.type:" in text
     assert "scorer.iruler_double_eval:" in text
 
 
-def test_multiline_text_ja_overlay_still_generates_valid_yaml(tmp_path):
-    """複数行 text_ja を持つ正当な overlay からも不正 YAML を生成しない。"""
+def test_generate_複数行text_jaのoverlayを渡した場合_有効なyamlを生成すること(tmp_path):
+    # Arrange
     ov_path = tmp_path / "multiline.yaml"
     ov_path.write_text(
         "version: 1\n"
@@ -85,22 +96,29 @@ def test_multiline_text_ja_overlay_still_generates_valid_yaml(tmp_path):
         "      二行目: 詳細\n"
         "    weight: 1.0\n"
     )
+
+    # Act
     text = ii.generate("four-layer", overlay_paths=[ov_path])
+
+    # Assert
     data = yaml.safe_load(text)  # ParserError にならないこと
     assert isinstance(data, dict)
     assert "一行目 二行目: 詳細" in text  # 1 行に正規化される
 
 
-def test_four_layer_template_orders_gating_before_parallel():
-    """overlay で追加されたゲート層(L5)は並列軸(efficacy 等)より前に出る。"""
+def test_generate_ゲート層overlayを渡した場合_ゲート層が並列軸より前に出力されること():
+    # Act
     text = ii.generate("four-layer", overlay_paths=[hs_overlay_four_layer_path()])
+
+    # Assert
     pos_l5 = text.index("L5.Q1:")
     pos_eff = text.index("efficacy.E1:")
     pos_org = text.index("organization.C1:")
     assert pos_l5 < pos_eff < pos_org
 
 
-def test_unknown_target_raises():
+def test_generate_未知のtargetを指定した場合_ValueErrorが送出されること():
+    # Act & Assert
     with pytest.raises(ValueError):
         ii.generate("nope")
 
@@ -148,14 +166,16 @@ def _data_label_ja() -> dict[str, str]:
 _DATA_LABEL_JA = _data_label_ja()
 
 
-def test_example_question_comments_match_definitions():
-    """残す YAML 記入例(双子 1 本)の「問:」コメントが正本と一致すること。"""
+def test_all_text_ja_yaml_twinの問コメントと比較した場合_ドリフトがないこと():
+    # Arrange
     text_ja = _all_text_ja()
     from conftest import sample_business_yaml_twin_path
 
     path = sample_business_yaml_twin_path()
     checked = 0
     problems: list[str] = []
+
+    # Act
     for lineno, line in enumerate(path.read_text().splitlines(), 1):
         loc = f"{path.name}:{lineno}"
         qm = _QUESTION_COMMENT_RE.match(line)
@@ -174,16 +194,17 @@ def test_example_question_comments_match_definitions():
         am = _ANSWER_LINE_RE.match(line)
         if am and am.group(1) in text_ja and "# 問:" not in line:
             problems.append(f"{loc}: answer line for {am.group(1)} lacks 問 comment")
+
+    # Assert
     assert checked >= 20, f"question comments not found (checked={checked})"
     assert not problems, "yaml twin drift:\n" + "\n".join(problems)
 
 
-def test_example_csv_question_column_matches_definitions():
-    """全 CSV サンプルの質問列が正本(text_ja)と一致すること。
-
-    問いの正本は definitions/overlay に一元化されているので、CSV 側の質問列は
+def test_all_text_ja_csv質問列と比較した場合_ドリフトがないこと():
+    """問いの正本は definitions/overlay に一元化されているので、CSV 側の質問列は
     複製 — このテストが改変・改定漏れ・id タイプミスを検出する。
     """
+    # Arrange
     import csv as _csv
     import io as _io
 
@@ -193,6 +214,8 @@ def test_example_csv_question_column_matches_definitions():
     problems: list[str] = []
     csv_files = sorted(EXAMPLES_DIR.rglob("*.csv"))
     assert len(csv_files) >= 10, "expected the bundled CSV samples"
+
+    # Act
     for path in csv_files:
         text = path.read_bytes().decode("utf-8-sig")
         for lineno, row in enumerate(_csv.reader(_io.StringIO(text, newline="")), 1):
@@ -221,5 +244,7 @@ def test_example_csv_question_column_matches_definitions():
                     f"{loc}: drifted question column for {rid}\n"
                     f"    csv:     {question}\n    text_ja: {text_ja[rid]}"
                 )
+
+    # Assert
     assert checked > 50, f"question rows not found in CSVs (checked={checked})"
     assert not problems, "csv/definition drift:\n" + "\n".join(problems)

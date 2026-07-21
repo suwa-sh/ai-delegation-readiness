@@ -55,8 +55,11 @@ GOLDEN_SCORE_DELEGATION = {
 }
 
 
-def test_golden_check_readiness_sample_business():
+def test_check_sample_businessの場合_goldenスコアと一致すること():
+    # Act
     result = cr.check(sample_business_path())
+
+    # Assert
     assert result.conclusion == GOLDEN_CHECK_READINESS["conclusion"]
     assert result.blocked_from == GOLDEN_CHECK_READINESS["blocked_from"]
     for layer in result.layers:
@@ -70,8 +73,11 @@ def test_golden_check_readiness_sample_business():
         assert by_axis[axis_id].score == expected["score"], axis_id
 
 
-def test_golden_score_delegation_sample_judgments():
+def test_score_sample_judgmentsの場合_goldenスコアと一致すること():
+    # Act
     result = sd.score(sample_judgments_path())
+
+    # Assert
     by_id = {j.id: j for j in result.judgments}
     assert set(by_id) == set(GOLDEN_SCORE_DELEGATION)
     for jid, expected in GOLDEN_SCORE_DELEGATION.items():

@@ -31,72 +31,109 @@ def _write(tmp_path, data, name="log.json"):
     return p
 
 
-def test_sample_log_passes_minimum(good_log_path):
+def test_validate_サンプルログをminimumレベルで検証した場合_okになること(good_log_path):
+    # Act
     result = v.validate(good_log_path, level="minimum")
+
+    # Assert
     assert result.ok, [vio.message for vio in result.violations]
 
 
-def test_sample_log_passes_extended(good_log_path):
+def test_validate_サンプルログをextendedレベルで検証した場合_okになること(good_log_path):
+    # Act
     result = v.validate(good_log_path, level="extended")
+
+    # Assert
     assert result.ok, [vio.message for vio in result.violations]
 
 
-def test_invalid_date_time_is_rejected_at_extended(tmp_path):
+def test_validate_whenが不正な日時形式の場合_extendedレベルで拒否されること(tmp_path):
+    # Arrange
     data = _good_log()
     data["when"] = "not-a-date"
     p = _write(tmp_path, data)
+
+    # Act
     result = v.validate(p, level="extended")
+
+    # Assert
     assert not result.ok
     messages = " ".join(vio.message for vio in result.violations)
     assert "date-time" in messages
 
 
-def test_decision_outside_enum_is_rejected_at_extended(tmp_path):
+def test_validate_decisionがenum外の値の場合_extendedレベルで拒否されること(tmp_path):
+    # Arrange
     data = _good_log()
     data["result"]["decision"] = "kinda-maybe-approved"
     p = _write(tmp_path, data)
+
+    # Act
     result = v.validate(p, level="extended")
+
+    # Assert
     assert not result.ok
 
 
-def test_decision_outside_enum_is_accepted_at_minimum(tmp_path):
+def test_validate_decisionがenum外の値の場合_minimumレベルでは許容されること(tmp_path):
     """Minimum level is intentionally lax on the decision string."""
+    # Arrange
     data = _good_log()
     data["result"]["decision"] = "kinda-maybe-approved"
     p = _write(tmp_path, data)
+
+    # Act
     result = v.validate(p, level="minimum")
+
+    # Assert
     assert result.ok
 
 
-def test_missing_human_delegator_is_rejected_at_minimum(tmp_path):
+def test_validate_human_delegatorが欠落している場合_minimumレベルでも拒否されること(tmp_path):
     """Even at the minimum level the human delegator is required."""
+    # Arrange
     data = _good_log()
     del data["who"]["human_delegator"]
     p = _write(tmp_path, data)
+
+    # Act
     result = v.validate(p, level="minimum")
+
+    # Assert
     assert not result.ok
 
 
-def test_escalated_without_escalated_to_is_rejected_at_extended(tmp_path):
+def test_validate_decisionがescalatedでescalated_toが欠落している場合_extendedレベルで拒否されること(tmp_path):
+    # Arrange
     data = _good_log()
     data["result"]["decision"] = "escalated"
     data["result"].pop("escalated_to", None)
     p = _write(tmp_path, data)
+
+    # Act
     result = v.validate(p, level="extended")
+
+    # Assert
     assert not result.ok
 
 
-def test_extended_requires_rule_version(tmp_path):
+def test_validate_rule_refsのversionが欠落している場合_extendedレベルで拒否されること(tmp_path):
+    # Arrange
     data = _good_log()
     for ref in data["why"]["rule_refs"]:
         ref.pop("version", None)
     p = _write(tmp_path, data)
+
+    # Act
     result = v.validate(p, level="extended")
+
+    # Assert
     assert not result.ok
     messages = " ".join(vio.message for vio in result.violations)
     assert "version" in messages
 
 
-def test_unknown_level_raises(tmp_path, good_log_path):
+def test_validate_未知のlevelを指定した場合_ValueErrorが送出されること(tmp_path, good_log_path):
+    # Act & Assert
     with pytest.raises(ValueError):
         v.validate(good_log_path, level="superextended")

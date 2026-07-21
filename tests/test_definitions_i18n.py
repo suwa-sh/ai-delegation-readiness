@@ -43,18 +43,30 @@ def _question_leaves(defn: dict) -> list[dict]:
     ]
 
 
-@pytest.mark.parametrize("name", DEFINITIONS)
-def test_every_question_leaf_has_nonempty_text_ja(name):
+@pytest.mark.parametrize(
+    "name",
+    DEFINITIONS,
+    ids=[f"{n}の場合_text_jaが非空であること" for n in DEFINITIONS],
+)
+def test_question_leaves_全定義の場合_text_jaが非空であること(name):
+    # Act
     defn = ov.load_yaml(DEFINITIONS[name]())
     leaves = _question_leaves(defn)
+
+    # Assert
     assert leaves, f"{name}: no question leaves found (parsing broke?)"
     missing = [l["id"] for l in leaves if not str(l.get("text_ja", "")).strip()]
     assert missing == [], f"{name}: question leaves without text_ja: {missing}"
 
 
-def test_text_ja_survives_overlay_merge():
+def test_apply_overlays_hs_overlayを適用した場合_text_jaが保持されること():
+    # Arrange
     base = ov.load_yaml(four_layer_path())
+
+    # Act
     result = ov.apply_overlays(base, [hs_overlay_four_layer_path()])
+
+    # Assert
     assert result.ok, result.violations
     base_ja = {l["id"]: l["text_ja"] for l in _question_leaves(base)}
     merged_ja = {

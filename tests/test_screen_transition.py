@@ -65,16 +65,31 @@ def _screen_one(tmp_path, answers: dict) -> st.TaskGroupResult:
         (True, True, False, "reorganization"),
         (True, True, True, "growth"),
     ],
+    ids=[
+        "露出低_必要性低_弾力性低の場合_minimal_changeになること",
+        "露出低_必要性低_弾力性高の場合_minimal_changeになること",
+        "露出低_必要性高_弾力性低の場合_minimal_changeになること",
+        "露出低_必要性高_弾力性高の場合_minimal_changeになること",
+        "露出高_必要性低_弾力性低の場合_high_automationになること",
+        "露出高_必要性低_弾力性高の場合_growthになること",
+        "露出高_必要性高_弾力性低の場合_reorganizationになること",
+        "露出高_必要性高_弾力性高の場合_growthになること",
+    ],
 )
-def test_all_eight_axis_combinations(tmp_path, exposure, necessity, elasticity, expected):
+def test_screen_3軸8通りの組み合わせの場合_決定木どおりの種別になること(
+    tmp_path, exposure, necessity, elasticity, expected
+):
+    # Act
     r = _screen_one(tmp_path, _answers(exposure, necessity, elasticity))
+    # Assert
     assert r.type == expected
 
 
-def test_sample_task_groups_expected_types_and_priority_order():
-    """The Midori-Seiki sample must cover all 4 types in priority order."""
+def test_screen_サンプルタスク群を判定した場合_4種別が優先順位順に並ぶこと():
+    # Act
     result = st.screen(sample_task_groups_path())
     by_id = {g.id: g.type for g in result.task_groups}
+    # Assert
     assert by_id == {
         "financial_disclosure_draft": "reorganization",
         "expense_entry_check": "high_automation",
@@ -91,11 +106,13 @@ def test_sample_task_groups_expected_types_and_priority_order():
     assert result.exit_code == 0
 
 
-def test_sample_task_groups_hitl_flags():
+def test_screen_サンプルタスク群を判定した場合_H1のみがHITL対象になること():
     """HITL must come from H1 (regulated domains), not merely from a high
     human_necessity axis — disclosure carries H1=yes, the others must not."""
+    # Act
     result = st.screen(sample_task_groups_path())
     hitl = {g.id: g.human_control_required for g in result.task_groups}
+    # Assert
     assert hitl == {
         "financial_disclosure_draft": True,
         "expense_entry_check": False,
@@ -108,10 +125,13 @@ def test_sample_task_groups_hitl_flags():
 
 # --- human_necessity threshold=1 (any single reason keeps humans) ------------
 
-def test_single_necessity_yes_flips_axis_high(tmp_path):
+def test_screen_必要性理由が1つだけ真の場合_axisがhighになりreorganization判定されること(tmp_path):
+    # Arrange
     answers = _answers(True, False, False)
     answers["human_necessity.H3"] = True  # physical only
+    # Act
     r = _screen_one(tmp_path, answers)
+    # Assert
     assert r.axes["human_necessity"].level == "high"
     assert r.type == "reorganization"
     # H3 is not a human_control question: no HITL flag.
@@ -120,26 +140,31 @@ def test_single_necessity_yes_flips_axis_high(tmp_path):
 
 # --- HITL flag is independent of the type ------------------------------------
 
-def test_growth_path_keeps_hitl_flag(tmp_path):
-    """H1=yes must surface even when elasticity routes the group to growth."""
+def test_screen_弾力性でgrowthに振り分けられた場合_H1由来のHITLフラグが立つこと(tmp_path):
+    # Arrange
     answers = _answers(True, False, True)
     answers["human_necessity.H1"] = True
+    # Act
     r = _screen_one(tmp_path, answers)
+    # Assert
     assert r.type == "growth"
     assert r.human_control_required is True
     assert r.human_control_yes_ids == ["human_necessity.H1"]
     assert "[HITL]" in st.render_text(st.ScreenResult(task_groups=[r]))
 
 
-def test_no_hitl_flag_when_h1_no(tmp_path):
+def test_screen_H1が否の場合_HITLフラグが立たないこと(tmp_path):
+    # Act
     r = _screen_one(tmp_path, _answers(True, False, False))
+    # Assert
     assert r.human_control_required is False
     assert "[HITL]" not in st.render_text(st.ScreenResult(task_groups=[r]))
 
 
 # --- fail-closed input contract ----------------------------------------------
 
-def test_missing_answer_is_input_error_listing_ids(tmp_path):
+def test_screen_human_necessityの回答が欠落している場合_InputErrorに欠落IDが列挙されること(tmp_path):
+    # Arrange
     p = _write(
         tmp_path,
         """
@@ -155,72 +180,89 @@ def test_missing_answer_is_input_error_listing_ids(tmp_path):
               demand_elasticity.D3: no
         """,
     )
+    # Act
     with pytest.raises(st.InputError) as e:
         st.screen(p)
+    # Assert
     msg = str(e.value)
     assert "partial" in msg
     for qid in ("human_necessity.H1", "human_necessity.H2", "human_necessity.H3"):
         assert qid in msg
 
 
-def test_invalid_answer_value_is_input_error_listing_value(tmp_path):
+def test_screen_回答値が不正な場合_InputErrorに不正値が列挙されること(tmp_path):
     """Typos and out-of-range numbers must not silently score as yes/no.
 
     'yess' on H1 would otherwise score as no -> human_necessity low ->
     high_automation without HITL: the exact fail-open the contract forbids.
     """
+    # Arrange
     answers = _answers(True, False, False)
     answers["human_necessity.H1"] = "yess"
     answers["demand_elasticity.D1"] = 2
     p = _write_task_groups(tmp_path, answers)
+    # Act
     with pytest.raises(st.InputError) as e:
         st.screen(p)
+    # Assert
     msg = str(e.value)
     assert "invalid answers" in msg
     assert "human_necessity.H1" in msg and "yess" in msg
     assert "demand_elasticity.D1" in msg
 
 
-def test_non_mapping_input_is_input_error(tmp_path):
+def test_screen_入力全体がmappingでない場合_InputErrorになること(tmp_path):
+    # Arrange
     p = _write(tmp_path, "- just\n- a list\n")
+    # Act & Assert
     with pytest.raises(st.InputError):
         st.screen(p)
 
 
-def test_task_groups_not_a_list_is_input_error(tmp_path):
+def test_screen_task_groupsがlistでない場合_InputErrorになること(tmp_path):
+    # Arrange
     p = _write(tmp_path, "task_groups: {oops: 1}\n")
+    # Act & Assert
     with pytest.raises(st.InputError):
         st.screen(p)
 
 
-def test_task_groups_null_or_absent_is_input_error(tmp_path):
+def test_screen_task_groupsがnullまたは欠落している場合_InputErrorになること(tmp_path):
+    # Act & Assert
     with pytest.raises(st.InputError):
         st.screen(_write(tmp_path, "task_groups:\n", name="null.yaml"))
     with pytest.raises(st.InputError):
         st.screen(_write(tmp_path, "other_key: 1\n", name="absent.yaml"))
 
 
-def test_non_mapping_entry_is_input_error(tmp_path):
+def test_screen_task_groupsの要素がmappingでない場合_InputErrorになること(tmp_path):
+    # Arrange
     p = _write(tmp_path, "task_groups:\n  - just_a_string\n")
+    # Act & Assert
     with pytest.raises(st.InputError):
         st.screen(p)
 
 
-def test_answers_wrong_type_is_input_error(tmp_path):
+def test_screen_answersの型が不正な場合_InputErrorになること(tmp_path):
+    # Arrange
     p = _write(tmp_path, "task_groups:\n  - id: bad\n    answers: true\n")
+    # Act & Assert
     with pytest.raises(st.InputError):
         st.screen(p)
 
 
-def test_broken_yaml_is_input_error(tmp_path):
+def test_screen_YAMLが壊れている場合_InputErrorになること(tmp_path):
+    # Arrange
     p = _write(tmp_path, "task_groups: [unclosed\n  - {\n")
+    # Act & Assert
     with pytest.raises(st.InputError):
         st.screen(p)
 
 
 # --- overlay behaviour --------------------------------------------------------
 
-def test_overlay_added_question_is_required_and_scored(tmp_path):
+def test_screen_overlayで質問を追加した場合_必須項目としてスコアに反映されること(tmp_path):
+    # Arrange
     overlay = _write(
         tmp_path,
         """
@@ -235,8 +277,10 @@ def test_overlay_added_question_is_required_and_scored(tmp_path):
     # Missing the added question now violates the fail-closed contract.
     base_answers = _answers(True, False, False)
     p = _write_task_groups(tmp_path, base_answers)
+    # Act
     with pytest.raises(st.InputError) as e:
         st.screen(p, overlay_paths=[overlay])
+    # Assert
     assert "technical_exposure.E4" in str(e.value)
 
     # With the answer supplied, the added question participates in the score.
@@ -247,9 +291,10 @@ def test_overlay_added_question_is_required_and_scored(tmp_path):
     assert result.task_groups[0].axes["technical_exposure"].score == 4
 
 
-def test_overlay_added_human_control_flag_is_picked_up(tmp_path):
+def test_screen_overlayでhuman_controlフラグ付き質問を追加した場合_HITL判定と表示に反映されること(tmp_path):
     """A company overlay can add its own human_control question; the flag
     and the rendered text must cover it generically (not only base H1)."""
+    # Arrange
     overlay = _write(
         tmp_path,
         """
@@ -265,17 +310,22 @@ def test_overlay_added_human_control_flag_is_picked_up(tmp_path):
     answers = _answers(True, False, True)  # growth path, H1..H3 = no
     answers["human_necessity.H4"] = True
     p = _write_task_groups(tmp_path, answers)
+    # Act
     result = st.screen(p, overlay_paths=[overlay])
     r = result.task_groups[0]
+    # Assert
     assert r.human_control_required is True
     assert r.human_control_yes_ids == ["human_necessity.H4"]
     text = st.render_text(st.ScreenResult(task_groups=[r]))
     assert "[HITL]" in text and "human_necessity.H4" in text
 
 
-def test_render_json_includes_case_evidence():
+def test_render_json_サンプルを出力した場合_case_evidenceが含まれること():
+    # Arrange
     result = st.screen(sample_task_groups_path())
+    # Act
     payload = st.render_json(result)
+    # Assert
     assert "case_evidence" in payload
     # The EU/US figure mix-up warning must travel with client-facing output.
     assert "misattributed" in payload
