@@ -106,7 +106,8 @@ def test_score_intentの回答が一部のみの場合_partialとしてyellowに
 
 def test_score_boundaryが全てnoの場合_absentとしてredになること(tmp_path):
     # Arrange
-    # boundary entirely no -> absent -> red, even with a human scorer
+    # boundary entirely no -> absent -> red, even with a two_stage scorer that
+    # does not trip the iRULER gate
     c = _write(
         tmp_path,
         """
