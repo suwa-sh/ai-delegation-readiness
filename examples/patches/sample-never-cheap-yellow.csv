@@ -1,4 +1,4 @@
-id,質問,回答,メモ
+﻿id,質問,回答,メモ
 patch,パッチ名またはコミット,authorization-change,
 probe.P1,要求を検証できる、まとまりを保った最小の差分か,yes,
 probe.P2,挙動変更は既存 feature flag の裏にあるか、適用外ならロールバック容易という根拠を記録したか,yes,

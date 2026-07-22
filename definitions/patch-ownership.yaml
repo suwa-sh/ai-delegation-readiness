@@ -7,6 +7,9 @@ description: |
   ownership, test-integrity evidence, and changes that are never cheap enough
   to auto-accept. A high-risk patch can never become green automatically.
 
+# 拡張ポイント: probe / ownership の質問追加は GREEN の必須条件になる。
+# never_cheap の質問追加は新しい hard risk になる。hollow_green と gates は
+# 安全境界なので overlay 対象外。threshold は整数の強化方向のみ許可する。
 extension_points:
   - {group: "probe", allow: add}
   - {group: "ownership", allow: add}
@@ -15,6 +18,7 @@ extension_points:
   - {group: "ownership", level: group, field: threshold, allow: strengthen, direction: higher}
 
 items:
+  # --- 探針 (probe): 要求の価格を知るための最小・可逆な差分 ---
   - id: "probe"
     name: probe_constraints
     name_ja: 探針パッチの制約
@@ -46,6 +50,7 @@ items:
     text: Are all touched files and their ownership risks enumerated in the risk manifest?
     text_ja: "触った全ファイルと所有リスクを risk manifest に列挙したか"
 
+  # --- 将来所有 (ownership): 3 年コストと人間の責任分界 ---
   - id: "ownership"
     name: future_ownership
     name_ja: 将来の所有責任
@@ -85,6 +90,7 @@ items:
     label: "human review route evidence reference (required for high risk)"
     label_ja: "人間レビュー経路の証拠参照(高リスク時は必須)"
 
+  # --- test integrity: 実装をなぞるだけの hollow green を止める ---
   - id: "hollow_green"
     name: hollow_green_detection
     name_ja: hollow green 検査
@@ -106,6 +112,7 @@ items:
     text: Was the acceptance evidence independently reviewed by someone other than the patch generator?
     text_ja: "パッチ生成者とは別の主体が受入証拠を独立レビューしたか"
 
+  # --- never cheap: 統制済みでも人間が採否を決める変更 ---
   - id: "never_cheap"
     kind: risk
     name: never_cheap_categories
@@ -132,6 +139,7 @@ items:
     text: Does the patch make a breaking change to a public API, file format, protocol, or documented contract?
     text_ja: "公開API・ファイル形式・プロトコル・文書化済み契約を破壊的に変更するか"
 
+  # --- evidence: 参照形式を検査し、内容確認は人間に残す ---
   - id: "evidence"
     kind: data
     name: evidence_references
@@ -165,6 +173,7 @@ items:
     label: "changed-files and ownership-risk manifest reference"
     label_ja: "変更ファイルと所有リスク一覧の証拠参照"
 
+  # --- gates: 上から評価する fail-closed の判定順序 ---
   - id: "gates"
     kind: lookup
     label: Gate map
@@ -190,6 +199,7 @@ items:
     exit_code: 0
     action: The patch has no never-cheap category and its probe, ownership, evidence, and test-integrity conditions hold.
 
+  # --- examples: 境界の読み方を定義内に残す ---
   - id: "examples"
     kind: lookup
     label: Boundary examples

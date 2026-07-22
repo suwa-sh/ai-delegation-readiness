@@ -1,9 +1,23 @@
-# Example company rule: changes to production secret-handling semantics are
-# never cheap enough to auto-accept, even when all other controls are present.
+# patch-ownership overlay の最小例:
+# 本番 secret の扱いを変えるパッチを、会社固有の「決して安く所有できない」
+# カテゴリとして追加する。既存 N1〜N5 は上書きせず、N6 を加えるだけにする。
+#
+# マージ規則(`aidr check-overlay` が機械的に検証する):
+#   add        : probe / ownership / never_cheap への質問追加のみ
+#   strengthen : probe / ownership の threshold を整数で強化する場合のみ
+#   禁止       : 既存項目の上書き・削除、hollow_green の変更、閾値緩和
+#
+# 実行例:
+#   bin/aidr check-overlay examples/overlays/patch-ownership/extra-risk.yaml
+#   bin/aidr check-patch-ownership my-patch.csv \
+#     --overlay examples/overlays/patch-ownership/extra-risk.yaml
+
 version: 1
 extends: patch-ownership
 
 add:
+  # N6=yes なら、base の N1〜N5 と同じ hard risk として扱う。
+  # 所有統制が揃っても GREEN にはならず、人間の採否判断へ回る。
   - id: "never_cheap.N6"
     kind: question
     text: Does the patch change how production secrets are created, stored, exposed, or rotated?

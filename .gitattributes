@@ -1,0 +1,2 @@
+# Spreadsheet-ready samples intentionally use UTF-8 BOM and CRLF.
+examples/**/*.csv -text whitespace=trailing-space,space-before-tab,cr-at-eol

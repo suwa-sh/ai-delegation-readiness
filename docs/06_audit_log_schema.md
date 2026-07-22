@@ -14,7 +14,7 @@ AI に任せた判断を、**後から「なぜこうなった?」と聞かれ�
 
 ## 前提
 
-- 全体像([docs/00](00_overview.md))の本線 5 ステップのうち、本書は
+- 全体像([docs/00](00_overview.md))の本線 6 ステップのうち、本書は
   **ステップ 5(記録は残っているか)** のスキーマ設計を扱います
 - **監査ログ** = AI の判断(誰が / いつ / 何を / なぜ / 結果)を後から再現・点検
   できるように残す記録
@@ -157,6 +157,7 @@ for err in validator.iter_errors(your_log_dict):
 - 正本: [`schemas/audit-log.schema.json`](../schemas/audit-log.schema.json)
 - サンプル: [`examples/audit-log-sample.json`](../examples/audit-log-sample.json)(経費の交際費グレーケースを人間にエスカレーションした `escalated` の記録です)
 - CLI: `bin/aidr validate-audit-log --help`
-- 次のステップ: [07 ログ基盤の点検](07_audit_log_gap_check.md)
+- 次のステップ: [11 パッチ所有コスト](11_patch_ownership_gate.md)
+- 応用: [07 ログ基盤の点検](07_audit_log_gap_check.md)
 - 関連 doc: [`02_four_layer_framework.md`](02_four_layer_framework.md) の④統制層
 - 出典: [メンテナによる分析記事 §④統制・追跡層](https://suwa-sh.github.io/zenn-contents/articles/ajinomoto-accounting-agent_20260621/)

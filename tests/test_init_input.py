@@ -254,3 +254,18 @@ def test_all_text_ja_csv質問列と比較した場合_ドリフトがないこ�
     # Assert
     assert checked > 50, f"question rows not found in CSVs (checked={checked})"
     assert not problems, "csv/definition drift:\n" + "\n".join(problems)
+
+
+def test_all_bundled_csv_samples_are_excel_friendly_utf8_bom_crlf():
+    """examples/README の公開契約: 全サンプルを Excel でそのまま開ける。"""
+    csv_files = sorted(EXAMPLES_DIR.rglob("*.csv"))
+    assert csv_files
+    problems: list[str] = []
+    for path in csv_files:
+        raw = path.read_bytes()
+        relative = path.relative_to(EXAMPLES_DIR)
+        if not raw.startswith(b"\xef\xbb\xbf"):
+            problems.append(f"{relative}: missing UTF-8 BOM")
+        if b"\n" in raw.replace(b"\r\n", b""):
+            problems.append(f"{relative}: contains LF-only line endings")
+    assert not problems, "CSV encoding drift:\n" + "\n".join(problems)
