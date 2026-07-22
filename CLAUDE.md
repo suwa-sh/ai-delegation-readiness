@@ -13,7 +13,7 @@
 - **AI エージェント連携サンプル**(`examples/skills/`)
 - **AI 生成パッチの所有コスト受入ゲート**(`definitions/patch-ownership.yaml` / `aidr check-patch-ownership`)
 
-の 3 点セットとして提供する。各社は **オーバーレイ**(`examples/overlays/` 参照)で
+の 4 点セットとして提供する。各社は **オーバーレイ**(`examples/overlays/` 参照)で
 自社固有の規定・閾値・追加チェック項目を足してフォークではなく **追加運用**できる。
 
 ## 正本の所在(二重保持しない)
