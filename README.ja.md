@@ -15,7 +15,7 @@
 - **委任** = 人間がやっていた判断を AI に任せること。任せた後も責任は人間に残るため、
   任せてよい条件を先に点検する必要があります
 
-このツールは、その点検を **本線 5 ステップ + 任意の拡張** に分解します。
+このツールは、その点検を **本線 6 ステップ + 任意の拡張** に分解します。
 各ステップが 1 つの問いに答えます。
 
 | 本線 | 問い | コマンド |
@@ -25,11 +25,12 @@
 | 3 | 中のどの判定を任せるか | `aidr score-delegation` |
 | 4 | タスクをどう渡し、誰が採点するか | `aidr check-task-contract` |
 | 5 | 記録は後から検証できるか | `aidr validate-audit-log` |
+| 6 | AI 生成パッチを将来も所有できるか | `aidr check-patch-ownership` |
 | 拡張 | 自社ルールをどう足すか(任意) | `aidr check-overlay` + `--overlay` |
 
 主要サンプルは、架空の中堅製造業 **ミドリ精機株式会社** の物語でつながっています。
 診断で一度 **BLOCK(委任不可)** になり、改善して **PASS** してから先へ進む —
-という時間軸まで含めて、5 ステップを通しで体験できます
+という時間軸まで含めて、6 ステップを通しで体験できます
 (物語の正本: [`examples/README.md`](examples/README.md))。
 
 ```mermaid
@@ -38,6 +39,7 @@ flowchart LR
     s2 --> s3["3 判定の振り分け"]
     s3 --> s4["4 タスク契約"]
     s4 --> s5["5 監査ログ検証"]
+    s5 --> s6["6 パッチ所有コスト"]
 ```
 
 骨格は、味の素グループの経理 AI エージェント(2026 年 2 月本番稼働)の
@@ -48,10 +50,11 @@ AI エージェントや CI からも直接使えます。
 
 | あなたが... | まず読むもの |
 |---|---|
-| **初めて来た。全体を知りたい** | [docs/00 全体像](docs/00_overview.md) — 5 ステップをミドリ精機の物語で通しで見る |
+| **初めて来た。全体を知りたい** | [docs/00 全体像](docs/00_overview.md) — 6 ステップをミドリ精機の物語で通しで見る |
 | **業務側の意思決定者**(経理部長 / CFO / コンプラ責任者)で AI 化を検討中 | [docs/02 4 層フレーム](docs/02_four_layer_framework.md) — `aidr check-readiness` で業務を採点する |
 | **どこから着手するか**を決めたい / 経営に説明したい | [docs/01 スクリーニング](docs/01_transition_screening.md) — 4 類型マップと「headcount は最後」の意思決定順序 |
 | **実装エンジニア**で高リスク承認業務向け AI エージェントを設計中 | [schemas/audit-log.schema.json](schemas/audit-log.schema.json) + [docs/06](docs/06_audit_log_schema.md) — スキーマをロガーに組み込む |
+| **maintainer / Engineering Manager**で AI 生成コードを受け入れる | [docs/11](docs/11_patch_ownership_gate.md) — 所有コスト・テスト完全性・高リスク境界でゲートする |
 | **運用担当**で既存 AI 基盤のログを点検したい | [docs/07](docs/07_audit_log_gap_check.md) — 5 ステップ手法を自社 SQL スキーマに当てる |
 | **コンサル / 提案者** | `docs/` 全部 + overlay 拡張モデル — clone してプライベートに overlay し、顧客固有の採点を提示する |
 
@@ -61,48 +64,50 @@ AI エージェントや CI からも直接使えます。
 (ミドリ精機の物語)がそのまま動きます。
 
 ```bash
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.11.0 --version
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.12.0 --version
 
-# 本線 5 ステップを物語の順に
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.11.0 \
+# 本線 6 ステップを物語の順に
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.12.0 \
   screen-transition examples/task-groups/sample-task-groups.csv
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.11.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.12.0 \
   check-readiness examples/business/sample-expense-approval.csv          # 初回診断 → BLOCK
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.11.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.12.0 \
   check-readiness examples/business/sample-expense-approval-after.csv    # 改善後 → PASS
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.11.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.12.0 \
   score-delegation examples/judgments/sample-judgments.csv
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.11.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.12.0 \
   check-task-contract examples/task-contracts/sample-green.csv
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.11.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.12.0 \
   validate-audit-log examples/audit-log-sample.json --level extended
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.12.0 \
+  check-patch-ownership examples/patches/sample-cheap-green.csv
 
 # 拡張(任意)と定義の確認
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.11.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.12.0 \
   check-overlay examples/overlays/sample-company/extra-rules.yaml
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.11.0 list-definitions
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.12.0 list-definitions
 ```
 
 `--version` はアプリのバージョンと同梱の overlay エンジンのバージョンを表示します。例:
-`aidr 0.11.0 (overlay-scoring-skeleton 0.1.0)`。
+`aidr 0.12.0 (overlay-scoring-skeleton 0.1.0)`。
 
 各コマンドは決定的な終了コードを返すので、CI のゲートに使えます。
 
 | コマンド | 0 | 1 | 2 | 3 |
 |---|---|---|---|---|
-| check-readiness / score-delegation / check-task-contract | ok(green) | partial(yellow) | block(red) | 入力エラー・overlay 違反 |
+| check-readiness / score-delegation / check-task-contract / check-patch-ownership | ok(green) | partial(yellow) | block(red) | 入力エラー・overlay 違反 |
 | screen-transition | 成功(分類はゲートでないため類型によらず 0) | — | — | 未回答の欠落・不正値・overlay 違反 |
 | validate-audit-log | valid | invalid(スキーマ違反) | — | 入力エラー(JSON 構文不正・ファイルなし) |
-| check-overlay | マージ規則を満たす | 違反あり(却下) | — | — |
+| check-overlay | マージ規則を満たす | 違反あり(却下) | — | YAML 構文・重複 key・ファイル入力エラー |
 
-レポートは `--format csv` で **CSV でも受け取れます**(上表の 5 コマンド。
+レポートは `--format csv` で **CSV でも受け取れます**(上表の 6 コマンド。
 先頭列 `record_type` で行の種類を判別でき、スプレッドシートでそのまま集計できます)。
 
 ## 学習パス(どの順で読むか)
 
 | 順 | doc | 何が分かるか |
 |---|---|---|
-| 1 | [00 全体像](docs/00_overview.md) | 5 ステップの地図とミドリ精機の物語 |
+| 1 | [00 全体像](docs/00_overview.md) | 6 ステップの地図とミドリ精機の物語 |
 | 2 | [01 スクリーニング](docs/01_transition_screening.md) | ステップ 1: どこから手を付けるか |
 | 3 | [02 4 層フレーム](docs/02_four_layer_framework.md) | ステップ 2: 業務が委任に耐えるか |
 | 4 | [03 組織 readiness 軸](docs/03_organization_axis.md) | ステップ 2: 組織側の受け皿 |
@@ -110,6 +115,7 @@ docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.11.0 list-definitions
 | 6 | [05 タスク契約](docs/05_task_contract_execution_rubric.md) | ステップ 4: どう渡し、誰が採点するか |
 | 7 | [06 監査ログスキーマ](docs/06_audit_log_schema.md) | ステップ 5: 記録の設計 |
 | 8 | [07 ログ基盤の点検](docs/07_audit_log_gap_check.md) | ステップ 5 応用: 既存基盤への当てはめ |
+| 9 | [11 パッチ所有コスト](docs/11_patch_ownership_gate.md) | ステップ 6: AI 生成差分の受入ゲート |
 | 応用 | [08 高責任ドメイン overlay](docs/08_high_stakes_domain_overlay.md) / [09 内製化 overlay](docs/09_insourcing_judgment_overlay.md) / [10 権限設計 overlay](docs/10_agent_authorization_overlay.md) | 知財/法務/薬事、内製化の判断責任、能力軸と同意軸 |
 
 > **言語について**: `docs/` は日本語(著者の作業言語)で書いています。英語 README が
@@ -123,7 +129,7 @@ docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.11.0 list-definitions
 
 ```bash
 aidr() { docker run --rm -v "$PWD:/data" -w /data \
-  ghcr.io/suwa-sh/ai-delegation-readiness:v0.11.0 "$@"; }
+  ghcr.io/suwa-sh/ai-delegation-readiness:v0.12.0 "$@"; }
 ```
 
 入力ファイルは `aidr init` でテンプレートを生成して埋めます(ステップ 0)。
@@ -141,6 +147,7 @@ aidr init --target transition    --format csv > my-task-groups.csv   # ステッ
 aidr init --target four-layer    --format csv > my-business.csv      # ステップ 2 用
 aidr init --target matrix        --format csv > my-judgments.csv     # ステップ 3 用
 aidr init --target task-contract --format csv > my-contract.csv      # ステップ 4 用
+aidr init --target patch-ownership --format csv > my-patch.csv       # ステップ 6 用
 
 # 自社 overlay の追加質問も含めて生成
 aidr init --target four-layer --format csv --overlay our-rules.yaml > my-business.csv
@@ -210,6 +217,17 @@ AI が書き出すログが Who/When/What/Why/Result を満たすかを検証し
 `--level extended` は J-SOX グレードの拡張スキーマ(規定バージョン固定・離散 Result
 enum・エスカレーション先必須化)です。→ [docs/06](docs/06_audit_log_schema.md) / [docs/07](docs/07_audit_log_gap_check.md)
 
+### ステップ 6 — AI 生成パッチの所有コストをゲートする
+
+```bash
+aidr check-patch-ownership my-patch.csv
+```
+
+最小の探針、将来 owner と 3 年コスト、実質的なテスト証拠、hollow green、
+認可・削除・課金・規制・公開契約の変更を点検します。高リスクは統制済みでも
+YELLOW で人間へ回し、テスト証拠なし・hollow green・高リスク統制不足は RED です。
+→ [docs/11](docs/11_patch_ownership_gate.md)
+
 ### 拡張(任意) — 自社ルールを overlay で足す
 
 各社固有の質問や厳格化した閾値は overlay で追加し、適用前に検証します。
@@ -276,11 +294,12 @@ ai-delegation-readiness/
 │   ├── transition-screening.yaml #  3 軸 + 移行 4 類型マップ + extension_points
 │   ├── four-layer.yaml          #   4 層 + 効果測定軸・組織 readiness 軸 + extension_points
 │   ├── delegation-matrix.yaml   #   2 軸 + 領域マップ + extension_points
-│   └── task-contract.yaml       #   実行ルーブリック 4 要素 + ゲート policy + extension_points
+│   ├── task-contract.yaml       #   実行ルーブリック 4 要素 + ゲート policy + extension_points
+│   └── patch-ownership.yaml     #   AI 生成差分の所有コスト + hard gate + extension_points
 ├── schemas/
 │   └── audit-log.schema.json    # JSON Schema with $defs: minimum (A) / extended (B)
 ├── src/adr/                     # Python 診断ツール(コンテナイメージで配布)
-├── bin/aidr                     # CLI エントリポイント(単一コマンド、8 サブコマンド)
+├── bin/aidr                     # CLI エントリポイント(単一コマンド、9 サブコマンド)
 ├── examples/                    # ミドリ精機(架空)の物語でつながるサンプル一式
 │   ├── README.md                #   物語の正本(会社プロファイル + サンプル一覧 + 応用例)
 │   ├── task-groups/             #   ステップ 1: screen-transition の入力
@@ -288,11 +307,12 @@ ai-delegation-readiness/
 │   ├── judgments/               #   ステップ 3: score-delegation の入力(+ 応用例)
 │   ├── task-contracts/          #   ステップ 4: check-task-contract の入力(green / red)
 │   ├── audit-log-sample.json    #   ステップ 5: サンプル監査ログ(escalated ケース)
+│   ├── patches/                 #   ステップ 6: check-patch-ownership の入力(green / yellow / red)
 │   ├── overlays/                #   拡張: ミドリ精機の自社ルール + ドメイン overlay(応用例)
-│   └── skills/                  #   AI 取り込み口: Claude Code skill サンプル 3 種
+│   └── skills/                  #   AI 取り込み口: Claude Code skill サンプル 4 種
 └── docs/                        # 解説(読み順は「学習パス」参照)
     ├── 00_overview.md           #   全体像(最初に読む)
-    ├── 01〜06                   #   本線 5 ステップの詳細
+    ├── 01〜06, 11               #   本線 6 ステップの詳細
     └── 07〜10                   #   応用(ログ基盤点検 / 高責任ドメイン / 内製化 / 権限設計)
 ```
 
@@ -311,9 +331,9 @@ overlay で可能なのは、次の 2 つだけです。
 
 - **AI エージェント**: `definitions/*.yaml` や `schemas/audit-log.schema.json` を
   system prompt や tool context にロードします。
-  [`examples/skills/`](examples/skills/) に Claude Code skill のラッパー 3 種を用意しています
+  [`examples/skills/`](examples/skills/) に Claude Code skill のラッパー 4 種を用意しています
 - **CI パイプライン**: 出力ログ 1 件ごとに
-  `docker run --rm -v "$PWD:/data" -w /data ghcr.io/suwa-sh/ai-delegation-readiness:v0.11.0 validate-audit-log <log>`
+  `docker run --rm -v "$PWD:/data" -w /data ghcr.io/suwa-sh/ai-delegation-readiness:v0.12.0 validate-audit-log <log>`
   を呼び、exit code でゲートします
 - **社内 overlay**: 自社固有の overlay をプライベートリポで管理し、`--overlay` で
   適用します。本リポはクリーンな upstream として pull できます

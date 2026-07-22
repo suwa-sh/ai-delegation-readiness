@@ -1,0 +1,30 @@
+patch: "pkm@95a136dc795e55aa666a2e2567f9321340d611db"
+retrospective:
+  repository: pkm
+  commit: 95a136dc795e55aa666a2e2567f9321340d611db
+  diff_sha256: a97af185041ff6ed9468d15f51132445ae32626fc0a5be78435073f4c42d69c4
+  raw_diff_stored: false
+  expected_region: red
+  note: "No same-commit test artifact is present; no test evidence was invented."
+answers:
+  probe.P1: yes
+  probe.P2: yes
+  probe.P3: yes
+  probe.P4: no
+  probe.P5: yes
+  ownership.O1: yes
+  ownership.O2: yes
+  ownership.O3: yes
+  ownership.O4: no
+  ownership.owner_ref: team:maintainers
+  hollow_green.H1: yes
+  hollow_green.H2: no
+  hollow_green.H3: no
+  never_cheap.N1: no
+  never_cheap.N2: no
+  never_cheap.N3: no
+  never_cheap.N4: no
+  never_cheap.N5: no
+  evidence.patch_ref: git:95a136dc795e55aa666a2e2567f9321340d611db
+  evidence.test_status: absent
+  evidence.risk_manifest_ref: file:tests/fixtures/patch_ownership_validation/95a136d-otel-fix.risk-manifest.json#sha256=549eb49de5011400c67453122b2fe8b127763e5a750deca97bc215e8653b20f8

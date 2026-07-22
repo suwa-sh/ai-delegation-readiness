@@ -1,0 +1,207 @@
+version: 1
+name: patch-ownership
+separator: "."
+description: |
+  Post-generation acceptance gate for deciding whether an AI-generated patch
+  is cheap enough to own. The gate separates probe constraints, future
+  ownership, test-integrity evidence, and changes that are never cheap enough
+  to auto-accept. A high-risk patch can never become green automatically.
+
+extension_points:
+  - {group: "probe", allow: add}
+  - {group: "ownership", allow: add}
+  - {group: "never_cheap", allow: add}
+  - {group: "probe", level: group, field: threshold, allow: strengthen, direction: higher}
+  - {group: "ownership", level: group, field: threshold, allow: strengthen, direction: higher}
+
+items:
+  - id: "probe"
+    name: probe_constraints
+    name_ja: 探針パッチの制約
+    threshold: 5
+    purpose: A probe is price discovery, not a default path to merge. All five constraints are required for green.
+  - id: "probe.P1"
+    kind: question
+    required_for_green: true
+    text: Is the patch the smallest coherent change that can test the requirement?
+    text_ja: "要求を検証できる、まとまりを保った最小の差分か"
+  - id: "probe.P2"
+    kind: question
+    required_for_green: true
+    text: Is behavior-changing code behind an existing feature flag, or is a rollback-safe not-applicable rationale recorded?
+    text_ja: "挙動変更は既存 feature flag の裏にあるか、適用外ならロールバック容易という根拠を記録したか"
+  - id: "probe.P3"
+    kind: question
+    required_for_green: true
+    text: Does the patch preserve public contracts, or explicitly classify and route a breaking change as high risk?
+    text_ja: "公開契約を維持しているか、破壊的変更なら高リスクとして明示し人間判断へ回したか"
+  - id: "probe.P4"
+    kind: question
+    required_for_green: true
+    text: Does the patch add or update a test, or carry a reviewable not-applicable rationale?
+    text_ja: "テストを追加・更新したか、適用外なら再確認可能な根拠を残したか"
+  - id: "probe.P5"
+    kind: question
+    required_for_green: true
+    text: Are all touched files and their ownership risks enumerated in the risk manifest?
+    text_ja: "触った全ファイルと所有リスクを risk manifest に列挙したか"
+
+  - id: "ownership"
+    name: future_ownership
+    name_ja: 将来の所有責任
+    threshold: 3
+    purpose: Name who owns the theory of the change and the cost of keeping it correct.
+  - id: "ownership.O1"
+    kind: question
+    required_for_green: true
+    required_when_high_risk: true
+    text: Is a future owner named before acceptance?
+    text_ja: "受入前に将来の所有者を指名したか"
+  - id: "ownership.O2"
+    kind: question
+    required_for_green: true
+    required_when_high_risk: true
+    text: Is the three-year maintenance, verification, incident, and explanation cost estimated?
+    text_ja: "3年間の保守・検証・障害対応・説明責任コストを見積もったか"
+  - id: "ownership.O3"
+    kind: question
+    required_for_green: true
+    required_when_high_risk: true
+    text: Are responsibility boundaries, escalation, and rollback ownership explicit?
+    text_ja: "責任分界・エスカレーション・ロールバックの所有者が明確か"
+  - id: "ownership.O4"
+    kind: question
+    required_when_high_risk: true
+    text: Is a human review route reserved for this high-risk change?
+    text_ja: "高リスク変更を判断する人間レビュー経路を予約したか"
+  - id: "ownership.owner_ref"
+    kind: data
+    required: true
+    label: "future owner reference (user:<id> | team:<id> | codeowners:<path>)"
+    label_ja: "将来所有者の参照(user:<id> | team:<id> | codeowners:<path>)"
+  - id: "ownership.review_route_ref"
+    kind: data
+    evidence_ref: true
+    label: "human review route evidence reference (required for high risk)"
+    label_ja: "人間レビュー経路の証拠参照(高リスク時は必須)"
+
+  - id: "hollow_green"
+    name: hollow_green_detection
+    name_ja: hollow green 検査
+    threshold: 2
+    purpose: A green test must be anchored outside the implementation and carry at least one anti-cheating check.
+  - id: "hollow_green.H1"
+    kind: question
+    gate_role: anchor
+    text: Is the expected behavior anchored in an external contract, pre-fix failure, or independently written acceptance criterion?
+    text_ja: "期待挙動を外部契約・修正前の失敗再現・独立作成の受入基準のいずれかに固定したか"
+  - id: "hollow_green.H2"
+    kind: question
+    gate_role: alternative
+    text: Does a negative control, fault injection, or known-fail-before-fix check prove that the test can fail?
+    text_ja: "negative control・故障注入・修正前失敗のいずれかで、テストが失敗できると確認したか"
+  - id: "hollow_green.H3"
+    kind: question
+    gate_role: alternative
+    text: Was the acceptance evidence independently reviewed by someone other than the patch generator?
+    text_ja: "パッチ生成者とは別の主体が受入証拠を独立レビューしたか"
+
+  - id: "never_cheap"
+    kind: risk
+    name: never_cheap_categories
+    name_ja: 決して安く所有できない変更
+    purpose: Every category requires an explicit yes/no answer. Any yes routes the patch to a human decision.
+  - id: "never_cheap.N1"
+    kind: question
+    text: Does the patch change authorization behavior or an approval boundary?
+    text_ja: "認可の挙動または承認境界を変更するか"
+  - id: "never_cheap.N2"
+    kind: question
+    text: Does the patch change data-retention or deletion semantics?
+    text_ja: "データ保持または削除の意味を変更するか"
+  - id: "never_cheap.N3"
+    kind: question
+    text: Does the patch change billing, metering, price, or financial posting semantics?
+    text_ja: "課金・計量・価格・会計計上の意味を変更するか"
+  - id: "never_cheap.N4"
+    kind: question
+    text: Does the patch change privacy, regulatory, or compliance behavior?
+    text_ja: "プライバシー・規制・コンプライアンスの挙動を変更するか"
+  - id: "never_cheap.N5"
+    kind: question
+    text: Does the patch make a breaking change to a public API, file format, protocol, or documented contract?
+    text_ja: "公開API・ファイル形式・プロトコル・文書化済み契約を破壊的に変更するか"
+
+  - id: "evidence"
+    kind: data
+    name: evidence_references
+    name_ja: 証拠参照
+  - id: "evidence.patch_ref"
+    kind: data
+    required: true
+    evidence_ref: true
+    label: "patch reference"
+    label_ja: "パッチの証拠参照"
+  - id: "evidence.test_status"
+    kind: data
+    required: true
+    label: "test evidence status: present | absent | not_applicable"
+    label_ja: "テスト証拠の状態: present | absent | not_applicable"
+    enum: [present, absent, not_applicable]
+  - id: "evidence.test_ref"
+    kind: data
+    evidence_ref: true
+    label: "test evidence reference (required when test_status=present)"
+    label_ja: "テスト証拠参照(test_status=present のとき必須)"
+  - id: "evidence.test_na_ref"
+    kind: data
+    evidence_ref: true
+    label: "test not-applicable rationale reference (required when test_status=not_applicable)"
+    label_ja: "テスト適用外根拠の参照(test_status=not_applicable のとき必須)"
+  - id: "evidence.risk_manifest_ref"
+    kind: data
+    required: true
+    evidence_ref: true
+    label: "changed-files and ownership-risk manifest reference"
+    label_ja: "変更ファイルと所有リスク一覧の証拠参照"
+
+  - id: "gates"
+    kind: lookup
+    label: Gate map
+  - id: "gates.red"
+    kind: lookup
+    name: blocked
+    name_ja: 受入不可
+    when: [test_evidence_absent, hollow_green_failed, high_risk_controls_missing]
+    exit_code: 2
+    action: Do not accept. Add substantive test evidence or complete the named-owner, responsibility-boundary, and human-review controls.
+  - id: "gates.yellow"
+    kind: lookup
+    name: human_decision_required
+    name_ja: 人間の採否判断が必要
+    when: [any_high_risk, any_green_requirement_failed]
+    exit_code: 1
+    action: Do not auto-accept. Route high-risk changes to the named human owner, or close the remaining probe and ownership gaps.
+  - id: "gates.green"
+    kind: lookup
+    name: cheap_to_own
+    name_ja: 所有可能
+    when: [otherwise]
+    exit_code: 0
+    action: The patch has no never-cheap category and its probe, ownership, evidence, and test-integrity conditions hold.
+
+  - id: "examples"
+    kind: lookup
+    label: Boundary examples
+  - id: "examples.local_bug_fix"
+    kind: lookup
+    region: green
+    rationale: Small rollback-safe fix with a pre-fix reproduction, regression test, risk manifest, and named owner.
+  - id: "examples.hollow_green"
+    kind: lookup
+    region: red
+    rationale: The generated test mirrors the implementation but has no external anchor, negative control, or independent review.
+  - id: "examples.authorization_change"
+    kind: lookup
+    region: yellow
+    rationale: All controls are present, but authorization behavior remains a human acceptance decision.

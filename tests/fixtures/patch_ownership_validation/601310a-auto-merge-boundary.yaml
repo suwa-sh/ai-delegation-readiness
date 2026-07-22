@@ -1,0 +1,30 @@
+patch: "pkm@601310a1543adc447d2eef10d26f26a3c4d8ff85"
+retrospective:
+  repository: pkm
+  commit: 601310a1543adc447d2eef10d26f26a3c4d8ff85
+  diff_sha256: 301fbd488d28a0b5fa43e545bdc1ed6bbfa4c1f4d978596605b79434051d0e27
+  raw_diff_stored: false
+  expected_region: red
+  note: "Approval-boundary change with no same-commit test or human review-route evidence; neither was invented."
+answers:
+  probe.P1: no
+  probe.P2: yes
+  probe.P3: yes
+  probe.P4: no
+  probe.P5: yes
+  ownership.O1: yes
+  ownership.O2: yes
+  ownership.O3: yes
+  ownership.O4: no
+  ownership.owner_ref: team:maintainers
+  hollow_green.H1: yes
+  hollow_green.H2: no
+  hollow_green.H3: no
+  never_cheap.N1: yes
+  never_cheap.N2: no
+  never_cheap.N3: no
+  never_cheap.N4: no
+  never_cheap.N5: no
+  evidence.patch_ref: git:601310a1543adc447d2eef10d26f26a3c4d8ff85
+  evidence.test_status: absent
+  evidence.risk_manifest_ref: file:tests/fixtures/patch_ownership_validation/601310a-auto-merge-boundary.risk-manifest.json#sha256=48f550f7cc4e44324990a04688494f8dd3bf7dfb57d7133d87b0b533a0486f74

@@ -1,0 +1,9 @@
+{
+  "schema_version": "1",
+  "repository": "pkm",
+  "commit": "601310a1543adc447d2eef10d26f26a3c4d8ff85",
+  "changed_file_count": 6,
+  "changed_areas": ["GitHub triage skills", "auto-merge configuration", "workflow design"],
+  "ownership_risks": ["approval boundary", "automatic merge behavior", "no same-commit test artifact"],
+  "raw_diff_stored": false
+}

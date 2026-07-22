@@ -15,6 +15,7 @@ from conftest import (
     hs_overlay_four_layer_path,
     insourcing_overlay_path,
     matrix_path,
+    patch_ownership_path,
     sample_overlay_path,
     task_contract_path,
     transition_path,
@@ -25,6 +26,7 @@ _DEF_PATHS = {
     "matrix": matrix_path,
     "transition": transition_path,
     "task-contract": task_contract_path,
+    "patch-ownership": patch_ownership_path,
 }
 
 
@@ -138,6 +140,7 @@ def _all_text_ja() -> dict[str, str]:
         matrix_path(),
         transition_path(),
         task_contract_path(),
+        patch_ownership_path(),
         *sorted((EXAMPLES_DIR / "overlays").rglob("*.yaml")),
     ]
     out: dict[str, str] = {}
@@ -155,12 +158,15 @@ _ANSWER_LINE_RE = re.compile(r"^\s*([\w.]+): \S")
 
 def _data_label_ja() -> dict[str, str]:
     """data leaf(scorer.type 等)の label_ja を定義から集める(ドリフト検査用)。"""
-    data = ov.load_yaml(task_contract_path())
-    return {
-        item["id"]: " ".join(str(item["label_ja"]).split())
-        for item in data.get("items", [])
-        if isinstance(item, dict) and item.get("kind") == "data" and "label_ja" in item
-    }
+    out: dict[str, str] = {}
+    for path in (task_contract_path(), patch_ownership_path()):
+        data = ov.load_yaml(path)
+        out.update({
+            item["id"]: " ".join(str(item["label_ja"]).split())
+            for item in data.get("items", [])
+            if isinstance(item, dict) and item.get("kind") == "data" and "label_ja" in item
+        })
+    return out
 
 
 _DATA_LABEL_JA = _data_label_ja()
@@ -209,7 +215,7 @@ def test_all_text_ja_csv質問列と比較した場合_ドリフトがないこ�
     import io as _io
 
     text_ja = _all_text_ja()
-    reserved = {"target", "task", "description"}
+    reserved = {"target", "task", "patch", "description"}
     checked = 0
     problems: list[str] = []
     csv_files = sorted(EXAMPLES_DIR.rglob("*.csv"))

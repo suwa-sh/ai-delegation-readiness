@@ -27,6 +27,10 @@ def task_contract_path() -> Path:
     return DEFINITIONS_DIR / "task-contract.yaml"
 
 
+def patch_ownership_path() -> Path:
+    return DEFINITIONS_DIR / "patch-ownership.yaml"
+
+
 def audit_schema_path() -> Path:
     return SCHEMAS_DIR / "audit-log.schema.json"
 
@@ -105,6 +109,18 @@ def sample_task_contract_green_path() -> Path:
 
 def sample_task_contract_red_path() -> Path:
     return EXAMPLES_DIR / "task-contracts" / "sample-red-ai-judge.csv"
+
+
+def sample_patch_green_path() -> Path:
+    return EXAMPLES_DIR / "patches" / "sample-cheap-green.csv"
+
+
+def sample_patch_hollow_red_path() -> Path:
+    return EXAMPLES_DIR / "patches" / "sample-hollow-green-red.csv"
+
+
+def sample_patch_risk_yellow_path() -> Path:
+    return EXAMPLES_DIR / "patches" / "sample-never-cheap-yellow.csv"
 
 
 def sample_business_yaml_twin_path() -> Path:

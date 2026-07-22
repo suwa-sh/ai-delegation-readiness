@@ -1,0 +1,31 @@
+patch: "ai-delegation-readiness@3d0ae490972745a7dfbd8fd0cf38cb81298247c0"
+retrospective:
+  repository: ai-delegation-readiness
+  commit: 3d0ae490972745a7dfbd8fd0cf38cb81298247c0
+  diff_sha256: a6b2610a600d2d1b71034d884ddcd081c6114c38ee7044315a27540bd57e7b1f
+  raw_diff_stored: false
+  expected_region: yellow
+  note: "Large coherent feature; YAML compatibility was retained, so this is a probe-size gap rather than a breaking-contract risk."
+answers:
+  probe.P1: no
+  probe.P2: yes
+  probe.P3: yes
+  probe.P4: yes
+  probe.P5: yes
+  ownership.O1: yes
+  ownership.O2: yes
+  ownership.O3: yes
+  ownership.O4: no
+  ownership.owner_ref: team:maintainers
+  hollow_green.H1: yes
+  hollow_green.H2: yes
+  hollow_green.H3: no
+  never_cheap.N1: no
+  never_cheap.N2: no
+  never_cheap.N3: no
+  never_cheap.N4: no
+  never_cheap.N5: no
+  evidence.patch_ref: git:3d0ae490972745a7dfbd8fd0cf38cb81298247c0
+  evidence.test_status: present
+  evidence.test_ref: git:3d0ae490972745a7dfbd8fd0cf38cb81298247c0
+  evidence.risk_manifest_ref: file:tests/fixtures/patch_ownership_validation/3d0ae49-csv-first.risk-manifest.json#sha256=df75625deaa06eda5dae8275e95f30e868862417590070b5ccf520eb87f69981

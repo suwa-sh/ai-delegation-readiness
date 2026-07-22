@@ -101,17 +101,37 @@ def summarize_transition(
     )
 
 
+def summarize_patch_ownership(
+    overlay_paths: list[str | Path] | None = None,
+    definition_path: str | Path | None = None,
+) -> DefinitionSummary:
+    return _summarize(
+        name="patch-ownership",
+        default_filename="patch-ownership.yaml",
+        overlay_paths=overlay_paths,
+        definition_path=definition_path,
+        is_axes=True,
+        patch_contract=True,
+    )
+
+
 def _summarize(
     name: str,
     default_filename: str,
     overlay_paths: list[str | Path] | None,
     definition_path: str | Path | None,
     is_axes: bool,
+    patch_contract: bool = False,
 ) -> DefinitionSummary:
     overlay_paths = overlay_paths or []
     base_path = Path(definition_path) if definition_path else DEFAULT_DEFINITIONS_DIR / default_filename
     base = overlay_mod.load_yaml(base_path)
-    merged = _merge_overlays(base, overlay_paths)
+    if patch_contract:
+        from .check_patch_ownership import merge_definition
+
+        merged = merge_definition(base, overlay_paths)
+    else:
+        merged = _merge_overlays(base, overlay_paths)
 
     summary = DefinitionSummary(
         name=name,

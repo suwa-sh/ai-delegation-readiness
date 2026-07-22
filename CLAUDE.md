@@ -11,6 +11,7 @@
 - **機械可読の正本**(`definitions/` の YAML / `schemas/` の JSON Schema)
 - **診断ツール**(`bin/aidr` + `src/adr/`)
 - **AI エージェント連携サンプル**(`examples/skills/`)
+- **AI 生成パッチの所有コスト受入ゲート**(`definitions/patch-ownership.yaml` / `aidr check-patch-ownership`)
 
 の 3 点セットとして提供する。各社は **オーバーレイ**(`examples/overlays/` 参照)で
 自社固有の規定・閾値・追加チェック項目を足してフォークではなく **追加運用**できる。
@@ -26,6 +27,14 @@
 
 定義値を変えるときは **必ず `definitions/` か `schemas/` の正本を編集**し、
 doc は説明としてリンクし直す。
+
+パッチ受入ゲートの固定契約:
+
+- 全 question は明示 yes/no。曖昧・欠落・未知 ID・重複 YAML key は exit 3
+- `hollow_green` は `H1 AND (H2 OR H3)`。overlay で変更不可
+- `never_cheap` が 1 件でも真なら GREEN 禁止。高リスク統制不足は RED
+- 証拠参照は content-addressed 形式のみ。CLI は参照先を取得しない
+- 回顧 fixture に raw diff、secret、存在しなかった test/review 証拠を入れない
 
 ## オーバーレイのマージ規則(一貫性の保護)
 
@@ -89,7 +98,7 @@ self-documenting** であると同時に、**マージ規則の実体**でもあ
 - 章立てを変えるときは 4 層フレーム(`definitions/four-layer.yaml`)との対応関係が
   崩れないか確認する
 - **主要サンプルはミドリ精機(架空)の物語に統一する**。物語の正本は
-  `examples/README.md`(会社プロファイル + 本線 5 ステップ + 拡張の対応表)。
+  `examples/README.md`(会社プロファイル + 本線 6 ステップ + 拡張の対応表)。
   実事例由来・ドメイン特化のサンプルは物語に混ぜず「応用例」として同 README の
   応用章に載せる。**definitions 内の examples group はリファレンスケース**
   (各分類の判定基準の例示)であり、物語統一・日本語化の対象外
@@ -111,7 +120,7 @@ self-documenting** であると同時に、**マージ規則の実体**でもあ
 - 監査ログの「拡張点」(改ざん耐性・保存期間・原証憑参照・規定バージョン固定)は
   読者から実装提案が来た時点で `schemas/audit-log.schema.json` に追加する
 - 既存ログ基盤の点検メモ(`docs/07`)は、ある自社運用エージェント基盤を題材にした
-  worked example。他者は同じ手法を自社環境に当てる(冒頭の 5 ステップ参照)
+  worked example。他者は同じ手法を自社環境に当てる(冒頭の 6 ステップ参照)
 - **移行 4 類型スクリーニング**(`definitions/transition-screening.yaml` / `docs/01`)の職種
   worked example は米国版フレームの公表例からの当てはめ(design_proposal)。OpenAI が EU 版の
   職種リスト詳細を公開したら `examples` group と docs/01 の職種例を更新する

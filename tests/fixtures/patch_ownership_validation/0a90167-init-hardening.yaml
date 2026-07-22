@@ -1,0 +1,30 @@
+patch: "ai-delegation-readiness@0a90167199465b5f06b0148257e142c196c42ec8"
+retrospective:
+  repository: ai-delegation-readiness
+  commit: 0a90167199465b5f06b0148257e142c196c42ec8
+  diff_sha256: b394c32de175718353d59f4d59700152906ee5184c44be5262eacc7691a71233
+  raw_diff_stored: false
+  expected_region: green
+answers:
+  probe.P1: yes
+  probe.P2: yes
+  probe.P3: yes
+  probe.P4: yes
+  probe.P5: yes
+  ownership.O1: yes
+  ownership.O2: yes
+  ownership.O3: yes
+  ownership.O4: no
+  ownership.owner_ref: team:maintainers
+  hollow_green.H1: yes
+  hollow_green.H2: yes
+  hollow_green.H3: no
+  never_cheap.N1: no
+  never_cheap.N2: no
+  never_cheap.N3: no
+  never_cheap.N4: no
+  never_cheap.N5: no
+  evidence.patch_ref: git:0a90167199465b5f06b0148257e142c196c42ec8
+  evidence.test_status: present
+  evidence.test_ref: git:0a90167199465b5f06b0148257e142c196c42ec8
+  evidence.risk_manifest_ref: file:tests/fixtures/patch_ownership_validation/0a90167-init-hardening.risk-manifest.json#sha256=7d2aeff8f33810b7e2547a37cbe0175ca81f0c6753e2c3cb35320a63a54c510f

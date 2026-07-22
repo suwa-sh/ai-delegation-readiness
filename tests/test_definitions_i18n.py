@@ -18,6 +18,7 @@ from conftest import (
     four_layer_path,
     hs_overlay_four_layer_path,
     matrix_path,
+    patch_ownership_path,
     task_contract_path,
     transition_path,
 )
@@ -26,6 +27,7 @@ DEFINITIONS = {
     "four-layer": four_layer_path,
     "delegation-matrix": matrix_path,
     "task-contract": task_contract_path,
+    "patch-ownership": patch_ownership_path,
     "transition-screening": transition_path,
 }
 

@@ -1,0 +1,10 @@
+# Example company rule: changes to production secret-handling semantics are
+# never cheap enough to auto-accept, even when all other controls are present.
+version: 1
+extends: patch-ownership
+
+add:
+  - id: "never_cheap.N6"
+    kind: question
+    text: Does the patch change how production secrets are created, stored, exposed, or rotated?
+    text_ja: "本番シークレットの作成・保存・公開・ローテーション方法を変更するか"

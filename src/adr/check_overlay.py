@@ -36,7 +36,10 @@ def check(
 ) -> OverlayCheck:
     overlay_path = Path(overlay_path)
     definitions_dir = Path(definitions_dir) if definitions_dir else DEFAULT_DEFINITIONS_DIR
-    overlay = overlay_mod.load_yaml(overlay_path)
+    from .io_input import load_yaml_unique, validate_overlay_shape
+
+    overlay = load_yaml_unique(overlay_path)
+    validate_overlay_shape(overlay, str(overlay_path))
     extends = overlay.get("extends")
     if not extends:
         return OverlayCheck(
@@ -65,10 +68,21 @@ def check(
         )
     base = overlay_mod.load_yaml(base_path)
     result = overlay_mod.apply_overlay(base, overlay)
+    violations = list(result.violations)
+    if not violations and base.get("name") == "patch-ownership":
+        from .check_patch_ownership import validate_overlay_contract
+        violations.extend(
+            overlay_mod.MergeViolation(
+                path="add",
+                kind="invalid_patch_ownership_overlay",
+                message=message,
+            )
+            for message in validate_overlay_contract(base, result.merged)
+        )
     return OverlayCheck(
         overlay_path=str(overlay_path),
         base_path=str(base_path),
-        violations=result.violations,
+        violations=violations,
     )
 
 

@@ -1,7 +1,7 @@
 # examples/ — サンプルの歩き方
 
 このディレクトリのサンプルは、架空の会社 **ミドリ精機株式会社** の物語でつながっています。
-読者は 1 つの会社の状況を追いかけるだけで、本線 5 ステップ + 拡張(overlay)の全コマンドを
+読者は 1 つの会社の状況を追いかけるだけで、本線 6 ステップ + 拡張(overlay)の全コマンドを
 体験できます。
 
 ## ミドリ精機株式会社(架空)のプロファイル
@@ -31,6 +31,7 @@
 3 判定の振り分け   経費の判定単位を 委任 OK / LLM 補助 / 人間 に振り分ける
 4 タスク契約      委任する経費チェックタスクの契約(意図・境界・証跡・採点者)を点検する
 5 監査ログ        運用開始後、エージェントが書いたログを検証する
+6 パッチ受入      AI 生成差分の所有コスト・テスト完全性・高リスク境界を検査する
 拡張(任意)      ミドリ精機の独自ルールを overlay で追加する
 ```
 
@@ -44,6 +45,7 @@
 | 3 判定の振り分け | `aidr score-delegation` | [`judgments/sample-judgments.csv`](judgments/sample-judgments.csv) |
 | 4 タスク契約(充足 / 委任不可) | `aidr check-task-contract` | [`task-contracts/sample-green.csv`](task-contracts/sample-green.csv) / [`task-contracts/sample-red-ai-judge.csv`](task-contracts/sample-red-ai-judge.csv) |
 | 5 監査ログ | `aidr validate-audit-log` | [`audit-log-sample.json`](audit-log-sample.json) |
+| 6 パッチ受入(GREEN / YELLOW / RED) | `aidr check-patch-ownership` | [`patches/sample-cheap-green.csv`](patches/sample-cheap-green.csv) / [`patches/sample-never-cheap-yellow.csv`](patches/sample-never-cheap-yellow.csv) / [`patches/sample-hollow-green-red.csv`](patches/sample-hollow-green-red.csv) |
 | 拡張(任意) | `aidr check-overlay` → 各コマンド `--overlay` | [`overlays/sample-company/extra-rules.yaml`](overlays/sample-company/extra-rules.yaml) |
 
 補足:
@@ -56,7 +58,7 @@
   (採用面接の合否・差別表現の検出)が入っています。経費以外の判定にも同じ物差しが
   使えることを示す比較例です。
 - AI エージェントからサンプルと同じ流れを使う例は [`skills/`](skills/) にあります
-  (Claude Code skill のラッパー 3 種)。
+  (Claude Code skill のラッパー 4 種)。
 
 ## スプレッドシートで記入する
 

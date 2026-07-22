@@ -10,7 +10,7 @@ ARG OVERLAY_ENGINE_VERSION=unknown
 ARG APP_VERSION=unknown
 
 LABEL org.opencontainers.image.title="ai-delegation-readiness" \
-      org.opencontainers.image.description="Diagnose whether a business judgment is ready to be delegated to an AI agent." \
+      org.opencontainers.image.description="Govern AI delegation readiness and ownership-cost acceptance of AI-generated patches." \
       org.opencontainers.image.source="https://github.com/suwa-sh/ai-delegation-readiness" \
       org.opencontainers.image.licenses="MIT" \
       org.opencontainers.image.version="${APP_VERSION}" \

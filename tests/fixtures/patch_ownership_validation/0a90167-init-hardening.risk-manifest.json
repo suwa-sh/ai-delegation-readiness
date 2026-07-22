@@ -1,0 +1,9 @@
+{
+  "schema_version": "1",
+  "repository": "ai-delegation-readiness",
+  "commit": "0a90167199465b5f06b0148257e142c196c42ec8",
+  "changed_file_count": 6,
+  "changed_areas": ["documentation", "CLI", "input template generator", "tests"],
+  "ownership_risks": ["template and example-drift contract"],
+  "raw_diff_stored": false
+}

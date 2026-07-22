@@ -1,13 +1,13 @@
-# 00. 全体像 — 5 つの問いで「AI への委任」を安全に進める
+# 00. 全体像 — 6 つの問いで「AI への委任」を安全に進める
 
 ## TL;DR
 
 このツールは「この業務を AI エージェントに任せてよいか」を、勘ではなく採点で決めるための
-CLI と定義ファイルの集まりです。使い方は **本線 5 ステップ + 任意の拡張** に整理できます。
+CLI と定義ファイルの集まりです。使い方は **本線 6 ステップ + 任意の拡張** に整理できます。
 それぞれのステップが 1 つの問いに答えます:
 ①どこから手を付けるか ②業務が委任に耐えるか ③どの判定を任せるか
-④タスクをどう渡すか ⑤記録は残っているか。
-本書は、架空の会社の物語で 5 ステップを通しで体験する入口です。
+④タスクをどう渡すか ⑤記録は残っているか ⑥生成パッチを将来も所有できるか。
+本書は、架空の会社の物語で 6 ステップを通しで体験する入口です。
 
 ## 前提
 
@@ -22,10 +22,10 @@ CLI と定義ファイルの集まりです。使い方は **本線 5 ステッ�
 
 - このリポジトリに初めて来て、何がどの順で使えるのかを知りたい
 - 「AI に業務を任せたいが、何から考えればよいか分からない」状態を、
-  具体的な 5 つの問いに分解したい
-- 各詳細 doc(01〜09)を読む前に、全体の地図を持ちたい
+  具体的な 6 つの問いに分解したい
+- 各詳細 doc(01〜11)を読む前に、全体の地図を持ちたい
 
-## 物語で見る 5 ステップ — ミドリ精機株式会社の場合
+## 物語で見る 6 ステップ — ミドリ精機株式会社の場合
 
 主要サンプルは、架空の中堅製造業 **ミドリ精機株式会社**(従業員約 800 名・J-SOX 対象)の
 物語でつながっています(プロファイルの正本は [`examples/README.md`](../examples/README.md))。
@@ -37,9 +37,11 @@ flowchart LR
     s2 --> s3["3 判定の振り分け<br/>score-delegation"]
     s3 --> s4["4 タスク契約<br/>check-task-contract"]
     s4 --> s5["5 監査ログ検証<br/>validate-audit-log"]
+    s5 --> s6["6 パッチ所有コスト<br/>check-patch-ownership"]
     ov["拡張: 自社ルール overlay<br/>check-overlay"] -.-> s2
     ov -.-> s3
     ov -.-> s4
+    ov -.-> s6
 ```
 
 | 要素名 | 説明 |
@@ -49,6 +51,7 @@ flowchart LR
 | 3 判定の振り分け | 業務の中の判定単位を、委任 OK / LLM 補助 / 人間 に振り分ける |
 | 4 タスク契約 | 委任する 1 タスクの与え方・採点者を点検する |
 | 5 監査ログ検証 | 運用開始後、AI が書いた記録がスキーマを満たすか検証する |
+| 6 パッチ所有コスト | AI が生成した差分を、人間が将来も保守・説明できる条件で受け入れる |
 | 拡張 overlay | 自社固有の質問・厳しい閾値を、正本を書き換えずに追加する |
 
 ### ステップ 1: どこから手を付けるか(スクリーニング)
@@ -149,6 +152,21 @@ bin/aidr validate-audit-log examples/audit-log-sample.json --level extended
 入力: [`examples/audit-log-sample.json`](../examples/audit-log-sample.json) — 交際費のグレーケースを AI が**自動承認せず人間にエスカレーションした**記録です。
 → 詳細は [docs/06](06_audit_log_schema.md)(スキーマ)と [docs/07](07_audit_log_gap_check.md)(既存基盤の点検)
 
+### ステップ 6: 生成パッチを将来も所有できるか(パッチ所有コスト)
+
+AI がコード差分を生成してテストが緑でも、それだけでは受け入れません。最小の探針か、
+将来の所有者と 3 年コストが明確か、テストが実装の言い換えだけになっていないか、
+認可・削除・課金・規制・公開契約の変更ではないかを点検します。
+
+```bash
+bin/aidr check-patch-ownership examples/patches/sample-cheap-green.csv
+# => Region: GREEN — 所有可能
+```
+
+高リスク変更は、すべての統制が揃っても自動受入せず YELLOW で人間へ回します。
+テスト証拠なし・hollow green・高リスク統制の不足は RED です。
+→ 詳細は [docs/11](11_patch_ownership_gate.md)
+
 ### 拡張(任意): 自社ルールを足す
 
 ミドリ精機は「規程集の法務レビュー」「改ざん検知可能なログ保存」という自社基準を
@@ -163,7 +181,7 @@ bin/aidr check-readiness my-business.csv --overlay examples/overlays/sample-comp
 
 | 順 | doc | 何が分かるか |
 |---|---|---|
-| 1 | 本書(00) | 全体像と 5 ステップの物語 |
+| 1 | 本書(00) | 全体像と 6 ステップの物語 |
 | 2 | [01 スクリーニング](01_transition_screening.md) | どこから手を付けるかの決め方 |
 | 3 | [02 4 層フレーム](02_four_layer_framework.md) | 業務が委任に耐えるかの診断 |
 | 4 | [03 組織 readiness 軸](03_organization_axis.md) | 組織側の受け皿の診断 |
@@ -171,6 +189,7 @@ bin/aidr check-readiness my-business.csv --overlay examples/overlays/sample-comp
 | 6 | [05 タスク契約](05_task_contract_execution_rubric.md) | 委任タスクの与え方・採点者 |
 | 7 | [06 監査ログスキーマ](06_audit_log_schema.md) | 記録の設計 |
 | 8 | [07 ログ基盤の点検](07_audit_log_gap_check.md) | 既存基盤への当てはめ |
+| 9 | [11 パッチ所有コスト](11_patch_ownership_gate.md) | AI 生成差分の受入ゲート |
 | 応用 | [08 高責任ドメイン overlay](08_high_stakes_domain_overlay.md) / [09 内製化 overlay](09_insourcing_judgment_overlay.md) / [10 権限設計 overlay](10_agent_authorization_overlay.md) | 知財/法務/薬事、内製化の判断責任、能力軸と同意軸 |
 
 ## References

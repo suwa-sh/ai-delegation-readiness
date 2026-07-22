@@ -1,0 +1,30 @@
+patch: "ai-delegation-readiness@ea790ca73ff3fe19cc3992226f8a7a03e136051f"
+retrospective:
+  repository: ai-delegation-readiness
+  commit: ea790ca73ff3fe19cc3992226f8a7a03e136051f
+  diff_sha256: 002ce281b27d7aa17e3a3acb5e92118b6317a927d01fbae65581e36b866326b6
+  raw_diff_stored: false
+  expected_region: green
+answers:
+  probe.P1: yes
+  probe.P2: yes
+  probe.P3: yes
+  probe.P4: yes
+  probe.P5: yes
+  ownership.O1: yes
+  ownership.O2: yes
+  ownership.O3: yes
+  ownership.O4: no
+  ownership.owner_ref: team:maintainers
+  hollow_green.H1: yes
+  hollow_green.H2: yes
+  hollow_green.H3: no
+  never_cheap.N1: no
+  never_cheap.N2: no
+  never_cheap.N3: no
+  never_cheap.N4: no
+  never_cheap.N5: no
+  evidence.patch_ref: git:ea790ca73ff3fe19cc3992226f8a7a03e136051f
+  evidence.test_status: present
+  evidence.test_ref: git:ea790ca73ff3fe19cc3992226f8a7a03e136051f
+  evidence.risk_manifest_ref: file:tests/fixtures/patch_ownership_validation/ea790ca-transition-hardening.risk-manifest.json#sha256=31cca38152b902bc81a79ce3be13a846e4d263eece360507c5bb69f08fcaa2a5

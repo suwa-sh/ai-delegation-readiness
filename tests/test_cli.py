@@ -46,12 +46,13 @@ def test_aidr_helpオプションを渡した場合_exit0になること():
 
 @pytest.mark.parametrize(
     "subcommand",
-    ["screen-transition", "check-readiness", "score-delegation", "check-task-contract", "validate-audit-log", "check-overlay", "list-definitions"],
+    ["screen-transition", "check-readiness", "score-delegation", "check-task-contract", "check-patch-ownership", "validate-audit-log", "check-overlay", "list-definitions"],
     ids=[
         "screen_transitionの場合_exit0でusageを含むこと",
         "check_readinessの場合_exit0でusageを含むこと",
         "score_delegationの場合_exit0でusageを含むこと",
         "check_task_contractの場合_exit0でusageを含むこと",
+        "check_patch_ownershipの場合_exit0でusageを含むこと",
         "validate_audit_logの場合_exit0でusageを含むこと",
         "check_overlayの場合_exit0でusageを含むこと",
         "list_definitionsの場合_exit0でusageを含むこと",

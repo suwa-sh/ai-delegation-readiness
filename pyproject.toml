@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ai-delegation-readiness"
-version = "0.11.0"
-description = "Diagnostic tool and extensible framework for deciding whether a high-risk routine business judgment is ready to be delegated to an AI agent, and how each delegated task is handed over and scored."
+version = "0.12.0"
+description = "Extensible AI-delegation governance CLI for readiness, task contracts, audit logs, and ownership-cost acceptance gates for AI-generated patches."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { file = "LICENSE" }
@@ -18,6 +18,8 @@ keywords = [
     "delegation",
     "readiness-assessment",
     "organization-readiness",
+    "ai-generated-code",
+    "patch-ownership",
 ]
 classifiers = [
     "Development Status :: 4 - Beta",

@@ -43,7 +43,12 @@ jobs:
         run: |
           bin/aidr --help
           bin/aidr validate-audit-log examples/audit-log-sample.json --level extended
+          bin/aidr check-patch-ownership examples/patches/sample-cheap-green.csv
 
       - name: Check documentation links
         run: python3 scripts/check-doc-links.py
+
+      - name: Check example overlays
+        run: |
           bin/aidr check-overlay examples/overlays/sample-company/extra-rules.yaml
+          bin/aidr check-overlay examples/overlays/patch-ownership/extra-risk.yaml

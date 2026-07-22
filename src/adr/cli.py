@@ -6,6 +6,7 @@ Subcommands:
     check-readiness        4-layer + efficacy readiness check (delegate-or-not)
     score-delegation       delegation matrix scoring per judgment
     check-task-contract    execution rubric per delegated task (intent/boundary/evidence/scorer)
+    check-patch-ownership  post-generation acceptance gate for an AI-generated patch
     validate-audit-log     JSON Schema validation (minimum or extended)
     check-overlay          overlay merge-rule validation
     list-definitions       inspect loaded base + overlay structure
@@ -21,6 +22,7 @@ import overlay_scoring
 
 from . import (
     check_overlay as _check_overlay,
+    check_patch_ownership as _patch,
     check_readiness as _check_readiness,
     check_task_contract as _task,
     init_input as _init,
@@ -97,7 +99,12 @@ def _cmd_init(args: argparse.Namespace) -> int:
             _io.write_csv_stdout(_init.generate_csv(args.target, overlay_paths=args.overlay))
         else:
             print(_init.generate(args.target, overlay_paths=args.overlay), end="")
-    except (_check_readiness.OverlayError, FileNotFoundError, _yaml.YAMLError) as e:
+    except (
+        _check_readiness.OverlayError,
+        _patch.InputError,
+        FileNotFoundError,
+        _yaml.YAMLError,
+    ) as e:
         # Missing/broken overlay files follow the CLI-wide input-error
         # contract: [ERROR] + exit 3, never a traceback.
         sys.stderr.write(f"[ERROR] {e}\n")
@@ -135,6 +142,24 @@ def _cmd_check_task_contract(args: argparse.Namespace) -> int:
     return result.exit_code
 
 
+def _cmd_check_patch_ownership(args: argparse.Namespace) -> int:
+    import yaml as _yaml
+
+    try:
+        result = _patch.score(args.patch, overlay_paths=args.overlay)
+    except (
+        _check_readiness.OverlayError,
+        _patch.InputError,
+        _io.InputFormatError,
+        FileNotFoundError,
+        _yaml.YAMLError,
+    ) as e:
+        sys.stderr.write(f"[ERROR] {e}\n")
+        return 3
+    _emit(result, args, _patch)
+    return result.exit_code
+
+
 def _cmd_validate_audit_log(args: argparse.Namespace) -> int:
     import json as _json
 
@@ -150,7 +175,13 @@ def _cmd_validate_audit_log(args: argparse.Namespace) -> int:
 
 
 def _cmd_check_overlay(args: argparse.Namespace) -> int:
-    result = _check_overlay.check(args.overlay_path)
+    import yaml as _yaml
+
+    try:
+        result = _check_overlay.check(args.overlay_path)
+    except (FileNotFoundError, _yaml.YAMLError, _io.InputFormatError) as e:
+        sys.stderr.write(f"[ERROR] {e}\n")
+        return 3
     output = (
         _check_overlay.render_json(result)
         if args.format == "json"
@@ -161,6 +192,8 @@ def _cmd_check_overlay(args: argparse.Namespace) -> int:
 
 
 def _cmd_list_definitions(args: argparse.Namespace) -> int:
+    import yaml as _yaml
+
     try:
         summaries = []
         if args.target in {"four-layer", "all"}:
@@ -171,7 +204,13 @@ def _cmd_list_definitions(args: argparse.Namespace) -> int:
             summaries.append(_list.summarize_task_contract(overlay_paths=args.overlay))
         if args.target in {"transition", "all"}:
             summaries.append(_list.summarize_transition(overlay_paths=args.overlay))
-    except _check_readiness.OverlayError as e:
+        if args.target in {"patch-ownership", "all"}:
+            summaries.append(_list.summarize_patch_ownership(overlay_paths=args.overlay))
+    except (
+        _check_readiness.OverlayError,
+        _patch.InputError,
+        _yaml.YAMLError,
+    ) as e:
         sys.stderr.write(f"[ERROR] {e}\n")
         return 3
     except FileNotFoundError as e:
@@ -196,9 +235,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="aidr",
         description=(
-            "ai-delegation-readiness CLI. Diagnose whether a business "
-            "judgment is ready to be delegated to an AI agent, and "
-            "validate the audit log it produces."
+            "ai-delegation-readiness CLI. Govern business delegation, "
+            "task contracts, audit evidence, and ownership-cost acceptance "
+            "of AI-generated patches."
         ),
     )
     parser.add_argument("--version", action="version", version=_version_string())
@@ -261,6 +300,14 @@ def build_parser() -> argparse.ArgumentParser:
     _shared_overlay_args(p_task, formats=_REPORT_FORMATS)
     p_task.set_defaults(func=_cmd_check_task_contract)
 
+    p_patch = sub.add_parser(
+        "check-patch-ownership",
+        help="Gate an AI-generated patch by ownership cost and acceptance evidence",
+    )
+    p_patch.add_argument("patch", help="Path to the patch-ownership answers file (CSV or YAML)")
+    _shared_overlay_args(p_patch, formats=_REPORT_FORMATS)
+    p_patch.set_defaults(func=_cmd_check_patch_ownership)
+
     p_val = sub.add_parser(
         "validate-audit-log",
         help="Validate an audit log JSON against the schema",
@@ -297,7 +344,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_list.add_argument(
         "--target",
-        choices=["four-layer", "matrix", "task-contract", "transition", "all"],
+        choices=["four-layer", "matrix", "task-contract", "transition", "patch-ownership", "all"],
         default="all",
         help="Which definition(s) to inspect",
     )

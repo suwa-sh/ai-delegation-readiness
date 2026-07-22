@@ -40,6 +40,7 @@ import io
 from pathlib import Path
 
 import overlay_scoring as overlay_mod
+import yaml
 
 
 class InputFormatError(Exception):
@@ -50,6 +51,7 @@ class InputFormatError(Exception):
 _SINGLE_KINDS = {
     "four-layer": ("target", "target"),
     "task-contract": ("task", "task"),
+    "patch-ownership": ("patch", "patch"),
 }
 _WIDE_KINDS = {
     "transition": "task_groups",
@@ -77,7 +79,73 @@ def load_input(path: str | Path, kind: str) -> tuple[dict, str, list[str] | None
     if path.suffix.lower() == ".csv":
         data, row_ids = _load_csv(path, kind)
         return data, "csv", row_ids
+    if kind == "patch-ownership":
+        return load_yaml_unique(path), "yaml", None
     return overlay_mod.load_yaml(path), "yaml", None
+
+
+class _UniqueKeyLoader(yaml.SafeLoader):
+    """SafeLoader that rejects duplicate mapping keys instead of last-one-wins."""
+
+
+def _construct_unique_mapping(loader, node, deep=False):
+    mapping = {}
+    for key_node, value_node in node.value:
+        key = loader.construct_object(key_node, deep=deep)
+        if not isinstance(key, str):
+            raise yaml.constructor.ConstructorError(
+                "while constructing a mapping",
+                node.start_mark,
+                f"mapping keys must be strings (got {key!r})",
+                key_node.start_mark,
+            )
+        if key in mapping:
+            raise yaml.constructor.ConstructorError(
+                "while constructing a mapping", node.start_mark,
+                f"found duplicate key {key!r}", key_node.start_mark,
+            )
+        mapping[key] = loader.construct_object(value_node, deep=deep)
+    return mapping
+
+
+_UniqueKeyLoader.add_constructor(
+    yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, _construct_unique_mapping
+)
+
+
+def load_yaml_unique(path: str | Path):
+    """Load YAML with SafeLoader semantics and reject duplicate mapping keys."""
+    path = Path(path)
+    text = path.read_text(encoding="utf-8")
+    # _UniqueKeyLoader inherits SafeLoader and only replaces mapping construction
+    # to reject duplicates; arbitrary Python object constructors remain disabled.
+    return yaml.load(text, Loader=_UniqueKeyLoader)  # nosec B506
+
+
+def validate_overlay_shape(data, source: str) -> None:
+    """Reject overlay shapes that would make the merge engine raise internals."""
+    if not isinstance(data, dict):
+        raise InputFormatError(f"{source}: overlay root must be a mapping")
+    add_items = data.get("add", [])
+    if not isinstance(add_items, list):
+        raise InputFormatError(f"{source}: overlay 'add' must be a list")
+    for index, item in enumerate(add_items):
+        if not isinstance(item, dict):
+            raise InputFormatError(
+                f"{source}: overlay add[{index}] must be a mapping"
+            )
+        if not isinstance(item.get("id"), str) or not item["id"].strip():
+            raise InputFormatError(
+                f"{source}: overlay add[{index}].id must be a non-empty string"
+            )
+    strengthen = data.get("strengthen", {})
+    if not isinstance(strengthen, dict):
+        raise InputFormatError(f"{source}: overlay 'strengthen' must be a mapping")
+    for group_id, fields in strengthen.items():
+        if not isinstance(group_id, str) or not isinstance(fields, dict):
+            raise InputFormatError(
+                f"{source}: each strengthen entry must map a string group id to a mapping"
+            )
 
 
 def collect_question_ids(defn: dict, non_question_groups: set[str]) -> set[str]:
@@ -99,6 +167,11 @@ def collect_question_ids(defn: dict, non_question_groups: set[str]) -> set[str]:
 
 def validate_known_ids(answer_ids, known_ids: set[str], source: str) -> None:
     """CSV 入力の回答 id を定義と照合する(typo の静かな誤採点を防ぐ)。"""
+    non_string = [repr(item) for item in answer_ids if not isinstance(item, str)]
+    if non_string:
+        raise InputFormatError(
+            f"{source}: question id(s) must be strings: {', '.join(non_string)}"
+        )
     unknown = sorted(set(answer_ids) - known_ids)
     if unknown:
         raise InputFormatError(

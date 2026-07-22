@@ -30,6 +30,7 @@ TARGETS = {
     "matrix": ("delegation-matrix.yaml", {"regions", "examples"}),
     "transition": ("transition-screening.yaml", {"types", "examples"}),
     "task-contract": ("task-contract.yaml", {"gates", "examples"}),
+    "patch-ownership": ("patch-ownership.yaml", {"gates", "examples"}),
 }
 
 
@@ -37,6 +38,10 @@ def _merged_definition(target: str, overlay_paths: list) -> dict:
     filename, _ = TARGETS[target]
     base = overlay_mod.load_yaml(_DEFINITIONS_DIR / filename)
     if overlay_paths:
+        if target == "patch-ownership":
+            from .check_patch_ownership import merge_definition
+
+            return merge_definition(base, overlay_paths)
         result = overlay_mod.apply_overlays(base, overlay_paths)
         if not result.ok:
             raise OverlayError(result.violations)
@@ -123,6 +128,15 @@ _YAML_TEMPLATE: dict[str, tuple[list[str], str]] = {
         "",
         "answers:",
     ], "  "),
+    "patch-ownership": ([
+        "# aidr check-patch-ownership の入力テンプレート(aidr init --target patch-ownership で生成)",
+        "# question 行はすべて yes / no を明示してください。data 行も必須条件に従って記入します。",
+        "# 証拠参照は content-addressed 形式です。参照先そのものはこのコマンドでは取得しません。",
+        "",
+        "patch: <パッチ名またはコミットを書く>",
+        "",
+        "answers:",
+    ], "  "),
 }
 
 
@@ -148,6 +162,7 @@ def generate(target: str, overlay_paths: list | None = None) -> str:
 _SINGLE_META = {
     "four-layer": ("target", "対象業務名", "<対象業務名を書く>"),
     "task-contract": ("task", "委任するタスク名", "<委任するタスク名を書く>"),
+    "patch-ownership": ("patch", "パッチ名またはコミット", "<パッチ名またはコミットを書く>"),
 }
 _WIDE_PLACEHOLDER = {
     "transition": "<タスク群の名前を書く>",

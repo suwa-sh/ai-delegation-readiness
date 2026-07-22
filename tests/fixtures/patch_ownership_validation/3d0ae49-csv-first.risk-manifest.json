@@ -1,0 +1,9 @@
+{
+  "schema_version": "1",
+  "repository": "ai-delegation-readiness",
+  "commit": "3d0ae490972745a7dfbd8fd0cf38cb81298247c0",
+  "changed_file_count": 49,
+  "changed_areas": ["CSV input", "templates", "reports", "examples", "documentation", "tests"],
+  "ownership_risks": ["large cross-cutting feature", "spreadsheet compatibility", "YAML compatibility"],
+  "raw_diff_stored": false
+}

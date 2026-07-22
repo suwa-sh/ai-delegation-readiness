@@ -18,7 +18,7 @@ feeling.
   Responsibility stays with the human side, which is why the preconditions
   deserve a check before you delegate
 
-The tool breaks that check into a **main line of 5 steps plus an optional
+The tool breaks that check into a **main line of 6 steps plus an optional
 extension**. Each step answers one question:
 
 | Step | Question | Command |
@@ -28,6 +28,7 @@ extension**. Each step answers one question:
 | 3 | Which individual judgments do we delegate? | `aidr score-delegation` |
 | 4 | How is each task handed over, and who scores it? | `aidr check-task-contract` |
 | 5 | Can the record be verified afterwards? | `aidr validate-audit-log` |
+| 6 | Can humans afford to own this AI-generated patch? | `aidr check-patch-ownership` |
 | Ext. | How do we add company-specific rules? (optional) | `aidr check-overlay` + `--overlay` |
 
 The bundled samples are connected by the story of a fictional mid-size
@@ -42,6 +43,7 @@ flowchart LR
     s2 --> s3["3 judgment scoring"]
     s3 --> s4["4 task contract"]
     s4 --> s5["5 audit-log validation"]
+    s5 --> s6["6 patch ownership cost"]
 ```
 
 The framework is distilled from the **published analysis** of Ajinomoto
@@ -53,10 +55,11 @@ consume it directly.
 
 | If you are... | Start with... |
 |---|---|
-| **New here and want the big picture** | [docs/00 overview](docs/00_overview.md) (Japanese) — the 5 steps told through the Midori Seiki story |
+| **New here and want the big picture** | [docs/00 overview](docs/00_overview.md) (Japanese) — the 6 steps told through the Midori Seiki story |
 | A **business decision maker** (head of accounting, CFO, compliance lead) considering AI for a process | [docs/02](docs/02_four_layer_framework.md) — score your process with `aidr check-readiness` |
 | Deciding **where to start** / briefing management | [docs/01](docs/01_transition_screening.md) — the 4-type transition map and the headcount-last decision order |
 | An **engineer** designing an AI agent for high-risk approvals | [schemas/audit-log.schema.json](schemas/audit-log.schema.json) + [docs/06](docs/06_audit_log_schema.md) — wire the schema into your logger |
+| A **maintainer / Engineering Manager** accepting AI-generated code | [docs/11](docs/11_patch_ownership_gate.md) — gate on ownership cost, test integrity, and high-risk boundaries |
 | An **operator** auditing an existing AI platform's logging | [docs/07](docs/07_audit_log_gap_check.md) — apply the 5-step method to your own SQL schema |
 | A **consultant / proposal author** | All of `docs/` + the overlay model — clone, overlay in private, present client-specific scoring |
 
@@ -66,41 +69,43 @@ No setup — pull the published image and run it. The bundled samples (the
 Midori Seiki story) work out of the box:
 
 ```bash
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.11.0 --version
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.12.0 --version
 
-# The 5 main-line steps, in story order
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.11.0 \
+# The 6 main-line steps, in story order
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.12.0 \
   screen-transition examples/task-groups/sample-task-groups.csv
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.11.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.12.0 \
   check-readiness examples/business/sample-expense-approval.csv          # first diagnosis -> BLOCK
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.11.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.12.0 \
   check-readiness examples/business/sample-expense-approval-after.csv    # after fixes -> PASS
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.11.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.12.0 \
   score-delegation examples/judgments/sample-judgments.csv
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.11.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.12.0 \
   check-task-contract examples/task-contracts/sample-green.csv
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.11.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.12.0 \
   validate-audit-log examples/audit-log-sample.json --level extended
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.12.0 \
+  check-patch-ownership examples/patches/sample-cheap-green.csv
 
 # Extension (optional) and definition inspection
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.11.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.12.0 \
   check-overlay examples/overlays/sample-company/extra-rules.yaml
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.11.0 list-definitions
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.12.0 list-definitions
 ```
 
 `--version` prints the app version and the bundled overlay engine version, e.g.
-`aidr 0.11.0 (overlay-scoring-skeleton 0.1.0)`.
+`aidr 0.12.0 (overlay-scoring-skeleton 0.1.0)`.
 
 Every command returns a deterministic exit code so you can gate CI on it:
 
 | Command | 0 | 1 | 2 | 3 |
 |---|---|---|---|---|
-| check-readiness / score-delegation / check-task-contract | ok (green) | partial (yellow) | block (red) | input error / overlay violation |
+| check-readiness / score-delegation / check-task-contract / check-patch-ownership | ok (green) | partial (yellow) | block (red) | input error / overlay violation |
 | screen-transition | success (classification, not a gate — 0 whatever the types) | — | — | missing/invalid answers, overlay violation |
 | validate-audit-log | valid | invalid (schema violations) | — | input error (malformed JSON, missing file) |
-| check-overlay | merges cleanly | violations (rejected) | — | — |
+| check-overlay | merges cleanly | violations (rejected) | — | malformed/duplicate-key YAML or missing file |
 
-Reports are also available as **CSV** via `--format csv` (the 5 commands in the
+Reports are also available as **CSV** via `--format csv` (the 6 commands in the
 table above; the leading `record_type` column distinguishes row kinds so
 spreadsheets can aggregate them directly).
 
@@ -111,7 +116,7 @@ into the container. A shell function keeps the rest of this guide readable:
 
 ```bash
 aidr() { docker run --rm -v "$PWD:/data" -w /data \
-  ghcr.io/suwa-sh/ai-delegation-readiness:v0.11.0 "$@"; }
+  ghcr.io/suwa-sh/ai-delegation-readiness:v0.12.0 "$@"; }
 ```
 
 Generate your input files with `aidr init` (step 1 below), then run the
@@ -119,7 +124,7 @@ commands in this order. Question texts carry both English (`text`) and
 Japanese (`text_ja`) in `definitions/*.yaml`.
 
 1. **Prepare** — generate a question-annotated CSV template via
-   `aidr init --target transition|four-layer|matrix|task-contract --format csv > my-file.csv`
+   `aidr init --target transition|four-layer|matrix|task-contract|patch-ownership --format csv > my-file.csv`
    (add `--overlay` to include your company's extra questions), open it in
    Google Sheets / Excel (UTF-8 BOM included), and fill the 回答 (answer) cells
    with yes/no (はい/いいえ also accepted). Duplicate columns to add task
@@ -152,7 +157,12 @@ Japanese (`text_ja`) in `definitions/*.yaml`.
 6. **Validate the audit log** —
    `aidr validate-audit-log my-log.json --level extended` checks who / when /
    what / why / result at J-SOX grade. See [docs/06](docs/06_audit_log_schema.md).
-7. **Extend (optional)** — add your own questions / thresholds via an overlay,
+7. **Gate AI-generated patches** —
+   `aidr check-patch-ownership my-patch.csv` checks probe size, future ownership,
+   test integrity, evidence references, and never-cheap risks. High-risk patches
+   require a human decision even when controlled. See
+   [docs/11](docs/11_patch_ownership_gate.md).
+8. **Extend (optional)** — add your own questions / thresholds via an overlay,
    validated by `aidr check-overlay <path>` and applied with `--overlay`.
    Bundled domain overlays: high-stakes professional work (IP / legal / pharma,
    [docs/08](docs/08_high_stakes_domain_overlay.md)), insourcing judgment
@@ -194,11 +204,12 @@ ai-delegation-readiness/
 │   ├── transition-screening.yaml #  3 axes + 4 transition types map + extension_points
 │   ├── four-layer.yaml          #   4 layers + efficacy & organization axes + extension_points
 │   ├── delegation-matrix.yaml   #   2 axes + region map + extension_points
-│   └── task-contract.yaml       #   4 execution-rubric elements + gate policy + extension_points
+│   ├── task-contract.yaml       #   4 execution-rubric elements + gate policy + extension_points
+│   └── patch-ownership.yaml     #   AI-generated patch ownership-cost acceptance gate
 ├── schemas/
 │   └── audit-log.schema.json    # JSON Schema with $defs: minimum (A) / extended (B)
 ├── src/adr/                     # Python diagnostic tool (shipped as a container image)
-├── bin/aidr                     # CLI entry point (single command, 8 subcommands)
+├── bin/aidr                     # CLI entry point (single command, 9 subcommands)
 ├── examples/                    # Samples connected by the Midori Seiki (fictional) story
 │   ├── README.md                #   Canonical story profile + sample index + applied cases (Japanese)
 │   ├── task-groups/             #   Step 1: screen-transition input
@@ -206,11 +217,12 @@ ai-delegation-readiness/
 │   ├── judgments/               #   Step 3: score-delegation inputs (+ applied cases)
 │   ├── task-contracts/          #   Step 4: check-task-contract inputs (green / red)
 │   ├── audit-log-sample.json    #   Step 5: sample audit log (escalated case)
+│   ├── patches/                 #   Step 6: check-patch-ownership inputs (green / yellow / red)
 │   ├── overlays/                #   Extension: company rules + domain overlays (applied cases)
-│   └── skills/                  #   AI entry point: three Claude Code skill samples
+│   └── skills/                  #   AI entry point: four Claude Code skill samples
 └── docs/                        # Explanations, Japanese (reading order: the learning path in README.ja.md)
     ├── 00_overview.md           #   The big picture (read first)
-    ├── 01-06                    #   The 5 main-line steps in detail
+    ├── 01-06, 11                #   The 6 main-line steps in detail
     └── 07-10                    #   Applied: log-platform check / high-stakes domains / insourcing / agent authorization
 ```
 
@@ -244,9 +256,9 @@ The framework is reused in three ways:
 
 - **AI agents**: load `definitions/*.yaml` and
   `schemas/audit-log.schema.json` into the system prompt or tool context.
-  See [`examples/skills/`](examples/skills/) for three ready-to-adapt Claude
+  See [`examples/skills/`](examples/skills/) for four ready-to-adapt Claude
   Code skill wrappers.
-- **CI pipelines**: run `docker run --rm -v "$PWD:/data" -w /data ghcr.io/suwa-sh/ai-delegation-readiness:v0.11.0 validate-audit-log <log>` on each emitted log; gate
+- **CI pipelines**: run `docker run --rm -v "$PWD:/data" -w /data ghcr.io/suwa-sh/ai-delegation-readiness:v0.12.0 validate-audit-log <log>` on each emitted log; gate
   on exit code.
 - **Internal overlays**: keep your company-specific overlay in a private repo and
   apply with `--overlay`. The framework stays a clean upstream you can pull from.
