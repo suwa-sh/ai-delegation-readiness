@@ -68,11 +68,6 @@ consume it directly.
 No setup — pull the published image and run it. The bundled samples (the
 Midori Seiki story) work out of the box:
 
-> **Release status:** `v0.12.0` is release pending. The commands below describe
-> the upcoming release; its GHCR image will exist after the tag-driven release
-> workflow completes. The latest published image remains `v0.11.0` and does not
-> include the patch ownership gate.
-
 ```bash
 docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.12.0 --version
 

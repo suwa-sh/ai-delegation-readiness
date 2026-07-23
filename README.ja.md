@@ -63,11 +63,6 @@ AI エージェントや CI からも直接使えます。
 セットアップは不要です。公開イメージを取得して実行すると、同梱のサンプル
 (ミドリ精機の物語)がそのまま動きます。
 
-> **リリース状況:** `v0.12.0` はリリース待ちです。以下は次回リリース用の
-> コマンドで、tag 起点のリリース workflow 完了後に GHCR image が利用可能に
-> なります。公開済みの最新 image は `v0.11.0` で、patch ownership gate は
-> 含まれていません。
-
 ```bash
 docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.12.0 --version
 
