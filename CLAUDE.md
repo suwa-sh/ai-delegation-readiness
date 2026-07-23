@@ -112,6 +112,25 @@ self-documenting** であると同時に、**マージ規則の実体**でもあ
   別ファイル(`*-with-overlay.csv`)に分ける。変換の同値性は
   `tests/fixtures/normalized_inputs.json`(変換前 YAML の正規化 dict)が正本
 
+## 変更完了チェックリスト
+
+変更を完了と報告する前に、次を順に確認する。
+
+1. **対象リポジトリ**: `git rev-parse --show-toplevel`、branch、`git status --short` を確認し、
+   別リポジトリやユーザーの既存差分を巻き込んでいない
+2. **本線の横断整合**: 本線のステップ、主要機能、CLI subcommand を追加・削除した場合、
+   `README.md` / `README.ja.md` / `docs/00_overview.md` / 各 `docs/NN` の前提と次ステップ /
+   `examples/README.md` / CLI help・一覧 / `examples/skills` を更新する。ステップ数、列挙数、
+   目次、リンクの古い表記を `rg` で検索する
+3. **正本と複製**: `definitions/` / `schemas/` を先に更新し、doc・CSV 質問列・サンプルは
+   正本への参照またはドリフトテストで追従させる
+4. **規約と検証**: 新規・変更テストが命名 / AAA / parametrize ID 規約を満たすことを
+   `tests/test_test_conventions.py` で検査する。pytest、`qlty check`、文書リンク検査、
+   変更した mermaid の lint を実行する
+5. **公開状態**: version や README の配布タグを先に更新した場合、利用者向け README にも
+   pending を明示する。対応タグ・Release・image の実体確認が終わるまでは **release pending** と
+   報告し、version 更新をリリース完了と扱わない。実体確認後に pending 表示を外す
+
 ## 更新運用
 
 - 味の素事例の④統制層は公開情報が薄い。続報(誤承認補正フロー・人間最終承認の置き場所・
@@ -160,6 +179,8 @@ Python / pytest 向けに翻案したもの。**新規・変更するテスト�
   テスト名を `::` 付きで書くと改名のたびに doc が壊れる — 実際に本規約への移行で 2 度陳腐化した
 - **リファクタで出力が変わらないことを主張するテストは、出力そのものを固定する**
   (前後の diff を取る等)。「例外が出ないこと」だけでは退行を捕まえられない
+- 命名・AAA・parametrize ID は [`tests/test_test_conventions.py`](tests/test_test_conventions.py) で
+  機械検査する。規約を文章に追加しただけで完了にせず、検査も同じ変更で更新する
 
 `tests/` は qlty の解析対象外(`.qlty/qlty.toml` の `exclude_patterns`)。pytest は assert で
 テストを書き、smoke テストで CLI を実プロセス起動するため、bandit の指摘は所見でなくノイズになる。
@@ -178,6 +199,9 @@ Python / pytest 向けに翻案したもの。**新規・変更するテスト�
 - workflow は Release が既存なら作成をスキップする(idempotent)ので、手動先行があっても
   イメージ push は通るが、上の原則(create しない)を守るのが正。
 - `pyproject.toml` の `version` とタグを一致させる(`aidr --version` と OCI label がタグ由来)。
+- `pyproject.toml` や README の image tag を次版へ進めた時点は **release pending** であり、
+  リリース完了ではない。対応する annotated tag、GitHub Release、GHCR image の実体確認が
+  すべて終わって初めて released と報告する
 - **タグ push は、CI green を別コマンドで確認してから行う**。`gh run watch --exit-status ... | tail`
   のようにパイプすると exit code が tail のものになり、`&&` 連結でも CI red のまま
   タグが走る(v0.10.0 で実際に発生し、v0.10.1 で差し替えた)。watch はパイプせず単体で

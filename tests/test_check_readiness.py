@@ -96,12 +96,13 @@ def test_check_overlayで質問を追加した場合_追加質問がunknownと�
     biz = tmp_path / "biz.yaml"
     biz.write_text(yaml.safe_dump({"target": "with-overlay", "answers": _all_yes_answers()}))
 
-    # Without overlay -> PASS
+    # Act
     result_no = cr.check(biz)
-    assert result_no.conclusion == "PASS"
-    # With overlay -> L1.NEW_Q is unknown -> REVISE or BLOCK
     result_ov = cr.check(biz, overlay_paths=[overlay])
     l1 = next(l for l in result_ov.layers if l.id == "L1")
+
+    # Assert
+    assert result_no.conclusion == "PASS"
     assert "L1.NEW_Q" in l1.unknown_ids
 
 
@@ -130,13 +131,17 @@ def test_check_overlayのextendsが不正な場合_OverlayErrorを送出する�
 # --- organization axis (parallel, non-gating) --------------------------------
 
 def test_axis_role_role指定と既定値の場合_ROLEを正しく判定すること():
+    # Act
+    explicit_parallel = cr.axis_role("organization", {"role": "parallel"})
+    explicit_gating = cr.axis_role("X", {"role": "gating"})
+    default_gating = cr.axis_role("L1", {})
+    historical_parallel = cr.axis_role("efficacy", {})
+
     # Assert
-    # explicit role wins
-    assert cr.axis_role("organization", {"role": "parallel"}) == cr.ROLE_PARALLEL
-    assert cr.axis_role("X", {"role": "gating"}) == cr.ROLE_GATING
-    # unset -> gating, except historically-parallel efficacy
-    assert cr.axis_role("L1", {}) == cr.ROLE_GATING
-    assert cr.axis_role("efficacy", {}) == cr.ROLE_PARALLEL
+    assert explicit_parallel == cr.ROLE_PARALLEL
+    assert explicit_gating == cr.ROLE_GATING
+    assert default_gating == cr.ROLE_GATING
+    assert historical_parallel == cr.ROLE_PARALLEL
 
 
 def test_axis_role_role値が不正な場合_ValueErrorを送出すること():
