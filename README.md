@@ -69,9 +69,6 @@ consume it directly.
 No setup — pull the published image and run it. The bundled samples (the
 Midori Seiki story) work out of the box:
 
-> **Release pending**: `v0.13.0` is not published yet. Until it is, use `v0.12.0`
-> (`summarize-patch-decisions` ships in `v0.13.0`).
-
 ```bash
 docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.13.0 --version
 
@@ -102,7 +99,7 @@ docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.13.0 list-definitions
 ```
 
 `--version` prints the app version and the bundled overlay engine version, e.g.
-`aidr 0.12.0 (overlay-scoring-skeleton 0.1.0)`.
+`aidr 0.13.0 (overlay-scoring-skeleton 0.1.0)`.
 
 Every command returns a deterministic exit code so you can gate CI on it:
 

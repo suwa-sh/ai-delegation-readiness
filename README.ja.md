@@ -64,9 +64,6 @@ AI エージェントや CI からも直接使えます。
 セットアップは不要です。公開イメージを取得して実行すると、同梱のサンプル
 (ミドリ精機の物語)がそのまま動きます。
 
-> **release pending**: `v0.13.0` はタグ・Release・イメージの公開待ちです。公開前は
-> `v0.12.0` を使ってください(`summarize-patch-decisions` は `v0.13.0` から入ります)。
-
 ```bash
 docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.13.0 --version
 
@@ -97,7 +94,7 @@ docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.13.0 list-definitions
 ```
 
 `--version` はアプリのバージョンと同梱の overlay エンジンのバージョンを表示します。例:
-`aidr 0.12.0 (overlay-scoring-skeleton 0.1.0)`。
+`aidr 0.13.0 (overlay-scoring-skeleton 0.1.0)`。
 
 各コマンドは決定的な終了コードを返すので、CI のゲートに使えます。
 
