@@ -15,6 +15,7 @@ from pathlib import Path
 
 import pytest
 
+from adr import check_patch_ownership as po
 from conftest import (
     REPO_ROOT,
     patch_decision_team_bands_overlay_path,
@@ -29,6 +30,59 @@ from conftest import (
 )
 
 AIDR = REPO_ROOT / "bin" / "aidr"
+
+
+def _decision_gate(region: str = "green", **overrides) -> dict:
+    """A schema-valid gate block, block_sha256 included.
+
+    summarize-patch-decisions recomputes block_sha256 on every load and
+    rejects a mismatch, so a hand-typed placeholder value would make any
+    synthetic record fail before the behavior under test is reached.
+    """
+    gate = {
+        "region": region,
+        "risk_ids": [],
+        "missing_controls": [],
+        "gate_json_sha256": "a" * 64,
+        "definition_name": "patch-ownership",
+        "definition_version": 1,
+        "overlays": [],
+    }
+    gate.update(overrides)
+    gate["block_sha256"] = po.gate_block_digest(gate)
+    return gate
+
+
+def _decision_record(
+    patch_id: str,
+    decision: str,
+    team: str = "t",
+    recorded_at: str = "2026-07-01T00:00:00Z",
+    decided_on: str | None = "2026-07-01",
+    discard_reason: str | None = None,
+    gate: dict | None = None,
+) -> dict:
+    record = {
+        "schema_version": "1",
+        "patch_id": patch_id,
+        "team": team,
+        "recorded_at": recorded_at,
+        "decision": decision,
+        "gate": gate or _decision_gate(),
+    }
+    if decided_on is not None:
+        record["decided_on"] = decided_on
+    if discard_reason is not None:
+        record["discard_reason"] = discard_reason
+    return record
+
+
+def _write_decision_records(path: Path, records: list[dict]) -> Path:
+    path.write_text(
+        "\n".join(json.dumps(r, ensure_ascii=False) for r in records) + "\n",
+        encoding="utf-8",
+    )
+    return path
 
 
 def _run(*args: str) -> subprocess.CompletedProcess:
@@ -359,16 +413,10 @@ def test_aidr_summarize_patch_decisions_未宣言のdiscard_reasonを含む場�
     tmp_path,
 ):
     # Arrange
-    bad = tmp_path / "bad.jsonl"
-    bad.write_text(
-        '{"schema_version": "1", "patch_id": "p1", "team": "t", '
-        '"recorded_at": "2026-07-01T00:00:00Z", "decision": "discarded", '
-        '"decided_on": "2026-07-01", "discard_reason": "not_declared", '
-        '"gate": {"region": "red", "risk_ids": [], "missing_controls": [], '
-        f'"gate_json_sha256": "{"a" * 64}", "definition_name": "patch-ownership", '
-        '"definition_version": 1, "overlays": []}}\n',
-        encoding="utf-8",
+    record = _decision_record(
+        "p1", "discarded", gate=_decision_gate("red"), discard_reason="not_declared",
     )
+    bad = _write_decision_records(tmp_path / "bad.jsonl", [record])
     # Act
     r = _run("summarize-patch-decisions", str(bad))
     # Assert
@@ -415,23 +463,34 @@ def test_aidr_summarize_patch_decisions_teamとperiodで絞り込んだ場合_0�
     assert "No records matched" in r.stdout
 
 
+@pytest.mark.parametrize(
+    "period",
+    [
+        pytest.param("2026-7", id="月が1桁の場合_exit3になること"),
+        pytest.param("2026-13", id="月が13の場合_exit3になること"),
+        pytest.param("garbage", id="数字形式でない場合_exit3になること"),
+    ],
+)
+def test_aidr_summarize_patch_decisions_periodの形式が不正な場合_exit3になること(period):
+    # Act
+    r = _run(
+        "summarize-patch-decisions", str(sample_patch_decisions_midori_path()),
+        "--period", period,
+    )
+    # Assert
+    assert r.returncode == 3
+    assert "--period must be" in r.stderr
+
+
 def test_aidr_summarize_patch_decisions_overlayで理由を追加した場合_exit0になること(
     tmp_path,
 ):
     # Arrange
-    record = tmp_path / "overlay-reason.jsonl"
-    record.write_text(
-        '{"schema_version": "1", "patch_id": "p1", "team": "t", '
-        '"recorded_at": "2026-07-01T00:00:00Z", "decision": "discarded", '
-        '"decided_on": "2026-07-01", "discard_reason": "vendor_contract_conflict", '
-        '"gate": {"region": "green", "risk_ids": [], "missing_controls": [], '
-        f'"gate_json_sha256": "{"a" * 64}", "definition_name": "patch-ownership", '
-        '"definition_version": 1, "overlays": []}}\n',
-        encoding="utf-8",
-    )
+    record = _decision_record("p1", "discarded", discard_reason="vendor_contract_conflict")
+    path = _write_decision_records(tmp_path / "overlay-reason.jsonl", [record])
     # Act
     r = _run(
-        "summarize-patch-decisions", str(record),
+        "summarize-patch-decisions", str(path),
         "--overlay", str(patch_decision_team_bands_overlay_path()),
     )
     # Assert

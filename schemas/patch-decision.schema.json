@@ -21,6 +21,7 @@
         "risk_ids",
         "missing_controls",
         "gate_json_sha256",
+        "block_sha256",
         "definition_name",
         "definition_version"
       ],
@@ -43,7 +44,12 @@
         "gate_json_sha256": {
           "type": "string",
           "pattern": "^[0-9a-f]{64}$",
-          "description": "Digest of the gate's JSON report, so the transcription can be re-verified"
+          "description": "Digest of the exact bytes the gate prints for --format json (including the trailing newline), so `aidr check-patch-ownership X --format json | shasum -a 256` reproduces it"
+        },
+        "block_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$",
+          "description": "Digest of this gate block excluding this field. Recomputed by summarize-patch-decisions, so an edited region or risk list is rejected instead of silently disabling the RED-accepted check."
         },
         "definition_name": { "type": "string", "minLength": 1 },
         "definition_version": { "type": "integer" },

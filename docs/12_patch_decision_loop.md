@@ -61,27 +61,37 @@ Region: GREEN — 所有可能
   "schema_version": "1",
   "patch_id": "cheap-green",
   "team": "midori-seiki-platform",
-  "recorded_at": "2026-08-01T19:20:38Z",
+  "recorded_at": "2026-08-01T19:55:40Z",
   "decision": "pending",
   "gate": {
     "region": "green",
     "risk_ids": [],
     "missing_controls": [],
-    "gate_json_sha256": "d0f589668ed19b8be6ea44c4e808bdcbf55316e0ec5c25d8f75d7eacbe70c1c1",
+    "gate_json_sha256": "5fa312ca4c8e52cabfa26ba0b206cbc565bb317e21318b583839cf8e0890adc8",
     "definition_name": "patch-ownership",
     "definition_version": 1,
-    "overlays": []
+    "overlays": [],
+    "block_sha256": "a2f1309c612323d9d1c86dcf95db1c5912c3b2fc4057e58198105c48a505523e"
   }
 }
 ```
 
-`decision` は自動では `pending` にしかなりません。**採否は人間が別途この行を決定済みへ書き換えます**
-(手順は [運用手順](#月次の運用手順準備--決定--振り返り)を参照)。
+`gate_json_sha256` は `--format json` が実際に出力するバイト列(末尾改行込み)の digest です。
+照合できます。
+
+```bash
+bin/aidr check-patch-ownership examples/patches/sample-cheap-green.csv --format json | shasum -a 256
+# => 5fa312ca4c8e52cabfa26ba0b206cbc565bb317e21318b583839cf8e0890adc8  -
+```
+
+`decision` は自動では `pending` にしかなりません。**採否は人間が別途、この事実を新しいイベント行として
+追記します**(この行を上書きしません。手順は [運用手順](#月次の運用手順準備--決定--振り返り)を参照)。
 
 1 か月分たまった記録を、月次で集計します。
 
 ```bash
 bin/aidr summarize-patch-decisions examples/patch-decisions/sample-midori-2026-07.jsonl
+echo "EXIT=$?"
 ```
 
 入力: [`examples/patch-decisions/sample-midori-2026-07.jsonl`](../examples/patch-decisions/sample-midori-2026-07.jsonl)
@@ -89,7 +99,7 @@ bin/aidr summarize-patch-decisions examples/patch-decisions/sample-midori-2026-0
 ```text
 Team: midori-seiki-platform
 Period: 2026-07
-Records: 14 -> 13 patches (same patch recorded twice counts once)
+Records read: 14 -> 13 patches in scope (repeated events for one patch fold to its latest)
 
 Discard rate (gated patches): 25.0%  = 3 discarded / 12 decided
 Decided rate: 92.3%  = 12 decided / 13 patches
@@ -120,7 +130,7 @@ EXIT=2
 
 | 行 | 読み方 |
 |---|---|
-| `Records: 14 -> 13 patches` | 14 イベントが記録されているが、`expense-locale-fallback` が pending→accepted の 2 イベントを持つため、パッチ単位では 13 件。同一 `patch_id` は最新イベントに畳み込む |
+| `Records read: 14 -> 13 patches in scope` | 14 イベントが記録されているが、`expense-locale-fallback` が pending→accepted の 2 イベントを持つため、パッチ単位では 13 件。同一 `patch_id` は最新イベントに畳み込む(fold) |
 | `Discard rate (gated patches): 25.0%` | 分母は **決定済みの 12 件だけ**。pending の 1 件は分母に入らない |
 | `Decided rate: 92.3%` | 分母は **全 13 件**。決定済みがどれだけ進んでいるかを見る |
 | `Undecided: 1 patch(es)` | 決定済み率の分子に入らなかった件数を、率とは別に明示する |
@@ -128,7 +138,7 @@ EXIT=2
 | `Discard reasons:` | 破棄 3 件の内訳。%は **discarded 合計に対して**(3 件中の割合) |
 | `Gate cross-check: [NG] RED accepted: 1` | RED を accepted した記録が 1 件ある。ゲートと矛盾する採否なので `[NG]` |
 | `[..] YELLOW accepted: 2` | YELLOW を accepted したのは矛盾ではなく、設計どおり人間が判断した経路 |
-| `EXIT=2` | RED accepted が 1 件でもあると exit 2(未決あり = 1 より優先) |
+| `EXIT=2`(コマンドに付けた `echo "EXIT=$?"` の出力) | RED accepted が 1 件でもあると exit 2(未決あり = 1 より優先) |
 
 同じ入力に自社の健全域 overlay を足すと `Band` 行が変わります。
 
@@ -187,51 +197,74 @@ Band: 健全 [0.15, 0.5)
 
 - **記録は不変イベント**です。同じ `patch_id` に複数回書いてよく、`summarize-patch-decisions` は
   `recorded_at` が最も新しいイベントだけを採用します(fold)。事例の `expense-locale-fallback` は
-  pending → accepted の 2 イベントを持ちますが、集計は 1 件として数えます
+  pending → accepted の 2 イベントを持ちますが、集計は 1 件として数えます。**pending 行を決定内容で
+  上書きしません**。上書きすると「いつ pending だったか」「決定がいつ起きたか」が消えます
+- **入力は 1 ファイルでもディレクトリでもよく、`*.jsonl`(1 行 1 レコード)と `*.json`
+  (1 ファイル 1 レコード)の両方を読みます**。ディレクトリを渡すと、両方の拡張子のファイルを
+  まとめて読みます
 - **`gate` ブロックはゲート機械側の転記**です。`region` / `risk_ids` / `missing_controls` /
-  `gate_json_sha256` / `definition_name` / `definition_version` を保持し、手で書き換えると
-  RED を green と記録して gate 突き合わせを欺けてしまいます。`gate_json_sha256` はゲートの JSON
-  レポートの digest なので、転記の再検証に使えます
+  `gate_json_sha256` / `definition_name` / `definition_version` / `block_sha256` を保持します。
+  `block_sha256` は `block_sha256` 自身を除いた gate ブロックの digest で、
+  `summarize-patch-decisions` が読み込み時に**再計算して照合**します。手で `region` を書き換えて
+  RED を green にすると、digest が合わずに **exit 3 で読み込み自体が拒否されます**。
+  ただし、これは編集検知であって改ざん耐性ではありません。**`block_sha256` も一緒に
+  再計算し直せば通ってしまいます**。防げるのは手違いや casual な書き換えまでで、
+  意図的な改ざんを防ぐ仕組みではありません
+- **`gate_json_sha256` は照合可能**です。ゲートの `--format json` が実際に出力するバイト列
+  (末尾改行込み)の digest なので、`bin/aidr check-patch-ownership <input> --format json | shasum -a 256`
+  で再現できます
 - **`decided_on` と `discard_reason` は条件付き必須**です。`decision: pending` のときは
   `decided_on` を持ってはいけません(まだ決めていないので日付がない)。`decision: discarded`
   のときだけ `discard_reason` が必須です
 
 ### 月次の運用手順(準備 → 決定 → 振り返り)
 
-1. パッチをゲートにかけるたびに、pending の記録を追記します。
+1. パッチをゲートにかけるたびに、pending の記録を追記します。ファイル名の拡張子は
+   `.jsonl`(1 行 1 レコード)を使います。`decisions/` のようなディレクトリに月別ファイルを
+   置く運用にすると、集計時にディレクトリごと渡せます(`.jsonl` / `.json` の両方を読みます)。
 
    ```bash
    bin/aidr check-patch-ownership my-patch.csv \
      --emit-decision-record decisions/2026-08.jsonl --team midori-seiki-platform
    ```
 
-2. 人間が採否を決めたら、追記された行を決定済みに書き換えます。**変えてよいのは
-   `decision` / `discard_reason` / `note` / `decided_on` だけ**です。`gate` ブロックは
-   ゲート機械側の転記なので書き換えません。`jq` で `patch_id` を指定して更新します。
+2. 人間が採否を決めたら、**pending 行を上書きせず、決定内容を持つ新しいイベント行を追記**します。
+   記録は不変イベントなので、上書きは「pending だった事実」と「決定が起きた時刻」を消してしまいます。
+   新しい行では次を変更します。
 
-   受け入れる場合:
+   - `decision` を `accepted` / `discarded` に
+   - `decided_on` を決定日(`YYYY-MM-DD`)に
+   - `discarded` のときだけ `discard_reason` を(`definitions/patch-decision.yaml` の leaf id)
+   - 任意で `note` を
+   - **`recorded_at` を決定が起きた時刻に更新する**。fold は `recorded_at` が最も新しいイベントを
+     採用するため、これを更新しないと pending 行の時刻の方が新しいままになり、決定が反映されません
+
+   **`gate` ブロックは触りません**(`block_sha256` を再計算しない限り、`region` などを書き換えると
+   `summarize-patch-decisions` が digest 不一致で exit 3 にします)。
+
+   受け入れる場合、追記された pending 行を取り出し、変更点だけ差し替えて 1 行追記します。
 
    ```bash
-   jq -c --arg pid my-patch --arg date "$(date +%F)" \
-     'if .patch_id == $pid then
-        .decision = "accepted" | .decided_on = $date | .note = "Reviewed and accepted."
-      else . end' \
-     decisions/2026-08.jsonl > /tmp/decisions.tmp && mv /tmp/decisions.tmp decisions/2026-08.jsonl
+   tail -n 1 decisions/2026-08.jsonl | jq -c --arg date "$(date +%F)" \
+     '.decision = "accepted" | .decided_on = $date | .note = "Reviewed and accepted." \
+      | .recorded_at = ($date + "T09:00:00Z")' \
+     >> decisions/2026-08.jsonl
    ```
 
-   破棄する場合(`discard_reason` は `definitions/patch-decision.yaml` の leaf id):
+   破棄する場合:
 
    ```bash
-   jq -c --arg pid my-patch --arg date "$(date +%F)" \
-     'if .patch_id == $pid then
-        .decision = "discarded" | .decided_on = $date
-        | .discard_reason = "probe_oversized" | .note = "Requirement was larger than assumed."
-      else . end' \
-     decisions/2026-08.jsonl > /tmp/decisions.tmp && mv /tmp/decisions.tmp decisions/2026-08.jsonl
+   tail -n 1 decisions/2026-08.jsonl | jq -c --arg date "$(date +%F)" \
+     '.decision = "discarded" | .decided_on = $date \
+      | .discard_reason = "probe_oversized" | .note = "Requirement was larger than assumed." \
+      | .recorded_at = ($date + "T09:00:00Z")' \
+     >> decisions/2026-08.jsonl
    ```
 
-   後日、同じパッチの採否を訂正したいときは、この行を上書きするのではなく**新しいイベント行を
-   追記**します(不変イベントの原則。fold が最新イベントを採用します)。
+   `tail -n 1` は「直前に自分が追記した pending 行」を指す前提です。複数人・複数パッチが同じ
+   ファイルに追記される運用では `jq 'select(.patch_id == "my-patch")' | tail -n 1` のように
+   `patch_id` で絞り込んでから最後の行を取り出します。後日、同じパッチの採否を訂正したい
+   ときも同じ手順(既存行を書き換えず、新しいイベント行を追記)を使います。
 
 3. 月次で集計し、決定済み率・未決件数・破棄率・理由内訳・gate 突き合わせを確認します。
 
@@ -239,7 +272,13 @@ Band: 健全 [0.15, 0.5)
    bin/aidr summarize-patch-decisions decisions/ --period 2026-08 --team midori-seiki-platform
    ```
 
-   `decisions` にはファイルとディレクトリのどちらも渡せます(ディレクトリならまとめて読みます)。
+   `decisions` にはファイルとディレクトリのどちらも渡せます。`--period` は `YYYY-MM`(月は
+   `01`–`12`)以外の形式を渡すと exit 3 で拒否されます(typo を「0 件・exit 0」に化けさせないため)。
+
+   **fold してから期間で絞り込みます**。7 月に pending として記録し、8 月に採否が決まった
+   パッチは、そのイベントの `recorded_at` が 8 月になるため、**`--period 2026-07` のレポートには
+   現れません**(最新イベントが 8 月にある以上、fold の結果は 8 月のパッチとして扱われます)。
+   月をまたいで決定したパッチを追いたいときは、決定が起きた月のレポートを見ます。
 
 4. `Gate cross-check` に `[NG] RED accepted` があれば、その `patch_id` を個別に確認します。
    ゲートが RED と判定した変更を受け入れた記録なので、放置しません。
@@ -278,14 +317,14 @@ flowchart TB
         gate["check-patch-ownership<br/>--emit-decision-record"]
         summarize["summarize-patch-decisions"]
     end
-    human["人間: decision / discard_reason / note / decided_on を編集"]
+    human["人間: 決定内容の新イベント行を作成<br/>(decision / discard_reason / note / decided_on / recorded_at)"]
     log["decisions/*.jsonl<br/>(不変イベントの追記ログ)"]
     report["破棄率 / 決定済み率 / 理由内訳 / gate 突き合わせ"]
 
     pod --> gate
     gate -->|"pending 記録を追記"| log
     log --> human
-    human -->|"決定済みイベントを追記/更新"| log
+    human -->|"決定イベントを追記のみ(既存行は上書きしない)"| log
     pdd -.->|"decision / discard_reason / bands の語彙"| summarize
     schema -.->|"1 レコードの契約を検証"| summarize
     log --> summarize
@@ -307,7 +346,7 @@ graph LR
 | エンティティ | 説明 |
 |---|---|
 | decision record | 1 イベント。不変。`schema_version` / `patch_id` / `team` / `recorded_at` / `decision` / `gate` が必須 |
-| gate(埋め込み） | ゲート実行結果の転記。`region` / `risk_ids` / `missing_controls` / `gate_json_sha256` / `definition_name` / `definition_version` / `overlays` |
+| gate(埋め込み） | ゲート実行結果の転記。`region` / `risk_ids` / `missing_controls` / `gate_json_sha256` / `definition_name` / `definition_version` / `overlays` / `block_sha256`(自身を除くブロックの digest。読み込み時に再検証) |
 | discard_reason | `decision: discarded` のときだけ必須。base 5 分類 + overlay で追加可 |
 | band | 破棄率のしきい値ラベル。base は空。overlay だけが定義する |
 
@@ -330,6 +369,7 @@ classDiagram
       +string[] risk_ids
       +string[] missing_controls
       +string gate_json_sha256
+      +string block_sha256
       +string definition_name
       +int definition_version
     }

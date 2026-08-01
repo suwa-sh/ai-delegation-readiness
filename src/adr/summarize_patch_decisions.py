@@ -17,8 +17,11 @@ the reported figure is the discard rate of *gated* patches only.
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
+from typing import Iterator
 
 import overlay_scoring as overlay_mod
 from jsonschema import Draft202012Validator
@@ -35,6 +38,8 @@ _BANDS_GROUP = "bands"
 _DECIDED = ("accepted", "discarded")
 _BAND_REQUIRED = ("applies_to", "low", "high", "label", "label_ja")
 _BAND_METRICS = ("discard_rate",)
+_PERIOD_PATTERN = re.compile(r"^\d{4}-(0[1-9]|1[0-2])$")
+_RECORD_SUFFIXES = (".jsonl", ".json")
 
 
 class InputError(Exception):
@@ -120,23 +125,50 @@ def _build_validator(schema_path: Path) -> Draft202012Validator:
     )
 
 
-def _iter_record_sources(path: Path) -> list[tuple[str, str]]:
-    """Return (origin, raw_json) pairs from a .jsonl file or a directory of .json."""
+def _iter_file_sources(path: Path) -> Iterator[tuple[str, str]]:
+    """Yield (origin, raw_json) without holding the whole file as one list.
+
+    ``.jsonl`` is one record per line; ``.json`` is a single object. A month-per-
+    file directory (decisions/2026-07.jsonl) is the documented layout, so both
+    suffixes must work for a directory as well as a direct path.
+    """
+    if path.suffix == ".json":
+        yield str(path), path.read_text(encoding="utf-8")
+        return
+    with path.open(encoding="utf-8") as fh:
+        for lineno, line in enumerate(fh, start=1):
+            if line.strip():
+                yield f"{path}:{lineno}", line
+
+
+def _iter_record_sources(path: Path) -> Iterator[tuple[str, str]]:
     if path.is_dir():
-        files = sorted(p for p in path.glob("*.json") if p.is_file())
+        files = sorted(
+            p for p in path.iterdir() if p.is_file() and p.suffix in _RECORD_SUFFIXES
+        )
         if not files:
-            raise InputError(f"no *.json records found in directory: {path}")
-        return [(str(p), p.read_text(encoding="utf-8")) for p in files]
+            raise InputError(
+                f"no *.jsonl or *.json records found in directory: {path}"
+            )
+        for file_path in files:
+            yield from _iter_file_sources(file_path)
+        return
     if not path.exists():
         raise InputError(f"input not found: {path}")
-    text = path.read_text(encoding="utf-8")
-    if path.suffix == ".json":
-        return [(str(path), text)]
-    sources: list[tuple[str, str]] = []
-    for lineno, line in enumerate(text.splitlines(), start=1):
-        if line.strip():
-            sources.append((f"{path}:{lineno}", line))
-    return sources
+    yield from _iter_file_sources(path)
+
+
+def _verify_gate_block(record: dict, origin: str) -> None:
+    from .check_patch_ownership import gate_block_digest
+
+    gate = record["gate"]
+    expected = gate_block_digest(gate)
+    if gate["block_sha256"] != expected:
+        raise InputError(
+            f"{origin}: gate block digest mismatch for patch '{record['patch_id']}'. "
+            "The gate block is machine-generated; edit only decision, decided_on, "
+            "discard_reason and note."
+        )
 
 
 def _load_records(path: Path, schema_path: Path) -> list[dict]:
@@ -154,6 +186,7 @@ def _load_records(path: Path, schema_path: Path) -> list[dict]:
             first = errors[0]
             location = "/" + "/".join(str(p) for p in first.absolute_path)
             raise InputError(f"{origin}: schema violation at {location}: {first.message}")
+        _verify_gate_block(data, origin)
         records.append(data)
     return records
 
@@ -246,19 +279,46 @@ def _period_of(record: dict) -> str:
     return str(stamp)[:7]
 
 
+def _recorded_at(record: dict) -> datetime:
+    """Parse to an aware UTC instant.
+
+    String comparison would order '2026-07-31T23:30:00-05:00' before
+    '2026-08-01T03:00:00Z' even though it is the later instant, which would
+    fold to the wrong event and could hide a RED-accepted decision.
+    """
+    raw = record["recorded_at"]
+    parsed = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def _decision_key(record: dict) -> tuple:
+    return (record["decision"], record.get("discard_reason"), record.get("decided_on"))
+
+
 def fold_latest(records: list[dict]) -> list[dict]:
     """Keep the latest event per patch_id.
 
     Appending 'pending' and later 'accepted' for the same patch is the normal
-    workflow; without this fold the patch would be counted twice.
+    workflow; without this fold the patch would be counted twice. Two events
+    with the same instant but different outcomes are an input error: picking
+    one by file order would silently decide whether a contradiction is
+    reported.
     """
-    latest: dict[str, dict] = {}
+    latest: dict[str, tuple[datetime, dict]] = {}
     for record in records:
         key = record["patch_id"]
+        stamp = _recorded_at(record)
         current = latest.get(key)
-        if current is None or record["recorded_at"] >= current["recorded_at"]:
-            latest[key] = record
-    return list(latest.values())
+        if current is None or stamp > current[0]:
+            latest[key] = (stamp, record)
+        elif stamp == current[0] and _decision_key(record) != _decision_key(current[1]):
+            raise InputError(
+                f"patch '{key}' has two different outcomes at the same recorded_at "
+                f"({record['recorded_at']}); give the later event a later timestamp"
+            )
+    return [record for _, record in latest.values()]
 
 
 def _reject_undeclared_reasons(records: list[dict], declared: set[str]) -> None:
@@ -319,14 +379,19 @@ def summarize(
     schema_path: str | Path | None = None,
 ) -> DecisionSummary:
     overlay_paths = list(overlay_paths or [])
+    if period is not None and not _PERIOD_PATTERN.match(period):
+        # 未検証だと typo が「0 件・exit 0」に化け、RED 採用を含む月が
+        # 素通りしたことに気づけない。
+        raise InputError(f"--period must be YYYY-MM (month 01-12); got '{period}'")
     defn = _resolve_definition(overlay_paths)
     bands = load_bands(defn)
 
     records = _load_records(Path(path), Path(schema_path or DEFAULT_SCHEMA))
     _reject_undeclared_reasons(records, declared_reason_ids(defn))
 
-    records = _filter_records(records, period, team)
-    folded = fold_latest(records)
+    # fold してから絞り込む。逆順にすると、翌月に決着したパッチが前月の
+    # レポートで未決のまま残り、latest-wins の契約と食い違う。
+    folded = _filter_records(fold_latest(records), period, team)
     tally = _tally(folded)
 
     teams = sorted({r["team"] for r in folded})
@@ -360,8 +425,8 @@ def render_text(result: DecisionSummary) -> str:
     lines = [
         f"Team: {result.team}",
         f"Period: {result.period}",
-        f"Records: {result.record_count} -> {result.patch_count} patches "
-        f"(same patch recorded twice counts once)",
+        f"Records read: {result.record_count} -> {result.patch_count} patches in scope "
+        f"(repeated events for one patch fold to its latest)",
         "",
     ]
     if result.patch_count == 0:

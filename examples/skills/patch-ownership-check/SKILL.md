@@ -59,8 +59,9 @@ GREEN / YELLOW / RED と次の行動をユーザー向けに翻訳します。
 9. CLI 判定と人間の最終採否を別の decision record に残すよう促す。手順は次のとおり:
    `bin/aidr check-patch-ownership <tmp.csv> --emit-decision-record <path> --team <name>` を
    同じ回答で再実行し、pending の決定記録を JSONL に追記する。人間が採否を決めたら、
-   `decision` / `discard_reason` / `note` / `decided_on` をユーザーに追記してもらう
-   (`gate` ブロックはゲート機械側の転記なので書き換えない)。月次では
+   **追記済みの pending 行を上書きせず**、`decision` / `discard_reason` / `note` / `decided_on` /
+   `recorded_at`(決定が起きた時刻)を持つ**新しいイベント行**をユーザーに追記してもらう
+   (記録は不変イベントであり、`gate` ブロックはゲート機械側の転記なので書き換えない)。月次では
    `bin/aidr summarize-patch-decisions <path または dir>` で破棄率・決定済み率を振り返る。
    詳細は `docs/12_patch_decision_loop.md` と `patch-decision-summary` skill を参照する。
    sandbox や権限で読めない対象は迂回せず、必要な最小権限をユーザーへ求める。

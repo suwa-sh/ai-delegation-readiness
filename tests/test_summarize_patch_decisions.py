@@ -13,6 +13,7 @@ from pathlib import Path
 import pytest
 
 import overlay_scoring as ov
+from adr import check_patch_ownership as po
 from adr import summarize_patch_decisions as sd
 from conftest import (
     patch_decision_path,
@@ -21,17 +22,30 @@ from conftest import (
     sample_patch_decisions_midori_path,
 )
 
-GATE_GREEN = {
-    "region": "green",
-    "risk_ids": [],
-    "missing_controls": [],
-    "gate_json_sha256": "a" * 64,
-    "definition_name": "patch-ownership",
-    "definition_version": 1,
-    "overlays": [],
-}
 
-GATE_RED = {**GATE_GREEN, "region": "red"}
+def _gate(region: str) -> dict:
+    """A syntactically valid gate block, digest included.
+
+    ``block_sha256`` must be the real digest of the rest of the block (see
+    ``check_patch_ownership.gate_block_digest``); summarize() recomputes and
+    checks it on every load, so a hand-typed placeholder would make every
+    synthetic record in this file fail before reaching the behavior under test.
+    """
+    gate = {
+        "region": region,
+        "risk_ids": [],
+        "missing_controls": [],
+        "gate_json_sha256": "a" * 64,
+        "definition_name": "patch-ownership",
+        "definition_version": 1,
+        "overlays": [],
+    }
+    gate["block_sha256"] = po.gate_block_digest(gate)
+    return gate
+
+
+GATE_GREEN = _gate("green")
+GATE_RED = _gate("red")
 
 
 def _record(
@@ -105,6 +119,51 @@ def test_fold_latest_異なるpatch_idの場合_両方が残ること():
 
     # Assert
     assert {r["patch_id"] for r in folded} == {"p1", "p2"}
+
+
+def test_fold_latest_timezoneが異なるinstantの場合_UTC換算で最新のeventが選ばれること():
+    """'2026-07-31T23:30:00-05:00' is 2026-08-01T04:30:00Z, which is LATER
+    than the pending event's 2026-08-01T03:00:00Z. Naive string comparison
+    would rank the pending event last ('08-01' > '07-31') and hide the
+    accepted decision, silently losing a RED-accepted contradiction."""
+    # Arrange
+    accepted = _record("p1", "accepted", "2026-07-31T23:30:00-05:00", decided_on="2026-08-01")
+    pending = _record("p1", "pending", "2026-08-01T03:00:00Z")
+
+    # Act
+    folded = sd.fold_latest([pending, accepted])
+
+    # Assert
+    assert len(folded) == 1
+    assert folded[0]["decision"] == "accepted"
+
+
+def test_fold_latest_同一instantで決定が食い違う場合_InputErrorになること():
+    # Arrange
+    accepted = _record("p1", "accepted", "2026-07-01T00:00:00Z", decided_on="2026-07-01")
+    discarded = _record(
+        "p1", "discarded", "2026-07-01T00:00:00Z",
+        decided_on="2026-07-01", discard_reason="cost_not_worth",
+    )
+
+    # Act & Assert
+    with pytest.raises(sd.InputError, match="two different outcomes"):
+        sd.fold_latest([accepted, discarded])
+
+
+def test_fold_latest_同一instantで内容が同じ場合_1件に畳まれ例外にならないこと():
+    """A duplicate write of the identical event (e.g. a retried append) must
+    not be mistaken for a genuine conflict."""
+    # Arrange
+    first = _record("p1", "accepted", "2026-07-01T00:00:00Z", decided_on="2026-07-01")
+    duplicate = dict(first, note="retried write")
+
+    # Act
+    folded = sd.fold_latest([first, duplicate])
+
+    # Assert
+    assert len(folded) == 1
+    assert folded[0]["decision"] == "accepted"
 
 
 # --- summarize: discard rate excludes pending ----------------------------
@@ -281,6 +340,96 @@ def test_summarize_一致するrecordがない場合_例外なく空の結果を
     # Assert
     assert result.patch_count == 0
     assert "No records matched" in text
+
+
+def test_summarize_月をまたいでpendingがacceptedに畳まれた場合_fold後の月でしか現れないこと(tmp_path):
+    """fold-then-filter: the patch's latest event (accepted, decided in
+    August) determines its period, so a July report must not show it as
+    pending -- it must not show it at all. filter-then-fold would have kept
+    the July pending event and reported the patch as undecided in July."""
+    # Arrange
+    records = [
+        _record("p1", "pending", "2026-07-15T00:00:00Z"),
+        _record("p1", "accepted", "2026-08-01T00:00:00Z", decided_on="2026-08-01"),
+    ]
+
+    # Act
+    july_result = sd.summarize(_write_jsonl(tmp_path, records), period="2026-07")
+
+    # Assert
+    assert july_result.patch_count == 0
+
+
+@pytest.mark.parametrize(
+    "period",
+    [
+        pytest.param("2026-7", id="月が1桁の場合_InputErrorになること"),
+        pytest.param("2026-13", id="月が13の場合_InputErrorになること"),
+        pytest.param("garbage", id="数字形式でない場合_InputErrorになること"),
+    ],
+)
+def test_summarize_periodの形式が不正な場合_InputErrorになること(tmp_path, period):
+    # Arrange
+    records = [_accepted("p1", "01")]
+
+    # Act & Assert
+    with pytest.raises(sd.InputError, match="--period must be"):
+        sd.summarize(_write_jsonl(tmp_path, records), period=period)
+
+
+# --- gate block tamper detection ---------------------------------------------
+
+def test_summarize_gate_blockのregionを改ざんした場合_InputErrorになること(tmp_path):
+    """block_sha256 is recomputed from the rest of the gate block on every
+    load. Retyping 'region' from red to green without recomputing the digest
+    is exactly the bypass this check exists to close."""
+    # Arrange
+    tampered_gate = dict(GATE_RED, region="green")  # block_sha256 は red 時点のまま
+    record = _record(
+        "p1", "accepted", "2026-07-01T00:00:00Z", decided_on="2026-07-01", gate=tampered_gate,
+    )
+
+    # Act & Assert
+    with pytest.raises(sd.InputError, match="gate block digest mismatch"):
+        sd.summarize(_write_jsonl(tmp_path, [record]))
+
+
+# --- directory input (.jsonl / .json) -----------------------------------------
+
+def test_summarize_directory入力の場合_jsonlファイルを読めること(tmp_path):
+    # Arrange
+    (tmp_path / "2026-07.jsonl").write_text(
+        json.dumps(_accepted("p1", "01"), ensure_ascii=False) + "\n", encoding="utf-8",
+    )
+
+    # Act
+    result = sd.summarize(tmp_path)
+
+    # Assert
+    assert result.patch_count == 1
+
+
+def test_summarize_directory入力でjsonlとjsonが混在する場合_両方読めること(tmp_path):
+    # Arrange
+    (tmp_path / "2026-07.jsonl").write_text(
+        json.dumps(_accepted("p1", "01"), ensure_ascii=False) + "\n", encoding="utf-8",
+    )
+    (tmp_path / "p2.json").write_text(
+        json.dumps(_discarded("p2", "02", "cost_not_worth"), ensure_ascii=False), encoding="utf-8",
+    )
+
+    # Act
+    result = sd.summarize(tmp_path)
+
+    # Assert
+    assert result.patch_count == 2
+    assert result.discarded == 1
+
+
+def test_summarize_空directoryの場合_InputErrorになること(tmp_path):
+    # Act & Assert
+    with pytest.raises(sd.InputError, match=r"no \*\.jsonl or \*\.json records"):
+        sd.summarize(tmp_path)
 
 
 # --- discard_reason validation ----------------------------------------------

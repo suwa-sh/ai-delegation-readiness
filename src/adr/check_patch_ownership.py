@@ -546,6 +546,20 @@ def _sha256_file(path: str | Path) -> str:
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
+def gate_block_digest(gate: dict) -> str:
+    """Digest of the gate block itself, excluding the digest field.
+
+    ``gate_json_sha256`` ties the record back to a gate run but cannot be
+    recomputed later without re-running the gate. This one can: the summary
+    recomputes it and refuses a record whose gate block was edited, so the
+    RED-accepted check cannot be silenced by retyping ``region``.
+    """
+    payload = {k: v for k, v in gate.items() if k != "block_sha256"}
+    return _sha256_text(
+        json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    )
+
+
 def build_decision_record(
     result: PatchResult,
     team: str,
@@ -569,24 +583,28 @@ def build_decision_record(
         )
     if not isinstance(team, str) or not team.strip():
         raise InputError("--team is required to emit a decision record")
+    gate = {
+        "region": result.region,
+        "risk_ids": list(result.risk_ids),
+        "missing_controls": list(result.missing_controls),
+        # ``--format json`` が実際に出力するバイト列 (print の末尾改行を含む) の
+        # digest。利用者が `aidr ... --format json | shasum -a 256` で照合できる。
+        "gate_json_sha256": _sha256_text(render_json(result) + "\n"),
+        "definition_name": str(base.get("name")),
+        "definition_version": int(base.get("version", 1)),
+        "overlays": [
+            {"path": str(p), "sha256": _sha256_file(p)}
+            for p in (overlay_paths or [])
+        ],
+    }
+    gate["block_sha256"] = gate_block_digest(gate)
     return {
         "schema_version": SCHEMA_VERSION,
         "patch_id": result.patch,
         "team": team.strip(),
         "recorded_at": recorded_at,
         "decision": "pending",
-        "gate": {
-            "region": result.region,
-            "risk_ids": list(result.risk_ids),
-            "missing_controls": list(result.missing_controls),
-            "gate_json_sha256": _sha256_text(render_json(result)),
-            "definition_name": str(base.get("name")),
-            "definition_version": int(base.get("version", 1)),
-            "overlays": [
-                {"path": str(p), "sha256": _sha256_file(p)}
-                for p in (overlay_paths or [])
-            ],
-        },
+        "gate": gate,
     }
 
 

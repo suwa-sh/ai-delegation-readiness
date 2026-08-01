@@ -794,6 +794,9 @@ def test_score_redacted回顧fixtureを採点した場合_期待regionとdigest�
 # --- build_decision_record / append_decision_record --------------------------
 
 def test_build_decision_record_greenサンプルの場合_gate_json_sha256がrender_jsonのdigestと一致すること():
+    """gate_json_sha256 hashes the exact bytes ``--format json`` prints
+    (render_json + the trailing newline print() adds), so
+    ``aidr ... --format json | shasum -a 256`` reproduces it."""
     # Arrange
     result = po.score(sample_patch_green_path())
 
@@ -803,11 +806,27 @@ def test_build_decision_record_greenサンプルの場合_gate_json_sha256がren
     )
 
     # Assert
-    expected_digest = hashlib.sha256(po.render_json(result).encode("utf-8")).hexdigest()
+    expected_digest = hashlib.sha256((po.render_json(result) + "\n").encode("utf-8")).hexdigest()
     assert record["gate"]["gate_json_sha256"] == expected_digest
     assert record["decision"] == "pending"
     assert record["patch_id"] == result.patch
     assert "decided_on" not in record
+
+
+def test_build_decision_record_greenサンプルの場合_block_sha256がgate_block_digestと一致すること():
+    """block_sha256 lets summarize-patch-decisions detect a hand-edited gate
+    block (e.g. region retyped from red to green) instead of trusting it."""
+    # Arrange
+    result = po.score(sample_patch_green_path())
+
+    # Act
+    record = po.build_decision_record(
+        result, team="midori-seiki-platform", recorded_at="2026-07-01T00:00:00Z"
+    )
+
+    # Assert
+    gate_without_digest = {k: v for k, v in record["gate"].items() if k != "block_sha256"}
+    assert record["gate"]["block_sha256"] == po.gate_block_digest(gate_without_digest)
 
 
 def test_build_decision_record_overlayを渡した場合_pathとsha256とdefinition情報を記録すること():
@@ -912,6 +931,34 @@ def test_aidr_check_patch_ownership_emit_decision_recordを指定した場合_pe
     assert record["decision"] == "pending"
     assert record["team"] == "midori-seiki-platform"
     assert record["gate"]["region"] == "green"
+
+
+def test_aidr_check_patch_ownership_emit_decision_recordの場合_gate_json_sha256がformat_json出力のdigestと一致すること(
+    tmp_path,
+):
+    """The recorded digest must reproduce what a human running
+    ``aidr check-patch-ownership X --format json | shasum -a 256`` would get,
+    not just an internal recomputation of the same code path."""
+    # Arrange
+    out = tmp_path / "decisions.jsonl"
+
+    # Act
+    _run(
+        "check-patch-ownership",
+        str(sample_patch_green_path()),
+        "--emit-decision-record",
+        str(out),
+        "--team",
+        "midori-seiki-platform",
+    )
+    json_result = _run(
+        "check-patch-ownership", str(sample_patch_green_path()), "--format", "json"
+    )
+
+    # Assert
+    record = json.loads(out.read_text(encoding="utf-8").splitlines()[0])
+    expected_digest = hashlib.sha256(json_result.stdout.encode("utf-8")).hexdigest()
+    assert record["gate"]["gate_json_sha256"] == expected_digest
 
 
 # --- regression guard: --emit-decision-record must not change the default ---
