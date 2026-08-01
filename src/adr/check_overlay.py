@@ -30,6 +30,39 @@ class OverlayCheck:
         return self.base_path is not None and not self.violations
 
 
+def _definition_contract_violations(
+    base: dict, merged: dict
+) -> list[overlay_mod.MergeViolation]:
+    """Per-definition contracts the generic merge engine cannot check.
+
+    The engine treats leaf payload as opaque, so a syntactically valid overlay
+    can still inject a band with no bounds or a reversed range. Both entry
+    points (this command and the consuming command) must reject it.
+    """
+    name = base.get("name")
+    if name == "patch-ownership":
+        from .check_patch_ownership import validate_overlay_contract
+
+        return [
+            overlay_mod.MergeViolation(
+                path="add", kind="invalid_patch_ownership_overlay", message=message
+            )
+            for message in validate_overlay_contract(base, merged)
+        ]
+    if name == "patch-decision":
+        from .summarize_patch_decisions import InputError as DecisionInputError, load_bands
+
+        try:
+            load_bands(merged)
+        except DecisionInputError as e:
+            return [
+                overlay_mod.MergeViolation(
+                    path="add", kind="invalid_patch_decision_overlay", message=str(e)
+                )
+            ]
+    return []
+
+
 def check(
     overlay_path: str | Path,
     definitions_dir: str | Path | None = None,
@@ -69,16 +102,8 @@ def check(
     base = overlay_mod.load_yaml(base_path)
     result = overlay_mod.apply_overlay(base, overlay)
     violations = list(result.violations)
-    if not violations and base.get("name") == "patch-ownership":
-        from .check_patch_ownership import validate_overlay_contract
-        violations.extend(
-            overlay_mod.MergeViolation(
-                path="add",
-                kind="invalid_patch_ownership_overlay",
-                message=message,
-            )
-            for message in validate_overlay_contract(base, result.merged)
-        )
+    if not violations:
+        violations.extend(_definition_contract_violations(base, result.merged))
     return OverlayCheck(
         overlay_path=str(overlay_path),
         base_path=str(base_path),

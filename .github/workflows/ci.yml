@@ -52,3 +52,4 @@ jobs:
         run: |
           bin/aidr check-overlay examples/overlays/sample-company/extra-rules.yaml
           bin/aidr check-overlay examples/overlays/patch-ownership/extra-risk.yaml
+          bin/aidr check-overlay examples/overlays/patch-decision/team-bands.yaml

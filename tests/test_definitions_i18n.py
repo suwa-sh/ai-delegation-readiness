@@ -18,6 +18,7 @@ from conftest import (
     four_layer_path,
     hs_overlay_four_layer_path,
     matrix_path,
+    patch_decision_path,
     patch_ownership_path,
     task_contract_path,
     transition_path,
@@ -59,6 +60,32 @@ def test_question_leaves_全定義の場合_text_jaが非空であること(name
     assert leaves, f"{name}: no question leaves found (parsing broke?)"
     missing = [l["id"] for l in leaves if not str(l.get("text_ja", "")).strip()]
     assert missing == [], f"{name}: question leaves without text_ja: {missing}"
+
+
+# patch-decision is deliberately excluded from DEFINITIONS above: all of its
+# leaves are ``kind: lookup`` (no question leaves), so _question_leaves()
+# would find nothing and the shared test would report a false "parsing
+# broke?" failure. Its text_ja completeness is pinned separately here, scoped
+# to the three groups that actually carry ``text``/``text_ja``
+# (decision / discard_reason / reading — bands carries label/label_ja instead).
+
+def _text_ja_leaves(defn: dict, group_prefixes: tuple[str, ...]) -> list[dict]:
+    return [
+        item
+        for item in defn["items"]
+        if any(item["id"].startswith(f"{prefix}.") for prefix in group_prefixes)
+    ]
+
+
+def test__text_ja_leaves_patch_decision定義の場合_text_jaが非空であること():
+    # Act
+    defn = ov.load_yaml(patch_decision_path())
+    leaves = _text_ja_leaves(defn, ("decision", "discard_reason", "reading"))
+
+    # Assert
+    assert leaves, "patch-decision: no decision/discard_reason/reading leaves found"
+    missing = [l["id"] for l in leaves if not str(l.get("text_ja", "")).strip()]
+    assert missing == [], f"patch-decision: leaves without text_ja: {missing}"
 
 
 def test_apply_overlays_hs_overlayを適用した場合_text_jaが保持されること():

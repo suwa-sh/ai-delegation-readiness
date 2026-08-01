@@ -1,0 +1,48 @@
+# ミドリ精機プラットフォームチームの overlay 例。
+#
+# 本体 (definitions/patch-decision.yaml) は健全域の数値を持たない。実証された
+# 閾値が存在しないため、同梱すると根拠のない数値が権威化するからである。
+# 各組織は自チームの実績から基準線を引き、この形で足す。
+#
+# bands.<id> は applies_to / low / high / label / label_ja が必須。
+# low < high、0.0-1.0、区間の重複禁止。違反は check-overlay と
+# summarize-patch-decisions の双方が exit 3 で弾く。
+# 区間は半開 [low, high) なので、境界値を 2 つの帯が取り合わない。
+#
+# discard_reason は自社固有の破棄理由を足せる。追加した理由 id は
+# summarize-patch-decisions がそのまま受理し、未宣言の理由は exit 3 になる。
+version: 1
+extends: patch-decision
+add:
+  - id: "bands.sunk_cost_suspected"
+    kind: lookup
+    applies_to: discard_rate
+    low: 0.0
+    high: 0.15
+    label: Sunk-cost suspected
+    label_ja: 断れていない疑い
+    rationale: Below the team's own 2026 H1 baseline; a working patch may be accepted by default.
+
+  - id: "bands.healthy"
+    kind: lookup
+    applies_to: discard_rate
+    low: 0.15
+    high: 0.5
+    label: Healthy
+    label_ja: 健全
+    rationale: The band this team observed while probes were used for price discovery.
+
+  - id: "bands.overproduction_suspected"
+    kind: lookup
+    applies_to: discard_rate
+    low: 0.5
+    high: 1.0
+    label: Overproduction suspected
+    label_ja: 乱発の疑い
+    rationale: More than half of the gated patches are thrown away; review load is likely the bottleneck.
+
+  - id: "discard_reason.vendor_contract_conflict"
+    kind: lookup
+    gate_group: ""
+    text: The change conflicted with a vendor contract or an outsourcing boundary.
+    text_ja: "ベンダー契約または委託範囲の境界と衝突した"

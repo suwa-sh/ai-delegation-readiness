@@ -22,6 +22,10 @@ class LayerSummary:
     name: str
     question_count: int
     thresholds: dict
+    # Lookup-only groups (patch-decision の discard_reason / bands) は question を
+    # 持たない。件数を "0 questions" と出すと追加済みの leaf と矛盾して読めるため、
+    # leaf 総数を保持して表示語を切り替える。
+    leaf_count: int = 0
     added_question_ids: list[str] = field(default_factory=list)
     strengthened_thresholds: dict = field(default_factory=dict)
 
@@ -81,7 +85,9 @@ def summarize_task_contract(
 # delegation-matrix の "regions"/"examples"、task-contract の "gates"/"examples"、
 # transition-screening の "types"/"examples" は axis ではなくルックアップ/データ group
 # なので summarize から除外する。four-layer の "efficacy" は axis と並列の独立 group。
-_NON_AXIS_GROUPS = {"regions", "examples", "gates", "types"}
+# patch-decision の "decision"/"reading" は overlay 不可の規範 group なので同様に除外し、
+# 拡張できる discard_reason / bands だけを表示する。
+_NON_AXIS_GROUPS = {"regions", "examples", "gates", "types", "decision", "reading"}
 
 
 def summarize_transition(
@@ -115,6 +121,20 @@ def summarize_patch_ownership(
     )
 
 
+def summarize_patch_decision(
+    overlay_paths: list[str | Path] | None = None,
+    definition_path: str | Path | None = None,
+) -> DefinitionSummary:
+    return _summarize(
+        name="patch-decision",
+        default_filename="patch-decision.yaml",
+        overlay_paths=overlay_paths,
+        definition_path=definition_path,
+        is_axes=True,
+        decision_contract=True,
+    )
+
+
 def _summarize(
     name: str,
     default_filename: str,
@@ -122,6 +142,7 @@ def _summarize(
     definition_path: str | Path | None,
     is_axes: bool,
     patch_contract: bool = False,
+    decision_contract: bool = False,
 ) -> DefinitionSummary:
     overlay_paths = overlay_paths or []
     base_path = Path(definition_path) if definition_path else DEFAULT_DEFINITIONS_DIR / default_filename
@@ -130,6 +151,12 @@ def _summarize(
         from .check_patch_ownership import merge_definition
 
         merged = merge_definition(base, overlay_paths)
+    elif decision_contract:
+        from .summarize_patch_decisions import _resolve_definition, load_bands
+
+        merged = _resolve_definition(overlay_paths) if overlay_paths else base
+        # 不正な band を一覧表示で素通りさせない(summarize と同じ契約)
+        load_bands(merged)
     else:
         merged = _merge_overlays(base, overlay_paths)
 
@@ -216,6 +243,7 @@ def _summarize_group(
         id=group_id,
         name=header.get("name_ja") or header.get("name") or group_id,
         question_count=len(question_leaves),
+        leaf_count=len(group["leaves"]),
         thresholds=thresholds,
         added_question_ids=_added_ids(base_leaves, group["leaves"]),
         strengthened_thresholds=_strengthened_thresholds(base_thresholds, thresholds),
@@ -248,9 +276,12 @@ def _render_section(
     lines = ["", f"{title}:"]
     for item in items:
         thresholds = f"thresholds={item.thresholds}" if label_thresholds else f"{item.thresholds}"
-        lines.append(
-            f"  {item.id} {item.name}: {item.question_count} questions, {thresholds}"
-        )
+        # question を持たない lookup group は entries で数える
+        if item.question_count == 0 and item.leaf_count > 0:
+            count = f"{item.leaf_count} entries"
+        else:
+            count = f"{item.question_count} questions"
+        lines.append(f"  {item.id} {item.name}: {count}, {thresholds}")
         if item.added_question_ids:
             lines.append(f"    +added: {', '.join(item.added_question_ids)}")
         if item.strengthened_thresholds:

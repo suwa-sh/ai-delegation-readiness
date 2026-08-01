@@ -19,6 +19,7 @@ from conftest import (
     hs_overlay_matrix_path,
     insourcing_overlay_path,
     matrix_path,
+    patch_decision_path,
     sample_overlay_path,
     task_contract_path,
     transition_path,
@@ -39,6 +40,10 @@ def task_contract() -> dict:
 
 def transition() -> dict:
     return ov.load_yaml(transition_path())
+
+
+def patch_decision() -> dict:
+    return ov.load_yaml(patch_decision_path())
 
 
 def _ids(defn: dict) -> list[str]:
@@ -608,3 +613,61 @@ def test_apply_overlay_transition_screening定義の固定lookupであるtypes�
     r = ov.apply_overlay(transition(), overlay)
     # Assert
     assert not r.ok
+
+
+# --- patch-decision: discard_reason / bands are add-only extension points ---
+# decision / reading are the record contract and the reading guidance; both
+# are deliberately NOT declared in extension_points (see the comment in
+# definitions/patch-decision.yaml), so overlays cannot grow them.
+
+def test_validate_definition_patch_decision定義の場合_バリデーションエラーが出ないこと():
+    # Act & Assert
+    assert ov.validate_definition(patch_decision()) == []
+
+
+def test_apply_overlay_patch_decision定義のdiscard_reasonに理由をaddした場合_mergeに追加されること():
+    # Arrange
+    overlay = {"extends": "patch-decision",
+               "add": [{"id": "discard_reason.local_reason", "kind": "lookup",
+                        "gate_group": "", "text": "extra", "text_ja": "追加理由"}]}
+    # Act
+    r = ov.apply_overlay(patch_decision(), overlay)
+    # Assert
+    assert r.ok, r.violations
+    assert "discard_reason.local_reason" in _ids(r.merged)
+
+
+def test_apply_overlay_patch_decision定義のbandsに帯をaddした場合_mergeに追加されること():
+    # Arrange
+    overlay = {"extends": "patch-decision",
+               "add": [{"id": "bands.custom", "kind": "lookup", "applies_to": "discard_rate",
+                        "low": 0.0, "high": 0.5, "label": "custom", "label_ja": "自社帯"}]}
+    # Act
+    r = ov.apply_overlay(patch_decision(), overlay)
+    # Assert
+    assert r.ok, r.violations
+    assert "bands.custom" in _ids(r.merged)
+
+
+def test_apply_overlay_patch_decision定義のdecisionに状態をaddした場合_unsupported_opで拒否されること():
+    # Arrange
+    # decision is the record contract, not declared in extension_points.
+    overlay = {"extends": "patch-decision",
+               "add": [{"id": "decision.withdrawn", "kind": "lookup",
+                        "text": "extra state", "text_ja": "追加状態"}]}
+    # Act
+    r = ov.apply_overlay(patch_decision(), overlay)
+    # Assert
+    assert {v.kind for v in r.violations} == {"unsupported_op"}
+
+
+def test_apply_overlay_patch_decision定義のreadingに読み方をaddした場合_unsupported_opで拒否されること():
+    # Arrange
+    # reading is the normative "how to read this" guidance, not extensible.
+    overlay = {"extends": "patch-decision",
+               "add": [{"id": "reading.local_side", "kind": "lookup",
+                        "text": "extra reading", "text_ja": "追加の読み方"}]}
+    # Act
+    r = ov.apply_overlay(patch_decision(), overlay)
+    # Assert
+    assert {v.kind for v in r.violations} == {"unsupported_op"}

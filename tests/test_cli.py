@@ -17,10 +17,13 @@ import pytest
 
 from conftest import (
     REPO_ROOT,
+    patch_decision_team_bands_overlay_path,
     sample_audit_log_path,
     sample_business_path,
     sample_judgments_path,
     sample_overlay_path,
+    sample_patch_decisions_demo_path,
+    sample_patch_decisions_midori_path,
     sample_task_contract_green_path,
     sample_task_contract_red_path,
 )
@@ -46,13 +49,14 @@ def test_aidr_helpオプションを渡した場合_exit0になること():
 
 @pytest.mark.parametrize(
     "subcommand",
-    ["screen-transition", "check-readiness", "score-delegation", "check-task-contract", "check-patch-ownership", "validate-audit-log", "check-overlay", "list-definitions"],
+    ["screen-transition", "check-readiness", "score-delegation", "check-task-contract", "check-patch-ownership", "summarize-patch-decisions", "validate-audit-log", "check-overlay", "list-definitions"],
     ids=[
         "screen_transitionの場合_exit0でusageを含むこと",
         "check_readinessの場合_exit0でusageを含むこと",
         "score_delegationの場合_exit0でusageを含むこと",
         "check_task_contractの場合_exit0でusageを含むこと",
         "check_patch_ownershipの場合_exit0でusageを含むこと",
+        "summarize_patch_decisionsの場合_exit0でusageを含むこと",
         "validate_audit_logの場合_exit0でusageを含むこと",
         "check_overlayの場合_exit0でusageを含むこと",
         "list_definitionsの場合_exit0でusageを含むこと",
@@ -329,3 +333,130 @@ def test_aidr_list_definitions_format_jsonを指定した場合_four_layerがpar
     assert "efficacy_axis" not in four_layer  # old singular key is gone
     axis_ids = {a["id"] for a in four_layer["parallel_axes"]}
     assert {"efficacy", "organization"} <= axis_ids
+
+
+# --- summarize-patch-decisions ------------------------------------------------
+
+def test_aidr_summarize_patch_decisions_redを含むmidoriサンプルの場合_exit2になること():
+    """The sample has a RED-accepted patch, so the contradiction check fires."""
+    # Act
+    r = _run("summarize-patch-decisions", str(sample_patch_decisions_midori_path()))
+    # Assert
+    assert r.returncode == 2
+    assert "[NG] RED accepted: 1" in r.stdout
+
+
+def test_aidr_summarize_patch_decisions_存在しないpathを渡した場合_exit3になること():
+    # Act
+    r = _run("summarize-patch-decisions", "/tmp/does-not-exist-patch-decisions.jsonl")
+    # Assert
+    assert r.returncode == 3
+    assert "[ERROR]" in r.stderr
+    assert "Traceback" not in r.stderr
+
+
+def test_aidr_summarize_patch_decisions_未宣言のdiscard_reasonを含む場合_exit3になること(
+    tmp_path,
+):
+    # Arrange
+    bad = tmp_path / "bad.jsonl"
+    bad.write_text(
+        '{"schema_version": "1", "patch_id": "p1", "team": "t", '
+        '"recorded_at": "2026-07-01T00:00:00Z", "decision": "discarded", '
+        '"decided_on": "2026-07-01", "discard_reason": "not_declared", '
+        '"gate": {"region": "red", "risk_ids": [], "missing_controls": [], '
+        f'"gate_json_sha256": "{"a" * 64}", "definition_name": "patch-ownership", '
+        '"definition_version": 1, "overlays": []}}\n',
+        encoding="utf-8",
+    )
+    # Act
+    r = _run("summarize-patch-decisions", str(bad))
+    # Assert
+    assert r.returncode == 3
+    assert "unknown discard_reason" in r.stderr
+
+
+def test_aidr_summarize_patch_decisions_format_jsonを指定した場合_discard_rateとexit_codeを含むこと():
+    # Act
+    r = _run(
+        "summarize-patch-decisions", str(sample_patch_decisions_midori_path()),
+        "--format", "json",
+    )
+    payload = json.loads(r.stdout)
+    # Assert
+    assert r.returncode == 2
+    assert payload["schema_version"] == "1"
+    assert payload["discard_rate"] == pytest.approx(0.25)
+    assert payload["decided_rate"] == pytest.approx(12 / 13)
+    assert payload["exit_code"] == 2
+
+
+def test_aidr_summarize_patch_decisions_demo_from_fixturesの場合_discard_rateが0であること():
+    # Act
+    r = _run(
+        "summarize-patch-decisions", str(sample_patch_decisions_demo_path()),
+        "--format", "json",
+    )
+    payload = json.loads(r.stdout)
+    # Assert
+    assert r.returncode == 2  # red-accepted patches, even though nothing was discarded
+    assert payload["discard_rate"] == 0.0
+    assert payload["discarded"] == 0
+
+
+def test_aidr_summarize_patch_decisions_teamとperiodで絞り込んだ場合_0件でもexit0になること():
+    # Act
+    r = _run(
+        "summarize-patch-decisions", str(sample_patch_decisions_midori_path()),
+        "--team", "no-such-team", "--period", "2099-01",
+    )
+    # Assert
+    assert r.returncode == 0
+    assert "No records matched" in r.stdout
+
+
+def test_aidr_summarize_patch_decisions_overlayで理由を追加した場合_exit0になること(
+    tmp_path,
+):
+    # Arrange
+    record = tmp_path / "overlay-reason.jsonl"
+    record.write_text(
+        '{"schema_version": "1", "patch_id": "p1", "team": "t", '
+        '"recorded_at": "2026-07-01T00:00:00Z", "decision": "discarded", '
+        '"decided_on": "2026-07-01", "discard_reason": "vendor_contract_conflict", '
+        '"gate": {"region": "green", "risk_ids": [], "missing_controls": [], '
+        f'"gate_json_sha256": "{"a" * 64}", "definition_name": "patch-ownership", '
+        '"definition_version": 1, "overlays": []}}\n',
+        encoding="utf-8",
+    )
+    # Act
+    r = _run(
+        "summarize-patch-decisions", str(record),
+        "--overlay", str(patch_decision_team_bands_overlay_path()),
+    )
+    # Assert
+    assert r.returncode == 0
+    assert "vendor_contract_conflict" in r.stdout
+
+
+# --- list-definitions --target patch-decision ---------------------------------
+
+def test_aidr_list_definitions_patch_decisionターゲットの場合_discard_reasonとbandsを含むこと():
+    # Act
+    r = _run("list-definitions", "--target", "patch-decision")
+    # Assert
+    assert r.returncode == 0
+    assert "discard_reason" in r.stdout
+    assert "bands" in r.stdout
+
+
+def test_aidr_list_definitions_patch_decisionにoverlayを渡した場合_追加idを表示すること():
+    # Act
+    r = _run(
+        "list-definitions", "--target", "patch-decision",
+        "--overlay", str(patch_decision_team_bands_overlay_path()),
+    )
+    # Assert
+    assert r.returncode == 0
+    assert "+added: discard_reason.vendor_contract_conflict" in r.stdout
+    assert "bands.healthy" in r.stdout

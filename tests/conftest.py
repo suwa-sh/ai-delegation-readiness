@@ -131,3 +131,31 @@ def sample_business_yaml_twin_path() -> Path:
 def sample_business_after_overlay_path() -> Path:
     """改善後 + 自社 overlay の追加質問込みの記入例(overlay 適用時に使う)。"""
     return EXAMPLES_DIR / "business" / "sample-expense-approval-after-with-overlay.csv"
+
+
+def patch_decision_path() -> Path:
+    return DEFINITIONS_DIR / "patch-decision.yaml"
+
+
+def patch_decision_schema_path() -> Path:
+    return SCHEMAS_DIR / "patch-decision.schema.json"
+
+
+def sample_patch_decisions_midori_path() -> Path:
+    return EXAMPLES_DIR / "patch-decisions" / "sample-midori-2026-07.jsonl"
+
+
+def sample_patch_decisions_demo_path() -> Path:
+    return EXAMPLES_DIR / "patch-decisions" / "demo-from-fixtures.jsonl"
+
+
+def patch_decision_team_bands_overlay_path() -> Path:
+    return EXAMPLES_DIR / "overlays" / "patch-decision" / "team-bands.yaml"
+
+
+def patch_ownership_validation_fixtures_dir() -> Path:
+    return REPO_ROOT / "tests" / "fixtures" / "patch_ownership_validation"
+
+
+def patch_ownership_extra_risk_overlay_path() -> Path:
+    return EXAMPLES_DIR / "overlays" / "patch-ownership" / "extra-risk.yaml"

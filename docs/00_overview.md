@@ -177,6 +177,18 @@ bin/aidr check-overlay examples/overlays/sample-company/extra-rules.yaml
 bin/aidr check-readiness my-business.csv --overlay examples/overlays/sample-company/extra-rules.yaml
 ```
 
+### 拡張(任意): パッチ受入の後を運用ループにする
+
+ステップ 6 の GREEN / YELLOW / RED は自動 merge 命令ではなく、人間が採否を決める最低条件でした。
+ミドリ精機はその採否を決定記録として残し、月次で破棄率・決定済み率を振り返っています。
+本線 6 ステップは変わらず、このループはステップ 6 の先に位置する任意運用です。
+
+```bash
+bin/aidr summarize-patch-decisions examples/patch-decisions/sample-midori-2026-07.jsonl
+```
+
+→ 詳細は [docs/12](12_patch_decision_loop.md)
+
 ## 学習パス(どの順で読むか)
 
 | 順 | doc | 何が分かるか |
@@ -191,6 +203,7 @@ bin/aidr check-readiness my-business.csv --overlay examples/overlays/sample-comp
 | 8 | [07 ログ基盤の点検](07_audit_log_gap_check.md) | 既存基盤への当てはめ |
 | 9 | [11 パッチ所有コスト](11_patch_ownership_gate.md) | AI 生成差分の受入ゲート |
 | 応用 | [08 高責任ドメイン overlay](08_high_stakes_domain_overlay.md) / [09 内製化 overlay](09_insourcing_judgment_overlay.md) / [10 権限設計 overlay](10_agent_authorization_overlay.md) | 知財/法務/薬事、内製化の判断責任、能力軸と同意軸 |
+| 拡張 | [12 パッチ受入の運用ループ](12_patch_decision_loop.md) | ステップ 6 の先: 決定記録と月次の破棄率振り返り |
 
 ## References
 

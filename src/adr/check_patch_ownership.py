@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
 
@@ -534,6 +536,68 @@ def render_json(result: PatchResult) -> str:
         indent=2,
         ensure_ascii=False,
     )
+
+
+def _sha256_text(text: str) -> str:
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def _sha256_file(path: str | Path) -> str:
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+def build_decision_record(
+    result: PatchResult,
+    team: str,
+    overlay_paths: list[str | Path] | None = None,
+    definition_path: str | Path | None = None,
+    recorded_at: str | None = None,
+) -> dict:
+    """Build a pending decision record from a gate result.
+
+    The gate block is machine-transcribed on purpose. If a human retyped the
+    region, a RED result could be recorded as green and the summary's
+    contradiction check would never fire.
+    """
+    from . import io_input
+
+    definition_path = definition_path or DEFAULT_DEFINITION
+    base = io_input.load_yaml_unique(definition_path)
+    if recorded_at is None:
+        recorded_at = datetime.now(timezone.utc).isoformat(timespec="seconds").replace(
+            "+00:00", "Z"
+        )
+    if not isinstance(team, str) or not team.strip():
+        raise InputError("--team is required to emit a decision record")
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "patch_id": result.patch,
+        "team": team.strip(),
+        "recorded_at": recorded_at,
+        "decision": "pending",
+        "gate": {
+            "region": result.region,
+            "risk_ids": list(result.risk_ids),
+            "missing_controls": list(result.missing_controls),
+            "gate_json_sha256": _sha256_text(render_json(result)),
+            "definition_name": str(base.get("name")),
+            "definition_version": int(base.get("version", 1)),
+            "overlays": [
+                {"path": str(p), "sha256": _sha256_file(p)}
+                for p in (overlay_paths or [])
+            ],
+        },
+    }
+
+
+def append_decision_record(record: dict, out_path: str | Path) -> None:
+    """Append one JSON object as a line. Records are immutable events, so the
+    file grows and the summary folds to the latest event per patch_id."""
+    path = Path(out_path)
+    if path.parent and not path.parent.exists():
+        raise InputError(f"decision record directory does not exist: {path.parent}")
+    with path.open("a", encoding="utf-8") as fh:
+        fh.write(json.dumps(record, ensure_ascii=False) + "\n")
 
 
 def render_csv_rows(result: PatchResult) -> list[list[str]]:

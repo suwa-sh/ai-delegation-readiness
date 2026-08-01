@@ -232,3 +232,5 @@ bin/aidr check-patch-ownership my-patch.csv \
 - 前のステップ: [06 監査ログスキーマ](06_audit_log_schema.md)
 - 関連 doc: [`05_task_contract_execution_rubric.md`](05_task_contract_execution_rubric.md)(委任タスクの受入条件) /
   [`07_audit_log_gap_check.md`](07_audit_log_gap_check.md)(証拠を残す既存基盤の点検)
+
+次のステップ: [12 パッチ受入の運用ループ](12_patch_decision_loop.md)(決定記録と月次の破棄率振り返り)

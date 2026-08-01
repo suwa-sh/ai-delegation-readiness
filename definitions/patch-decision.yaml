@@ -1,0 +1,110 @@
+version: 1
+name: patch-decision
+separator: "."
+description: |
+  Retrospective loop over the patch-ownership gate. One record per patch
+  captures the gate result and the human accept/discard outcome; the summary
+  reports the discard rate, the decided rate, and the discard-reason mix for a
+  team over a period. The denominator is limited to patches that went through
+  the gate and produced a record, so this is never the discard rate of all
+  probe patches.
+
+# 拡張ポイント: discard_reason は自社固有の破棄理由を、bands は自社の健全域を
+# 足す口。decision は記録の契約、reading は読み方の規範なので overlay 対象外
+# (patch-ownership の hollow_green / gates と同じ安全境界の作り方)。
+extension_points:
+  - {group: "discard_reason", allow: add}
+  - {group: "bands", allow: add}
+
+items:
+  # --- decision: 記録できる 3 状態。これ自体は拡張不可 ---
+  - id: "decision"
+    kind: lookup
+    name: decision_states
+    name_ja: 採否の状態
+    purpose: A record is one immutable event. Summaries fold to the latest event per patch_id.
+  - id: "decision.accepted"
+    kind: lookup
+    name: accepted
+    name_ja: 採用
+    text: The patch was accepted into the codebase by a human decision.
+    text_ja: "人の判断でパッチを受け入れた"
+  - id: "decision.discarded"
+    kind: lookup
+    name: discarded
+    name_ja: 破棄
+    text: The patch was discarded; the probe did its job of pricing the requirement.
+    text_ja: "パッチを破棄した。探針が要求の値付けという役目を果たした状態"
+  - id: "decision.pending"
+    kind: lookup
+    name: pending
+    name_ja: 未決
+    text: The gate ran but no accept/discard decision has been made yet.
+    text_ja: "ゲートは通したが、採否をまだ決めていない"
+
+  # --- discard_reason: なぜ捨てたか。率だけでは打つ手が決まらない ---
+  - id: "discard_reason"
+    kind: lookup
+    name: discard_reasons
+    name_ja: 破棄の理由
+    purpose: The same rate means different things depending on which reason dominates.
+  - id: "discard_reason.never_cheap_rejected"
+    kind: lookup
+    gate_group: never_cheap
+    text: A never-cheap category applied and the named human owner rejected the change.
+    text_ja: "決して安く所有できない象限に該当し、指名した所有者が却下した"
+  - id: "discard_reason.test_integrity_failed"
+    kind: lookup
+    gate_group: hollow_green
+    text: The green test had no external anchor or no proof that it can fail.
+    text_ja: "テストが緑でも外部 anchor が無い、または失敗できることを示せなかった"
+  - id: "discard_reason.probe_oversized"
+    kind: lookup
+    gate_group: probe
+    text: The probe could not stay within its constraints, revealing that the requirement is larger than assumed.
+    text_ja: "探針が制約内に収まらず、要求が想定より大きいと判明した"
+  - id: "discard_reason.owner_unassignable"
+    kind: lookup
+    gate_group: ownership
+    text: No future owner could be named for the change.
+    text_ja: "将来の所有者を指名できなかった"
+  - id: "discard_reason.cost_not_worth"
+    kind: lookup
+    gate_group: ""
+    text: Controls were all in place, but the three-year ownership cost was judged not worth paying.
+    text_ja: "統制は揃っていたが、3 年の所有コストに見合わないと判断した"
+
+  # --- reading: 両側の失敗。数値の健全域は同梱しない ---
+  - id: "reading"
+    kind: lookup
+    name: two_sided_reading
+    name_ja: 両側の読み方
+    purpose: Both a high and a low discard rate signal a failure mode. No numeric band ships with this definition.
+  - id: "reading.high_side"
+    kind: lookup
+    name: overproduction
+    name_ja: 乱発の疑い
+    text: A high discard rate can mean probes are generated faster than anyone can judge them, shifting load onto review.
+    text_ja: "破棄率が高い場合、判断できる速度を超えて探針を出しており、負荷がレビュー側に移っている疑いがある"
+  - id: "reading.low_side"
+    kind: lookup
+    name: sunk_cost
+    name_ja: 断れていない疑い
+    text: A low discard rate can mean a working patch in front of the team is accepted by default, which is the sunk-cost path the probe was meant to avoid.
+    text_ja: "破棄率が低い場合、目の前で動くパッチを既定で採用しており、探針が避けようとしたサンクコストの経路に乗っている疑いがある"
+  - id: "reading.coverage_low"
+    kind: lookup
+    name: undecided_backlog
+    name_ja: 判断保留
+    text: When the decided rate is low, the discard rate is computed from a small decided subset and should not be read as the team's behavior yet.
+    text_ja: "決定済み率が低い場合、破棄率は少数の決定済み分から計算されており、チームの傾向としてはまだ読めない"
+
+  # --- bands: leaf ゼロで出荷する。組織が overlay で自社の健全域を足す ---
+  # bands.<id> は applies_to / low / high / label / label_ja を必須とし、
+  # low < high、0.0-1.0、区間の重複禁止。エンジンは payload を検証しないので
+  # summarize-patch-decisions と check-overlay の双方が契約を検査する。
+  - id: "bands"
+    kind: lookup
+    name: health_bands
+    name_ja: 健全域
+    purpose: Intentionally empty. No evidence-based threshold exists, so each organization sets its own band by overlay.

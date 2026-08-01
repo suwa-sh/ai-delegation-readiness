@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/suwa-sh/ai-delegation-readiness/schemas/patch-decision.schema.json",
+  "title": "AI Patch Decision Record",
+  "description": "One immutable event recording the patch-ownership gate result and the human accept/discard outcome for a single patch. Summaries fold to the latest event per patch_id. The membership of discard_reason is intentionally not constrained here: organizations may add reasons by overlay, so the value is checked against the merged definition instead.",
+  "$defs": {
+    "overlay_ref": {
+      "type": "object",
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1, "description": "Overlay file path as applied at gate time" },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$", "description": "Digest of the overlay file contents" }
+      },
+      "additionalProperties": false
+    },
+    "gate_result": {
+      "type": "object",
+      "description": "Transcribed from the gate machine-side. Hand-editing this block would let a RED result be recorded as green and defeat the contradiction check.",
+      "required": [
+        "region",
+        "risk_ids",
+        "missing_controls",
+        "gate_json_sha256",
+        "definition_name",
+        "definition_version"
+      ],
+      "properties": {
+        "region": {
+          "type": "string",
+          "enum": ["green", "yellow", "red"],
+          "description": "Gate verdict for this patch"
+        },
+        "risk_ids": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "description": "never_cheap question ids that were answered yes"
+        },
+        "missing_controls": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "description": "Controls the gate found missing"
+        },
+        "gate_json_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$",
+          "description": "Digest of the gate's JSON report, so the transcription can be re-verified"
+        },
+        "definition_name": { "type": "string", "minLength": 1 },
+        "definition_version": { "type": "integer" },
+        "overlays": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/overlay_ref" },
+          "description": "Overlays applied at gate time, in application order"
+        }
+      },
+      "additionalProperties": false
+    },
+    "patch_decision_record": {
+      "type": "object",
+      "required": [
+        "schema_version",
+        "patch_id",
+        "team",
+        "recorded_at",
+        "decision",
+        "gate"
+      ],
+      "properties": {
+        "schema_version": { "type": "string", "const": "1" },
+        "patch_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stable key. Repeated events for the same patch_id fold to the latest recorded_at."
+        },
+        "team": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Aggregation unit for the monthly retrospective"
+        },
+        "recorded_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When this event was written. Orders events for the latest-wins fold."
+        },
+        "decision": {
+          "type": "string",
+          "enum": ["accepted", "discarded", "pending"]
+        },
+        "decided_on": {
+          "type": "string",
+          "format": "date",
+          "description": "Date the accept/discard was decided. Required once decided; forbidden while pending, because a pending record has no decision date."
+        },
+        "discard_reason": {
+          "type": "string",
+          "minLength": 1,
+          "description": "A discard_reason leaf id from definitions/patch-decision.yaml (without the group prefix). Membership is validated against the overlay-merged definition, not by this schema."
+        },
+        "gate": { "$ref": "#/$defs/gate_result" },
+        "note": { "type": "string", "description": "Free-text note from the decider" }
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": { "decision": { "const": "pending" } },
+            "required": ["decision"]
+          },
+          "then": {
+            "not": { "required": ["decided_on"] }
+          },
+          "else": {
+            "required": ["decided_on"]
+          }
+        },
+        {
+          "if": {
+            "properties": { "decision": { "const": "discarded" } },
+            "required": ["decision"]
+          },
+          "then": {
+            "required": ["discard_reason"]
+          },
+          "else": {
+            "not": { "required": ["discard_reason"] }
+          }
+        }
+      ]
+    }
+  },
+  "$ref": "#/$defs/patch_decision_record"
+}

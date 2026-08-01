@@ -15,6 +15,8 @@ from adr import check_patch_ownership as po
 from adr import io_input
 from conftest import (
     REPO_ROOT,
+    patch_ownership_extra_risk_overlay_path,
+    sample_patch_decisions_demo_path,
     sample_patch_green_path,
     sample_patch_hollow_red_path,
     sample_patch_risk_yellow_path,
@@ -787,3 +789,240 @@ def test_score_redacted回顧fixtureを採点した場合_期待regionとdigest�
     assert len(data["retrospective"]["commit"]) == 40
     assert len(data["retrospective"]["diff_sha256"]) == 64
     assert actual_digest == declared_digest
+
+
+# --- build_decision_record / append_decision_record --------------------------
+
+def test_build_decision_record_greenサンプルの場合_gate_json_sha256がrender_jsonのdigestと一致すること():
+    # Arrange
+    result = po.score(sample_patch_green_path())
+
+    # Act
+    record = po.build_decision_record(
+        result, team="midori-seiki-platform", recorded_at="2026-07-01T00:00:00Z"
+    )
+
+    # Assert
+    expected_digest = hashlib.sha256(po.render_json(result).encode("utf-8")).hexdigest()
+    assert record["gate"]["gate_json_sha256"] == expected_digest
+    assert record["decision"] == "pending"
+    assert record["patch_id"] == result.patch
+    assert "decided_on" not in record
+
+
+def test_build_decision_record_overlayを渡した場合_pathとsha256とdefinition情報を記録すること():
+    # Arrange
+    overlay = patch_ownership_extra_risk_overlay_path()
+    result = po.score(sample_patch_green_path())
+
+    # Act
+    record = po.build_decision_record(
+        result,
+        team="midori-seiki-platform",
+        overlay_paths=[overlay],
+        recorded_at="2026-07-01T00:00:00Z",
+    )
+
+    # Assert
+    assert record["gate"]["definition_name"] == "patch-ownership"
+    assert record["gate"]["definition_version"] == 1
+    assert record["gate"]["overlays"] == [
+        {"path": str(overlay), "sha256": hashlib.sha256(overlay.read_bytes()).hexdigest()}
+    ]
+
+
+@pytest.mark.parametrize(
+    "team",
+    [
+        pytest.param("", id="teamが空文字の場合_InputErrorになること"),
+        pytest.param("   ", id="teamが空白のみの場合_InputErrorになること"),
+    ],
+)
+def test_build_decision_record_teamが空の場合_InputErrorになること(team):
+    # Arrange
+    result = po.score(sample_patch_green_path())
+
+    # Act & Assert
+    with pytest.raises(po.InputError, match="--team is required"):
+        po.build_decision_record(result, team=team)
+
+
+def test_append_decision_record_複数回呼んだ場合_1行ずつ追記されること(tmp_path):
+    # Arrange
+    out = tmp_path / "decisions.jsonl"
+    first = {"patch_id": "p1"}
+    second = {"patch_id": "p2"}
+
+    # Act
+    po.append_decision_record(first, out)
+    po.append_decision_record(second, out)
+
+    # Assert
+    lines = out.read_text(encoding="utf-8").splitlines()
+    assert [json.loads(line) for line in lines] == [first, second]
+
+
+def test_append_decision_record_出力先directoryが存在しない場合_InputErrorになること(tmp_path):
+    # Arrange
+    out = tmp_path / "missing-dir" / "decisions.jsonl"
+
+    # Act & Assert
+    with pytest.raises(po.InputError, match="directory does not exist"):
+        po.append_decision_record({"patch_id": "p1"}, out)
+
+
+def test_aidr_check_patch_ownership_emit_decision_recordでteam未指定の場合_exit3になること(
+    tmp_path,
+):
+    # Arrange
+    out = tmp_path / "decisions.jsonl"
+
+    # Act
+    result = _run(
+        "check-patch-ownership",
+        str(sample_patch_green_path()),
+        "--emit-decision-record",
+        str(out),
+    )
+
+    # Assert
+    assert result.returncode == 3
+    assert "--team is required" in result.stderr
+
+
+def test_aidr_check_patch_ownership_emit_decision_recordを指定した場合_pending記録を1行追記すること(
+    tmp_path,
+):
+    # Arrange
+    out = tmp_path / "decisions.jsonl"
+
+    # Act
+    result = _run(
+        "check-patch-ownership",
+        str(sample_patch_green_path()),
+        "--emit-decision-record",
+        str(out),
+        "--team",
+        "midori-seiki-platform",
+    )
+
+    # Assert
+    assert result.returncode == 0
+    record = json.loads(out.read_text(encoding="utf-8").splitlines()[0])
+    assert record["decision"] == "pending"
+    assert record["team"] == "midori-seiki-platform"
+    assert record["gate"]["region"] == "green"
+
+
+# --- regression guard: --emit-decision-record must not change the default ---
+# ``check-patch-ownership`` path. The exact text is pinned so any accidental
+# change to render_text() (spacing, wording, ordering) is caught here, not
+# discovered by a downstream consumer of the previously-stable output.
+
+_EXPECTED_GREEN_TEXT = """Patch: cheap-green
+
+[GREEN ] probe 探針パッチの制約: PRESENT (5/5)
+[GREEN ] ownership 将来の所有責任: PRESENT (3/3)
+[GREEN ] hollow_green hollow green 検査: PRESENT (2/2)
+    no: hollow_green.H3
+
+Never-cheap risks: (none)
+Missing controls: (none)
+Evidence refs: format + digest validated; targets were not dereferenced.
+
+Region: GREEN — 所有可能
+  The patch has no never-cheap category and its probe, ownership, evidence, and test-integrity conditions hold.
+"""
+
+_EXPECTED_YELLOW_TEXT = """Patch: authorization-change
+
+[GREEN ] probe 探針パッチの制約: PRESENT (5/5)
+[GREEN ] ownership 将来の所有責任: PRESENT (4/4)
+[GREEN ] hollow_green hollow green 検査: PRESENT (2/2)
+    no: hollow_green.H3
+
+Never-cheap risks: never_cheap.N1
+Missing controls: (none)
+Evidence refs: format + digest validated; targets were not dereferenced.
+
+Region: YELLOW — 人間の採否判断が必要
+  Do not auto-accept. Route high-risk changes to the named human owner, or close the remaining probe and ownership gaps.
+"""
+
+_EXPECTED_RED_TEXT = """Patch: hollow-green
+
+[GREEN ] probe 探針パッチの制約: PRESENT (5/5)
+[GREEN ] ownership 将来の所有責任: PRESENT (3/3)
+[YELLOW] hollow_green hollow green 検査: PARTIAL (1/2)
+    no: hollow_green.H1, hollow_green.H3
+
+Never-cheap risks: (none)
+Missing controls: hollow_green
+Evidence refs: format + digest validated; targets were not dereferenced.
+
+Region: RED — 受入不可
+  Do not accept. Add substantive test evidence or complete the named-owner, responsibility-boundary, and human-review controls.
+"""
+
+
+@pytest.mark.parametrize(
+    ("fixture", "expected_text", "expected_exit"),
+    [
+        pytest.param(
+            sample_patch_green_path, _EXPECTED_GREEN_TEXT, 0,
+            id="cheap_greenの場合_出力とexit_codeが変化していないこと",
+        ),
+        pytest.param(
+            sample_patch_risk_yellow_path, _EXPECTED_YELLOW_TEXT, 1,
+            id="never_cheap_yellowの場合_出力とexit_codeが変化していないこと",
+        ),
+        pytest.param(
+            sample_patch_hollow_red_path, _EXPECTED_RED_TEXT, 2,
+            id="hollow_green_redの場合_出力とexit_codeが変化していないこと",
+        ),
+    ],
+)
+def test_aidr_check_patch_ownership_emit_decision_record未指定の場合_出荷3sampleの出力がbyte一致すること(
+    fixture, expected_text, expected_exit
+):
+    # Act
+    result = _run("check-patch-ownership", str(fixture()))
+
+    # Assert
+    assert result.returncode == expected_exit
+    assert result.stdout == expected_text
+
+
+# --- drift guard: the shipped demo sample must stay reproducible ------------
+
+def _demo_decision_records() -> list[dict]:
+    path = sample_patch_decisions_demo_path()
+    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+
+
+def _fixture_for_patch_id(patch_id: str) -> Path:
+    for path in sorted(RETROSPECTIVE_DIR.glob("*.yaml")):
+        data = yaml.safe_load(path.read_text(encoding="utf-8"))
+        if data["patch"] == patch_id:
+            return path
+    raise AssertionError(f"no retrospective fixture found for patch_id={patch_id!r}")
+
+
+@pytest.mark.parametrize(
+    "record",
+    _demo_decision_records(),
+    ids=lambda r: f"{r['patch_id']}の場合_記録済みregionとdigestに一致すること",
+)
+def test_score_demo_from_fixturesの各記録を再採点した場合_記録済みregionとdigestに一致すること(record):
+    """demo-from-fixtures.jsonl is generated from these fixtures; if a fixture
+    or the scoring logic drifts, the shipped demo silently goes stale."""
+    # Arrange
+    fixture_path = _fixture_for_patch_id(record["patch_id"])
+
+    # Act
+    result = po.score(fixture_path)
+    actual_digest = hashlib.sha256(po.render_json(result).encode("utf-8")).hexdigest()
+
+    # Assert
+    assert result.region == record["gate"]["region"]
+    assert actual_digest == record["gate"]["gate_json_sha256"]

@@ -7,6 +7,7 @@ Subcommands:
     score-delegation       delegation matrix scoring per judgment
     check-task-contract    execution rubric per delegated task (intent/boundary/evidence/scorer)
     check-patch-ownership  post-generation acceptance gate for an AI-generated patch
+    summarize-patch-decisions  discard rate / decided rate over recorded patch decisions
     validate-audit-log     JSON Schema validation (minimum or extended)
     check-overlay          overlay merge-rule validation
     list-definitions       inspect loaded base + overlay structure
@@ -30,6 +31,7 @@ from . import (
     list_definitions as _list,
     score_delegation as _score,
     screen_transition as _screen,
+    summarize_patch_decisions as _decisions,
     validate_audit_log as _validate,
 )
 
@@ -51,8 +53,8 @@ def _shared_overlay_args(
     parser: argparse.ArgumentParser,
     formats: tuple[str, ...] = ("text", "json"),
 ) -> None:
-    # formats はコマンドごとに指定する: レポートの CSV 対応は採点系 + validate の
-    # 5 コマンドのみ(list-definitions 等の階層構造出力に csv を漏らさない)。
+    # formats はコマンドごとに指定する: レポートの CSV 対応は採点系 + validate +
+    # 採否集計の 6 コマンドのみ(list-definitions 等の階層構造出力に csv を漏らさない)。
     parser.add_argument(
         "--overlay",
         action="append",
@@ -156,7 +158,39 @@ def _cmd_check_patch_ownership(args: argparse.Namespace) -> int:
     ) as e:
         sys.stderr.write(f"[ERROR] {e}\n")
         return 3
+    if args.emit_decision_record:
+        try:
+            record = _patch.build_decision_record(
+                result, team=args.team, overlay_paths=args.overlay
+            )
+            _patch.append_decision_record(record, args.emit_decision_record)
+        except (_patch.InputError, OSError) as e:
+            sys.stderr.write(f"[ERROR] {e}\n")
+            return 3
     _emit(result, args, _patch)
+    return result.exit_code
+
+
+def _cmd_summarize_patch_decisions(args: argparse.Namespace) -> int:
+    import yaml as _yaml
+
+    try:
+        result = _decisions.summarize(
+            args.decisions,
+            period=args.period,
+            team=args.team,
+            overlay_paths=args.overlay,
+        )
+    except (
+        _decisions.OverlayError,
+        _decisions.InputError,
+        _io.InputFormatError,
+        FileNotFoundError,
+        _yaml.YAMLError,
+    ) as e:
+        sys.stderr.write(f"[ERROR] {e}\n")
+        return 3
+    _emit(result, args, _decisions)
     return result.exit_code
 
 
@@ -206,6 +240,8 @@ def _cmd_list_definitions(args: argparse.Namespace) -> int:
             summaries.append(_list.summarize_transition(overlay_paths=args.overlay))
         if args.target in {"patch-ownership", "all"}:
             summaries.append(_list.summarize_patch_ownership(overlay_paths=args.overlay))
+        if args.target in {"patch-decision", "all"}:
+            summaries.append(_list.summarize_patch_decision(overlay_paths=args.overlay))
     except (
         _check_readiness.OverlayError,
         _patch.InputError,
@@ -305,8 +341,28 @@ def build_parser() -> argparse.ArgumentParser:
         help="Gate an AI-generated patch by ownership cost and acceptance evidence",
     )
     p_patch.add_argument("patch", help="Path to the patch-ownership answers file (CSV or YAML)")
+    p_patch.add_argument(
+        "--emit-decision-record",
+        metavar="PATH",
+        help="Append a pending decision record (JSONL) for the later retrospective",
+    )
+    p_patch.add_argument(
+        "--team",
+        default="",
+        help="Team the patch belongs to (required with --emit-decision-record)",
+    )
     _shared_overlay_args(p_patch, formats=_REPORT_FORMATS)
     p_patch.set_defaults(func=_cmd_check_patch_ownership)
+
+    p_dec = sub.add_parser(
+        "summarize-patch-decisions",
+        help="Report discard rate, decided rate, and discard reasons over recorded decisions",
+    )
+    p_dec.add_argument("decisions", help="Path to a decision-record JSONL file or a directory")
+    p_dec.add_argument("--period", help="Filter to one period (YYYY-MM)")
+    p_dec.add_argument("--team", help="Filter to one team")
+    _shared_overlay_args(p_dec, formats=_REPORT_FORMATS)
+    p_dec.set_defaults(func=_cmd_summarize_patch_decisions)
 
     p_val = sub.add_parser(
         "validate-audit-log",
@@ -344,7 +400,15 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_list.add_argument(
         "--target",
-        choices=["four-layer", "matrix", "task-contract", "transition", "patch-ownership", "all"],
+        choices=[
+            "four-layer",
+            "matrix",
+            "task-contract",
+            "transition",
+            "patch-ownership",
+            "patch-decision",
+            "all",
+        ],
         default="all",
         help="Which definition(s) to inspect",
     )
