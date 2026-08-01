@@ -397,7 +397,7 @@ def test_aidr_summarize_patch_decisions_redを含むmidoriサンプルの場合_
     r = _run("summarize-patch-decisions", str(sample_patch_decisions_midori_path()))
     # Assert
     assert r.returncode == 2
-    assert "[NG] RED accepted: 1" in r.stdout
+    assert "[NG] RED accepted at some point: 1" in r.stdout
 
 
 def test_aidr_summarize_patch_decisions_存在しないpathを渡した場合_exit3になること():
@@ -460,7 +460,7 @@ def test_aidr_summarize_patch_decisions_teamとperiodで絞り込んだ場合_0�
     )
     # Assert
     assert r.returncode == 0
-    assert "No records matched" in r.stdout
+    assert "No patch has its latest state in this scope." in r.stdout
 
 
 @pytest.mark.parametrize(

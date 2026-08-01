@@ -147,7 +147,7 @@ def test_fold_latest_同一instantで決定が食い違う場合_InputErrorに�
     )
 
     # Act & Assert
-    with pytest.raises(sd.InputError, match="two conflicting events"):
+    with pytest.raises(sd.InputError, match="two conflicting decisions"):
         sd.fold_latest([accepted, discarded])
 
 
@@ -176,8 +176,32 @@ def test_fold_latest_同一instantでgateのregionのみ異なる場合_InputErr
     red = _record("p1", "accepted", "2026-07-01T00:00:00Z", decided_on="2026-07-01", gate=GATE_RED)
 
     # Act & Assert
-    with pytest.raises(sd.InputError, match="two conflicting events"):
+    with pytest.raises(sd.InputError, match="two conflicting decisions"):
         sd.fold_latest([green, red])
+
+
+@pytest.mark.parametrize(
+    "order",
+    [
+        pytest.param("pending_first", id="pendingが先の場合_決定済みが採られること"),
+        pytest.param("decided_first", id="決定済みが先の場合_決定済みが採られること"),
+    ],
+)
+def test_fold_latest_同一instantでpendingと決定済みが混在する場合_決定済みが採られること(order):
+    """--emit-decision-record immediately followed by recording the decision
+    lands in the same second in normal use (docs step-by-step). Rejecting
+    that as a conflict made the documented workflow fail every time."""
+    # Arrange
+    pending = _record("p1", "pending", "2026-07-01T00:00:00Z")
+    accepted = _record("p1", "accepted", "2026-07-01T00:00:00Z", decided_on="2026-07-01")
+    records = [pending, accepted] if order == "pending_first" else [accepted, pending]
+
+    # Act
+    folded = sd.fold_latest(records)
+
+    # Assert
+    assert len(folded) == 1
+    assert folded[0]["decision"] == "accepted"
 
 
 # --- patch_identity / red_accepted_identities ---------------------------------
@@ -413,6 +437,105 @@ def test_summarize_同一patch_idが別teamで使われた場合_teamAのred_acc
     assert team_b.pending == 1
 
 
+def test_summarize_red_acceptedのままの場合_currentに含まれcorrectedは空であること(tmp_path):
+    # Arrange
+    records = [_record("p1", "accepted", "2026-07-01T00:00:00Z", decided_on="2026-07-01", gate=GATE_RED)]
+
+    # Act
+    result = sd.summarize(_write_jsonl(tmp_path, records))
+
+    # Assert
+    assert result.red_accepted == ["p1"]
+    assert result.red_accepted_current == ["p1"]
+    assert result.red_accepted_corrected == []
+    assert result.exit_code == 2
+
+
+def test_summarize_red_acceptedをdiscardedに訂正した場合_correctedに含まれcurrentは空であること(tmp_path):
+    """A resolved mistake must not read as an open one: once the acceptance
+    is corrected to a discard, the latest state has no accepted-RED patch,
+    but the history (and the exit code) must still show it happened."""
+    # Arrange
+    records = [
+        _record("p1", "accepted", "2026-07-01T00:00:00Z", decided_on="2026-07-01", gate=GATE_RED),
+        _record(
+            "p1", "discarded", "2026-07-05T00:00:00Z",
+            decided_on="2026-07-05", discard_reason="cost_not_worth",
+        ),
+    ]
+
+    # Act
+    result = sd.summarize(_write_jsonl(tmp_path, records))
+
+    # Assert
+    assert result.red_accepted == ["p1"]
+    assert result.red_accepted_current == []
+    assert result.red_accepted_corrected == ["p1"]
+    assert result.exit_code == 2
+
+
+def test_render_text_patch_countが0でもred_acceptedがある場合_Gate_cross_checkが表示されexit2であること(tmp_path):
+    """Reproduces the review's exact repro: a RED-accepted patch in July,
+    re-run through the gate afterwards so a fresh 'pending' lands in August.
+    fold-then-filter drops the patch's identity out of a --period 2026-07
+    scope entirely (patch_count == 0), but the RED acceptance did happen
+    inside that scope and must still be visible on screen, not just in the
+    exit code."""
+    # Arrange
+    records = [
+        _record("p1", "accepted", "2026-07-01T00:00:00Z", decided_on="2026-07-01", gate=GATE_RED),
+        _record("p1", "pending", "2026-08-01T00:00:00Z"),
+    ]
+
+    # Act
+    result = sd.summarize(_write_jsonl(tmp_path, records), period="2026-07")
+    text = sd.render_text(result)
+
+    # Assert
+    assert result.patch_count == 0
+    assert result.exit_code == 2
+    assert "Gate cross-check" in text
+    assert "[NG] RED accepted at some point: 1" in text
+
+
+def test_summarize_同一秒でpendingとacceptedが記録された場合_Undecidedが0であること(tmp_path):
+    # Arrange
+    records = [
+        _record("p1", "pending", "2026-07-01T00:00:00Z"),
+        _record("p1", "accepted", "2026-07-01T00:00:00Z", decided_on="2026-07-01"),
+    ]
+
+    # Act
+    result = sd.summarize(_write_jsonl(tmp_path, records))
+
+    # Assert
+    assert result.pending == 0
+    assert result.accepted == 1
+
+
+# --- render_json / render_csv_rows expose the current/corrected split -------
+
+def test_render_json_サンプルを集計した場合_red_accepted_currentとcorrectedを含むこと():
+    # Act
+    result = sd.summarize(sample_patch_decisions_midori_path())
+    payload = json.loads(sd.render_json(result))
+
+    # Assert
+    assert payload["red_accepted_current"] == ["expense-retention-purge-job"]
+    assert payload["red_accepted_corrected"] == []
+
+
+def test_render_csv_rows_サンプルを集計した場合_red_accepted_currentとcorrectedの行を含むこと():
+    # Act
+    result = sd.summarize(sample_patch_decisions_midori_path())
+    rows = sd.render_csv_rows(result)
+    row_ids = {(row[0], row[1]) for row in rows}
+
+    # Assert
+    assert ("gate_crosscheck", "red_accepted_current") in row_ids
+    assert ("gate_crosscheck", "red_accepted_corrected") in row_ids
+
+
 # --- team / period filters --------------------------------------------------
 
 def test_summarize_teamで絞り込んだ場合_該当teamのみ集計されること(tmp_path):
@@ -455,7 +578,7 @@ def test_summarize_一致するrecordがない場合_例外なく空の結果を
 
     # Assert
     assert result.patch_count == 0
-    assert "No records matched" in text
+    assert "No patch has its latest state in this scope." in text
 
 
 def test_summarize_月をまたいでpendingがacceptedに畳まれた場合_fold後の月でしか現れないこと(tmp_path):

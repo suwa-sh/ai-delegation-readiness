@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/suwa-sh/ai-delegation-readiness/schemas/patch-decision.schema.json",
   "title": "AI Patch Decision Record",
-  "description": "One immutable event recording the patch-ownership gate result and the human accept/discard outcome for a single patch. Summaries fold to the latest event per patch_id. The membership of discard_reason is intentionally not constrained here: organizations may add reasons by overlay, so the value is checked against the merged definition instead.",
+  "description": "One immutable event recording the patch-ownership gate result and the human accept/discard outcome for a single patch. Summaries fold to the latest event per (team, patch_id): a patch_id is only unique inside a team. The membership of discard_reason is intentionally not constrained here: organizations may add reasons by overlay, so the value is checked against the merged definition instead.",
   "$defs": {
     "overlay_ref": {
       "type": "object",
@@ -76,7 +76,7 @@
         "patch_id": {
           "type": "string",
           "minLength": 1,
-          "description": "Stable key. Repeated events for the same patch_id fold to the latest recorded_at."
+          "description": "Stable key inside a team. Repeated events for the same (team, patch_id) fold to the latest recorded_at."
         },
         "team": {
           "type": "string",

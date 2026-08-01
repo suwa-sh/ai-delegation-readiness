@@ -77,9 +77,17 @@ class DecisionSummary:
     discarded: int
     pending: int
     reason_counts: dict[str, int] = field(default_factory=dict)
+    # 履歴監査。スコープ内のイベントで一度でも RED を採用したもの
     red_accepted: list[str] = field(default_factory=list)
+    # そのうち、最新状態でも採用のまま残っているもの
+    red_accepted_current: list[str] = field(default_factory=list)
     yellow_accepted: list[str] = field(default_factory=list)
     bands: list[Band] = field(default_factory=list)
+
+    @property
+    def red_accepted_corrected(self) -> list[str]:
+        current = set(self.red_accepted_current)
+        return [p for p in self.red_accepted if p not in current]
 
     @property
     def decided(self) -> int:
@@ -345,9 +353,15 @@ def fold_latest(records: list[dict]) -> list[dict]:
         if current is None or stamp > current[0]:
             latest[key] = (stamp, record)
         elif stamp == current[0] and _event_key(record) != _event_key(current[1]):
+            # gate 実行と採否記録が同じ秒に入るのは通常の運用(手順どおりでも起きる)。
+            # pending より決定済みが後なのは自明なので、これは衝突ではない。
+            decided = [r for r in (record, current[1]) if r["decision"] != "pending"]
+            if len(decided) == 1:
+                latest[key] = (stamp, decided[0])
+                continue
             raise InputError(
                 f"patch '{record['patch_id']}' (team '{record['team']}') has two "
-                f"conflicting events at the same recorded_at "
+                f"conflicting decisions at the same recorded_at "
                 f"({record['recorded_at']}); give the later event a later timestamp"
             )
     return [record for _, record in latest.values()]
@@ -383,6 +397,7 @@ class _Tally:
     counts: dict[str, int]
     reason_counts: dict[str, int]
     red_accepted: list[str]
+    red_accepted_current: list[str]
     yellow_accepted: list[str]
 
 
@@ -403,6 +418,7 @@ def _tally(folded: list[dict], events: list[dict]) -> _Tally:
         reason_counts=reason_counts,
         # 矛盾の監査だけは fold 前の全イベントを見る
         red_accepted=red_accepted_identities(events),
+        red_accepted_current=red_accepted_identities(folded),
         yellow_accepted=sorted(yellow_accepted),
     )
 
@@ -445,7 +461,7 @@ def summarize(
     teams = sorted({r["team"] for r in folded})
     periods = sorted({_period_of(r) for r in folded})
     return DecisionSummary(
-        team=team or (teams[0] if len(teams) == 1 else f"{len(teams)} teams"),
+        team=team or _team_label(teams),
         period=period or _period_span(periods),
         record_count=len(records),
         patch_count=len(folded),
@@ -454,9 +470,16 @@ def summarize(
         pending=tally.counts["pending"],
         reason_counts=tally.reason_counts,
         red_accepted=tally.red_accepted,
+        red_accepted_current=tally.red_accepted_current,
         yellow_accepted=tally.yellow_accepted,
         bands=bands,
     )
+
+
+def _team_label(teams: list[str]) -> str:
+    if not teams:
+        return "(none in scope)"
+    return teams[0] if len(teams) == 1 else f"{len(teams)} teams"
 
 
 def _period_span(periods: list[str]) -> str:
@@ -469,6 +492,36 @@ def _pct(value: float | None) -> str:
     return "N/A" if value is None else f"{value * 100:.1f}%"
 
 
+def _gate_crosscheck_lines(result: DecisionSummary) -> list[str]:
+    """Report RED acceptances as history, separating what is still open.
+
+    The audit reads every event in scope, so a patch corrected afterwards
+    still appears. Saying so plainly keeps a resolved mistake from reading
+    as an open one.
+    """
+    lines = ["", "Gate cross-check (over every event in this scope, not just the latest):"]
+    if not result.red_accepted:
+        lines.append("  [OK] RED accepted: 0")
+        return lines
+    lines.append(
+        f"  [NG] RED accepted at some point: {len(result.red_accepted)} "
+        f"({', '.join(result.red_accepted)})"
+    )
+    lines.append("       RED means 'do not accept'. Accepting it contradicts the gate.")
+    if result.red_accepted_current:
+        lines.append(
+            f"       still accepted now: {len(result.red_accepted_current)} "
+            f"({', '.join(result.red_accepted_current)})"
+        )
+    corrected = result.red_accepted_corrected
+    if corrected:
+        lines.append(
+            f"       not accepted in the latest state: {len(corrected)} "
+            f"({', '.join(corrected)}) — kept here because the acceptance happened"
+        )
+    return lines
+
+
 def render_text(result: DecisionSummary) -> str:
     lines = [
         f"Team: {result.team}",
@@ -478,7 +531,10 @@ def render_text(result: DecisionSummary) -> str:
         "",
     ]
     if result.patch_count == 0:
-        lines.append("No records matched. Nothing to summarize.")
+        lines.append("No patch has its latest state in this scope.")
+        # 件数がゼロでも履歴監査の結果は必ず出す。ここで return すると、
+        # exit 2 を返しているのに画面には何も出ない状態になる。
+        lines.extend(_gate_crosscheck_lines(result))
         return "\n".join(lines)
 
     lines.extend([
@@ -513,17 +569,7 @@ def render_text(result: DecisionSummary) -> str:
     else:
         lines.append("  (no discarded patches)")
 
-    lines.extend(["", "Gate cross-check:"])
-    if result.red_accepted:
-        lines.append(
-            f"  [NG] RED accepted: {len(result.red_accepted)} "
-            f"({', '.join(result.red_accepted)})"
-        )
-        lines.append(
-            "       RED means 'do not accept'. Accepting it contradicts the gate."
-        )
-    else:
-        lines.append("  [OK] RED accepted: 0")
+    lines.extend(_gate_crosscheck_lines(result))
     lines.append(
         f"  [..] YELLOW accepted: {len(result.yellow_accepted)} "
         "(a human decision was required; this is the designed path)"
@@ -568,6 +614,8 @@ def render_json(result: DecisionSummary) -> str:
                 )
             ],
             "red_accepted": result.red_accepted,
+            "red_accepted_current": result.red_accepted_current,
+            "red_accepted_corrected": result.red_accepted_corrected,
             "yellow_accepted": result.yellow_accepted,
             "band": None if band is None else {"id": band.id, "low": band.low, "high": band.high},
             "band_configured": bool(result.bands),
@@ -600,6 +648,20 @@ def render_csv_rows(result: DecisionSummary) -> list[list[str]]:
         str(len(result.red_accepted)),
         "",
         sanitize_cell(", ".join(result.red_accepted)),
+    ])
+    rows.append([
+        "gate_crosscheck",
+        "red_accepted_current",
+        str(len(result.red_accepted_current)),
+        "",
+        sanitize_cell(", ".join(result.red_accepted_current)),
+    ])
+    rows.append([
+        "gate_crosscheck",
+        "red_accepted_corrected",
+        str(len(result.red_accepted_corrected)),
+        "",
+        sanitize_cell(", ".join(result.red_accepted_corrected)),
     ])
     rows.append([
         "gate_crosscheck",

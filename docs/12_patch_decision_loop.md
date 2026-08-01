@@ -61,7 +61,7 @@ Region: GREEN — 所有可能
   "schema_version": "1",
   "patch_id": "cheap-green",
   "team": "midori-seiki-platform",
-  "recorded_at": "2026-08-01T19:55:40Z",
+  "recorded_at": "2026-08-01T20:53:04Z",
   "decision": "pending",
   "gate": {
     "region": "green",
@@ -111,9 +111,10 @@ Discard reasons:
   probe_oversized: 1 (33.3% of discards)
   test_integrity_failed: 1 (33.3% of discards)
 
-Gate cross-check:
-  [NG] RED accepted: 1 (expense-retention-purge-job)
+Gate cross-check (over every event in this scope, not just the latest):
+  [NG] RED accepted at some point: 1 (expense-retention-purge-job)
        RED means 'do not accept'. Accepting it contradicts the gate.
+       still accepted now: 1 (expense-retention-purge-job)
   [..] YELLOW accepted: 2 (a human decision was required; this is the designed path)
 
 How to read this:
@@ -136,8 +137,10 @@ EXIT=2
 | `Undecided: 1 patch(es)` | 決定済み率の分子に入らなかった件数を、率とは別に明示する |
 | `Band: not configured` | 健全域を overlay していないので、判定はしない(次項で overlay を足す) |
 | `Discard reasons:` | 破棄 3 件の内訳。%は **discarded 合計に対して**(3 件中の割合) |
-| `Gate cross-check: [NG] RED accepted: 1` | RED を accepted した記録が 1 件ある。ゲートと矛盾する採否なので `[NG]` |
-| `[..] YELLOW accepted: 2` | YELLOW を accepted したのは矛盾ではなく、設計どおり人間が判断した経路 |
+| `Gate cross-check (over every event...)` | この見出しどおり、**fold 後の最新状態ではなく期間・チーム内の全イベントから**判定する。次項「両側の失敗」の後、[記録形式・分母・fold 規則](#記録形式分母fold-規則)で理由を説明する |
+| `[NG] RED accepted at some point: 1` | 期間中に一度でも RED を accepted した記録があった件数 |
+| `still accepted now: 1` | そのうち、**最新状態でも採用のまま**残っている件数(訂正されていれば代わりに `not accepted in the latest state` が出る) |
+| `[..] YELLOW accepted: 2` | YELLOW を accepted したのは矛盾ではなく、設計どおり人間が判断した経路(こちらは最新状態基準) |
 | `EXIT=2`(コマンドに付けた `echo "EXIT=$?"` の出力) | RED accepted が 1 件でもあると exit 2(未決あり = 1 より優先) |
 
 同じ入力に自社の健全域 overlay を足すと `Band` 行が変わります。
@@ -167,7 +170,7 @@ Band: 健全 [0.15, 0.5)
 | 破棄率 | discarded / (accepted + discarded) | 決定済みの件数だけ。pending は含まない。決定済みが 0 件のときは `N/A` |
 | 決定済み率 | (accepted + discarded) / 全パッチ | 記録されている全パッチ。未決件数を常に別行で表示する |
 | 破棄理由の内訳 | 理由別件数 / discarded 合計 | discarded の件数のみ。合計 100% になる |
-| gate 突き合わせ | RED accepted / YELLOW accepted の件数 | ゲート判定と人間の採否が矛盾していないかの点検。RED accepted は `[NG]`、YELLOW accepted は設計どおりの経路として `[..]`。**RED accepted だけは fold 後の最新イベントではなく、同じ period/team スコープの全イベントから検出する**(fold 後の他の行は最新イベント基準) |
+| gate 突き合わせ | RED accepted / YELLOW accepted の件数 | ゲート判定と人間の採否が矛盾していないかの点検。RED accepted は `[NG]`、YELLOW accepted は設計どおりの経路として `[..]`。**RED accepted だけは fold 後の最新イベントではなく、同じ period/team スコープの全イベントから検出する**(YELLOW accepted は fold 後の最新イベント基準)。さらに 3 段に分かれる: **履歴**(`RED accepted at some point`)/ **現在も採用中**(`still accepted now`)/ **最新では採用でない**(`not accepted in the latest state` — 訂正済みでも履歴には残る) |
 
 **なぜ破棄率と決定済み率を分けるか**: 破棄率だけを見ると、未決が溜まっているチームほど
 「少数の決定済み分から算出した率」が実態より極端に振れます。決定済み率と未決件数を必ず併記することで、
@@ -223,9 +226,12 @@ Band: 健全 [0.15, 0.5)
   のときだけ `discard_reason` が必須です
 - **`recorded_at` は RFC 3339 の大文字小文字どちらの `T` / `Z` も受け付けます**。解析できない
   値は traceback ではなく exit 3 の入力エラーになります
-- **同一時刻の 2 イベントは、`decision` / `decided_on` / `discard_reason` / `gate.block_sha256`
-  の全部が一致しないと exit 3 です**。手順どおり `recorded_at` を都度の現在時刻にしていれば
-  通常は起きませんが、自動化で同時刻書き込みが起きうる場合は注意します
+- **同一時刻に pending と決定済みが並ぶのは、通常の運用として扱われます**。`--emit-decision-record`
+  の直後に採否を追記すると、両者の `recorded_at` が同じ秒になることがありますが、
+  「gate 実行より採否決定が後」は自明なので、**同一時刻なら決定済み側を採用します**(exit 3 には
+  なりません)。**両方とも決定済みで、かつ内容(`decision` / `decided_on` / `discard_reason` /
+  `gate.block_sha256`)が食い違う場合だけ exit 3 です**。これは「同じ瞬間に矛盾する 2 つの決定が
+  記録された」という本物の入力エラーだからです
 
 ### 月次の運用手順(準備 → 決定 → 振り返り)
 
@@ -248,8 +254,10 @@ Band: 健全 [0.15, 0.5)
    - 任意で `note` を
    - **`recorded_at` を、コマンドを実行する「そのときの現在時刻」に更新する**。固定時刻(たとえば
      常に `09:00:00Z`)を入れてはいけません。fold は `recorded_at` が最も新しいイベントを
-     採用するため、pending 行の記録時刻より前・同時刻になると決定側が採用されず、
-     `Decided rate` が上がらないまま `Undecided` に残ります
+     採用するため、pending 行の記録時刻より**前**になると決定側が無視され、
+     `Decided rate` が上がらないまま `Undecided` に残ります。`--emit-decision-record` 直後に
+     この手順を実行して**同じ秒**になっても問題ありません。同一時刻に pending と決定済みが
+     並んだ場合は決定済み側が採用されます(詳細は [記録形式・分母・fold 規則](#記録形式分母fold-規則) 参照)
 
    **`gate` ブロックは触りません**(`block_sha256` を再計算しない限り、`region` などを書き換えると
    `summarize-patch-decisions` が digest 不一致で exit 3 にします)。
@@ -281,12 +289,17 @@ Band: 健全 [0.15, 0.5)
    `patch_id` で絞り込んでから最後の行を取り出します。後日、同じパッチの採否を訂正したい
    ときも同じ手順(既存行を書き換えず、新しいイベント行を追記)を使います。
 
-   実際に実行して確認した例(pending の数秒後に accepted を追記):
+   実際に「`--emit-decision-record` 直後にこの手順を実行し、`recorded_at` が pending と同じ秒になる」
+   ケースを 4 回連続で実行して確認しました(いずれも exit 0)。
 
    ```text
    Discard rate (gated patches): 0.0%  = 0 discarded / 1 decided
    Decided rate: 100.0%  = 1 decided / 1 patches
    Undecided: 0 patch(es)
+
+   Gate cross-check (over every event in this scope, not just the latest):
+     [OK] RED accepted: 0
+     [..] YELLOW accepted: 0 (a human decision was required; this is the designed path)
    ```
 
 3. 月次で集計し、決定済み率・未決件数・破棄率・理由内訳・gate 突き合わせを確認します。
@@ -303,24 +316,54 @@ Band: 健全 [0.15, 0.5)
    現れません**(最新イベントが 8 月にある以上、fold の結果は 8 月のパッチとして扱われます)。
    月をまたいで決定したパッチを追いたいときは、決定が起きた月のレポートを見ます。
 
-4. `Gate cross-check` に `[NG] RED accepted` があれば、その `patch_id` を個別に確認します。
-   ゲートが RED と判定した変更を受け入れた記録なので、放置しません。**`RED accepted` は
-   fold 後の最新イベントではなく、同じ period / team スコープの全イベントから検出します**。
-   採用後に同じパッチを再度ゲートにかけて pending が追記されると、`Decided rate` の分子は
-   その最新 pending に引きずられて `Undecided` になりますが、過去に RED を accepted した
-   事実は消えません。つまり `Undecided: 1` と `RED accepted: 1` が同じレポートに同時に
-   出ることがあり、これは矛盾ではなく仕様です(「起きた矛盾は起きなかったことにならない」)。
-
-   実際に「RED を accepted → 同じパッチを再ゲートして pending 追記」を実行して確認した例:
+   **対象月に最新状態のパッチが 0 件でも、その月に起きた RED 採用は報告されます**。
+   `Gate cross-check` は fold 後のパッチ件数とは独立に、期間内の全イベントを見るためです。
+   実際に「RED を accepted した月に対して `--period` を絞る」ケースで確認しました
+   (パッチはその後 8 月に再ゲートされ、7 月時点では最新状態が無い設定):
 
    ```text
-   Decided rate: 0.0%  = 0 decided / 1 patches
-   Undecided: 1 patch(es)
-   ...
-   Gate cross-check:
-     [NG] RED accepted: 1 (hollow-green)
+   Records read: 3 -> 0 patches in scope (repeated events for one patch fold to its latest)
+
+   No patch has its latest state in this scope.
+
+   Gate cross-check (over every event in this scope, not just the latest):
+     [NG] RED accepted at some point: 1 (hollow-green-2)
           RED means 'do not accept'. Accepting it contradicts the gate.
+          not accepted in the latest state: 1 (hollow-green-2) — kept here because the acceptance happened
+   EXIT=2
    ```
+
+   `patch_count = 0` なのに exit 2 になっている点に注意します。件数がゼロだからと言って
+   画面を見ずに通過させると、この RED 採用を見逃します。
+
+4. `Gate cross-check` に `[NG] RED accepted at some point` があれば、その `patch_id` を個別に
+   確認します。ゲートが RED と判定した変更を受け入れた記録なので、放置しません。
+   **`RED accepted` は fold 後の最新イベントではなく、同じ period / team スコープの全イベントから
+   検出します**。採用後に同じパッチを再度ゲートにかけて pending が追記されると、`Decided rate`
+   の分子はその最新 pending に引きずられて `Undecided` になりますが、過去に RED を accepted した
+   事実は消えません。つまり `Undecided: 1` と `RED accepted at some point: 1` が同じレポートに
+   同時に出ることがあり、これは矛盾ではなく仕様です(「起きた矛盾は起きなかったことにならない」)。
+
+   **すでに訂正済み**(いったん accepted にした後、再考して discarded にした)場合は、
+   `still accepted now` の代わりに `not accepted in the latest state` が出ます。「まだ RED を
+   抱えている」と早合点しないための区別です。実際に「RED を accepted → 同じパッチを discarded に
+   訂正」を実行して確認した例:
+
+   ```text
+   Discard rate (gated patches): 100.0%  = 1 discarded / 1 decided
+   Decided rate: 100.0%  = 1 decided / 1 patches
+   Undecided: 0 patch(es)
+
+   Gate cross-check (over every event in this scope, not just the latest):
+     [NG] RED accepted at some point: 1 (hollow-green)
+          RED means 'do not accept'. Accepting it contradicts the gate.
+          not accepted in the latest state: 1 (hollow-green) — kept here because the acceptance happened
+   EXIT=2
+   ```
+
+   `still accepted now` が出ていないので、この RED 採用はすでに訂正済み(現在は discarded)と
+   読めます。それでも exit code の規則は変わらず、**履歴に 1 件でも RED accepted があれば
+   exit 2** です(訂正済みでも「起きた」事実は消えないため)。
 
 5. 未決が多い(決定済み率が低い)月は、破棄率の解釈を保留し、まず決定を進めます。
 
