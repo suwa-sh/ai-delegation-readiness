@@ -775,6 +775,86 @@ def test_declared_reason_ids_base定義の場合_5件の理由idを返すこと(
     }
 
 
+def test_reason_labels_base定義の場合_5件すべてに非空のラベルを返すこと():
+    """A bare id like 'never_cheap_rejected' does not tell a zero-knowledge
+    reader what to fix; every shipped reason must carry a short label."""
+    # Arrange
+    defn = ov.load_yaml(patch_decision_path())
+
+    # Act
+    labels = sd.reason_labels(defn)
+
+    # Assert
+    assert set(labels) == {
+        "never_cheap_rejected",
+        "test_integrity_failed",
+        "probe_oversized",
+        "owner_unassignable",
+        "cost_not_worth",
+    }
+    assert all(label.strip() for label in labels.values())
+    assert labels["never_cheap_rejected"] == "rejected in a never-cheap category"
+
+
+def test_reason_labels_nameを持たないoverlay追加理由の場合_空文字になること():
+    """Overlay-added reasons may omit 'name'; callers must fall back to the
+    id rather than raise or show a blank."""
+    # Arrange
+    base = ov.load_yaml(patch_decision_path())
+    merged = ov.apply_overlays(base, [patch_decision_team_bands_overlay_path()]).merged
+
+    # Act
+    labels = sd.reason_labels(merged)
+
+    # Assert
+    assert labels["vendor_contract_conflict"] == ""
+
+
+def test_summarize_overlay追加理由にnameが無い場合_idのみで例外なく表示されること(tmp_path):
+    # Arrange
+    records = [_discarded("p1", "01", "vendor_contract_conflict")]
+
+    # Act
+    result = sd.summarize(
+        _write_jsonl(tmp_path, records),
+        overlay_paths=[patch_decision_team_bands_overlay_path()],
+    )
+    text = sd.render_text(result)
+
+    # Assert
+    assert "  vendor_contract_conflict: 1 (100.0% of discards)" in text
+    assert "vendor_contract_conflict ()" not in text
+
+
+def test_render_text_理由にlabelがある場合_括弧付きで表示されること():
+    # Act
+    result = sd.summarize(sample_patch_decisions_midori_path())
+    text = sd.render_text(result)
+
+    # Assert
+    assert "never_cheap_rejected (rejected in a never-cheap category): 1" in text
+
+
+def test_render_json_discard_reasonsの場合_labelキーを含むこと():
+    # Act
+    result = sd.summarize(sample_patch_decisions_midori_path())
+    payload = json.loads(sd.render_json(result))
+
+    # Assert
+    by_id = {r["id"]: r["label"] for r in payload["discard_reasons"]}
+    assert by_id["never_cheap_rejected"] == "rejected in a never-cheap category"
+
+
+def test_render_csv_rows_discard_reason行の場合_label列を含むこと():
+    # Act
+    result = sd.summarize(sample_patch_decisions_midori_path())
+    rows = sd.render_csv_rows(result)
+
+    # Assert
+    reason_row = next(r for r in rows if r[0] == "discard_reason" and r[1] == "never_cheap_rejected")
+    assert reason_row[4] == "rejected in a never-cheap category"
+
+
 # --- load_bands ---------------------------------------------------------------
 
 def test_load_bands_baseの場合_空listを返すこと():

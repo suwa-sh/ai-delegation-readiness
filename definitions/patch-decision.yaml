@@ -50,26 +50,36 @@ items:
     purpose: The same rate means different things depending on which reason dominates.
   - id: "discard_reason.never_cheap_rejected"
     kind: lookup
+    name: rejected in a never-cheap category
+    name_ja: 高リスク象限で却下
     gate_group: never_cheap
     text: A never-cheap category applied and the named human owner rejected the change.
     text_ja: "決して安く所有できない象限に該当し、指名した所有者が却下した"
   - id: "discard_reason.test_integrity_failed"
     kind: lookup
+    name: test integrity not established
+    name_ja: テストの実質性を示せず
     gate_group: hollow_green
     text: The green test had no external anchor or no proof that it can fail.
     text_ja: "テストが緑でも外部 anchor が無い、または失敗できることを示せなかった"
   - id: "discard_reason.probe_oversized"
     kind: lookup
+    name: requirement larger than assumed
+    name_ja: 要求が想定より大きい
     gate_group: probe
     text: The probe could not stay within its constraints, revealing that the requirement is larger than assumed.
     text_ja: "探針が制約内に収まらず、要求が想定より大きいと判明した"
   - id: "discard_reason.owner_unassignable"
     kind: lookup
+    name: no future owner
+    name_ja: 将来の所有者を指名できず
     gate_group: ownership
     text: No future owner could be named for the change.
     text_ja: "将来の所有者を指名できなかった"
   - id: "discard_reason.cost_not_worth"
     kind: lookup
+    name: ownership cost not worth paying
+    name_ja: 所有コストに見合わない
     gate_group: ""
     text: Controls were all in place, but the three-year ownership cost was judged not worth paying.
     text_ja: "統制は揃っていたが、3 年の所有コストに見合わないと判断した"

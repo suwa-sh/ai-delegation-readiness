@@ -38,7 +38,10 @@ description: Summarize recorded accept/discard decisions over AI-generated patch
    - 破棄率の分母は**決定済みの件数だけ**(pending は含まない)。決定済みが 0 件なら
      `N/A` と伝え、率を捏造しない
    - 決定済み率の分母は**全パッチ**。未決件数を必ず併記する
-   - 破棄理由の内訳は discarded 合計に対する割合(合計 100%)
+   - 破棄理由の内訳は discarded 合計に対する割合(合計 100%)。JSON の `discard_reasons[]` は
+     各要素に `id` と `label`(一覧表示用の短いラベル)を持つ。id とラベルを併記して伝える
+     (「never_cheap_rejected(rejected in a never-cheap category)」のように)。overlay で追加した
+     理由が `name` / `name_ja` を持たない場合、`label` は付かず id のみになる。それも異常ではない
    - `Band` が未設定なら「健全域は overlay で自社が定義するもの」と伝え、独自の閾値判断をしない
    - gate cross-check(JSON の `red_accepted` / `red_accepted_current` / `red_accepted_corrected`)は
      **fold 後の最新状態ではなく、対象スコープの全イベントから**検出したものだと伝える。

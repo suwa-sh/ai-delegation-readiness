@@ -77,6 +77,7 @@ class DecisionSummary:
     discarded: int
     pending: int
     reason_counts: dict[str, int] = field(default_factory=dict)
+    reason_labels: dict[str, str] = field(default_factory=dict)
     # 履歴監査。スコープ内のイベントで一度でも RED を採用したもの
     red_accepted: list[str] = field(default_factory=list)
     # そのうち、最新状態でも採用のまま残っているもの
@@ -222,13 +223,27 @@ def _resolve_definition(overlay_paths: list[str | Path]) -> dict:
     return merge_result.merged
 
 
-def declared_reason_ids(defn: dict) -> set[str]:
-    """Leaf names of the discard_reason group, without the group prefix."""
+def reason_labels(defn: dict) -> dict[str, str]:
+    """Short human labels per discard_reason id.
+
+    A bare id like ``never_cheap_rejected`` does not tell a reader what to fix,
+    and the definition already carries the wording. Overlay-added reasons may
+    omit a label, so callers fall back to the id.
+    """
     sep = overlay_mod.separator_of(defn)
     group = overlay_mod.group_items(defn).get(_REASON_GROUP)
     if not group:
         raise InputError(f"definition is missing the '{_REASON_GROUP}' group")
-    return {leaf["id"].split(sep, 1)[1] for leaf in group["leaves"]}
+    labels = {}
+    for leaf in group["leaves"]:
+        leaf_id = leaf["id"].split(sep, 1)[1]
+        labels[leaf_id] = str(leaf.get("name") or "").strip()
+    return labels
+
+
+def declared_reason_ids(defn: dict) -> set[str]:
+    """Leaf names of the discard_reason group, without the group prefix."""
+    return set(reason_labels(defn))
 
 
 def _band_contract_error(leaf: dict, sep: str) -> str | None:
@@ -447,9 +462,10 @@ def summarize(
         raise InputError(f"--period must be YYYY-MM (month 01-12); got '{period}'")
     defn = _resolve_definition(overlay_paths)
     bands = load_bands(defn)
+    labels = reason_labels(defn)
 
     records = _load_records(Path(path), Path(schema_path or DEFAULT_SCHEMA))
-    _reject_undeclared_reasons(records, declared_reason_ids(defn))
+    _reject_undeclared_reasons(records, set(labels))
 
     # 件数は fold してから絞り込む。逆順にすると、翌月に決着したパッチが前月の
     # レポートで未決のまま残り、latest-wins の契約と食い違う。
@@ -469,6 +485,7 @@ def summarize(
         discarded=tally.counts["discarded"],
         pending=tally.counts["pending"],
         reason_counts=tally.reason_counts,
+        reason_labels=labels,
         red_accepted=tally.red_accepted,
         red_accepted_current=tally.red_accepted_current,
         yellow_accepted=tally.yellow_accepted,
@@ -565,7 +582,9 @@ def render_text(result: DecisionSummary) -> str:
             result.reason_counts.items(), key=lambda kv: (-kv[1], kv[0])
         ):
             share = count / result.discarded
-            lines.append(f"  {reason}: {count} ({share * 100:.1f}% of discards)")
+            label = result.reason_labels.get(reason, "")
+            named = f"{reason} ({label})" if label else reason
+            lines.append(f"  {named}: {count} ({share * 100:.1f}% of discards)")
     else:
         lines.append("  (no discarded patches)")
 
@@ -606,6 +625,7 @@ def render_json(result: DecisionSummary) -> str:
             "discard_reasons": [
                 {
                     "id": reason,
+                    "label": result.reason_labels.get(reason, ""),
                     "count": count,
                     "share_of_discards": count / result.discarded,
                 }
@@ -641,7 +661,13 @@ def render_csv_rows(result: DecisionSummary) -> list[list[str]]:
     rows.append(["metric", "decided_rate", "", _pct(result.decided_rate), "of gated patches"])
     for reason, count in sorted(result.reason_counts.items(), key=lambda kv: (-kv[1], kv[0])):
         share = count / result.discarded
-        rows.append(["discard_reason", reason, str(count), f"{share * 100:.1f}%", ""])
+        rows.append([
+            "discard_reason",
+            reason,
+            str(count),
+            f"{share * 100:.1f}%",
+            sanitize_cell(result.reason_labels.get(reason, "")),
+        ])
     rows.append([
         "gate_crosscheck",
         "red_accepted",

@@ -107,9 +107,9 @@ Undecided: 1 patch(es)
 Band: not configured — this tool ships no numeric healthy range. See docs/12 to set your own baseline by overlay.
 
 Discard reasons:
-  never_cheap_rejected: 1 (33.3% of discards)
-  probe_oversized: 1 (33.3% of discards)
-  test_integrity_failed: 1 (33.3% of discards)
+  never_cheap_rejected (rejected in a never-cheap category): 1 (33.3% of discards)
+  probe_oversized (requirement larger than assumed): 1 (33.3% of discards)
+  test_integrity_failed (test integrity not established): 1 (33.3% of discards)
 
 Gate cross-check (over every event in this scope, not just the latest):
   [NG] RED accepted at some point: 1 (expense-retention-purge-job)
@@ -136,7 +136,7 @@ EXIT=2
 | `Decided rate: 92.3%` | 分母は **全 13 件**。決定済みがどれだけ進んでいるかを見る |
 | `Undecided: 1 patch(es)` | 決定済み率の分子に入らなかった件数を、率とは別に明示する |
 | `Band: not configured` | 健全域を overlay していないので、判定はしない(次項で overlay を足す) |
-| `Discard reasons:` | 破棄 3 件の内訳。%は **discarded 合計に対して**(3 件中の割合) |
+| `Discard reasons:` | 破棄 3 件の内訳。%は **discarded 合計に対して**(3 件中の割合)。カッコ内は一覧表示用の短いラベル(`never_cheap_rejected (rejected in a never-cheap category)` のように id に併記される) |
 | `Gate cross-check (over every event...)` | この見出しどおり、**fold 後の最新状態ではなく期間・チーム内の全イベントから**判定する。次項「両側の失敗」の後、[記録形式・分母・fold 規則](#記録形式分母fold-規則)で理由を説明する |
 | `[NG] RED accepted at some point: 1` | 期間中に一度でも RED を accepted した記録があった件数 |
 | `still accepted now: 1` | そのうち、**最新状態でも採用のまま**残っている件数(訂正されていれば代わりに `not accepted in the latest state` が出る) |
@@ -194,7 +194,17 @@ Band: 健全 [0.15, 0.5)
 
 1 レコード = 1 イベントで、契約は [`schemas/patch-decision.schema.json`](../schemas/patch-decision.schema.json)
 が定めます。値の一覧(`decision` の 3 状態、`discard_reason` の 5 分類)は
-[`definitions/patch-decision.yaml`](../definitions/patch-decision.yaml) が正本で、ここでは二重保持しません。
+[`definitions/patch-decision.yaml`](../definitions/patch-decision.yaml) が正本で、意味の説明文
+(`text` / `text_ja`)はここでは二重保持しません。読みやすさのため、一覧表示用の短いラベル
+(`name_ja`)だけ下表に転記します。
+
+| id | name_ja |
+|---|---|
+| never_cheap_rejected | 高リスク象限で却下 |
+| test_integrity_failed | テストの実質性を示せず |
+| probe_oversized | 要求が想定より大きい |
+| owner_unassignable | 将来の所有者を指名できず |
+| cost_not_worth | 所有コストに見合わない |
 
 要点だけ挙げます。
 
@@ -224,6 +234,11 @@ Band: 健全 [0.15, 0.5)
 - **`decided_on` と `discard_reason` は条件付き必須**です。`decision: pending` のときは
   `decided_on` を持ってはいけません(まだ決めていないので日付がない)。`decision: discarded`
   のときだけ `discard_reason` が必須です
+- **破棄理由の一覧表示は id だけでなくラベルも付きます**。`discard_reason.*` の `name` /
+  `name_ja` を短いラベルとして使い、text 出力は `never_cheap_rejected (rejected in a
+  never-cheap category)` のように id とラベルを併記します。JSON は `discard_reasons[]` の各要素に
+  `"label"` キーが付き、CSV は `discard_reason` 行の 5 列目にラベルが入ります。overlay で追加した
+  理由に `name` / `name_ja` が無ければ、**id のみで表示されます**(フォールバック。動作は壊れません)
 - **`recorded_at` は RFC 3339 の大文字小文字どちらの `T` / `Z` も受け付けます**。解析できない
   値は traceback ではなく exit 3 の入力エラーになります
 - **同一時刻に pending と決定済みが並ぶのは、通常の運用として扱われます**。`--emit-decision-record`
@@ -471,6 +486,16 @@ classDiagram
 [`definitions/patch-decision.yaml`](../definitions/patch-decision.yaml) の `extension_points`)。
 `decision` / `reading` は記録の契約・読み方の規範なので overlay 対象外です
 (`patch-ownership` の `hollow_green` / `never_cheap` と同じ、拡張できない安全境界の作り方)。
+
+**理由を追加するときは `name` / `name_ja` も付けます**。動作には必須ではありませんが、
+付けないと集計表示が id のみになります。[`examples/overlays/patch-decision/team-bands.yaml`](../examples/overlays/patch-decision/team-bands.yaml)
+が追加する `discard_reason.vendor_contract_conflict` は `text` / `text_ja` はあっても
+`name` / `name_ja` を持たないため、実際に集計すると次のように id のみで表示されます。
+
+```text
+Discard reasons:
+  vendor_contract_conflict: 1 (100.0% of discards)
+```
 
 `bands` の 1 件は次の 5 フィールドが必須です。
 
