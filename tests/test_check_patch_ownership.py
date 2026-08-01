@@ -829,6 +829,30 @@ def test_build_decision_record_greenサンプルの場合_block_sha256がgate_bl
     assert record["gate"]["block_sha256"] == po.gate_block_digest(gate_without_digest)
 
 
+def test_gate_block_digest_NFCとNFDの表記差の場合_同じdigestになること():
+    """An editor's NFC/NFD choice for the same text must not make
+    summarize-patch-decisions reject a gate block as tampered."""
+    # Arrange
+    nfc_gate = {
+        "region": "red",
+        "risk_ids": [],
+        "missing_controls": ["が"],  # "が" precomposed (NFC)
+        "gate_json_sha256": "a" * 64,
+        "definition_name": "patch-ownership",
+        "definition_version": 1,
+        "overlays": [],
+    }
+    nfd_gate = dict(nfc_gate, missing_controls=["が"])  # "か" + combining mark (NFD)
+
+    # Act
+    nfc_digest = po.gate_block_digest(nfc_gate)
+    nfd_digest = po.gate_block_digest(nfd_gate)
+
+    # Assert
+    assert nfc_gate["missing_controls"][0] != nfd_gate["missing_controls"][0]
+    assert nfc_digest == nfd_digest
+
+
 def test_build_decision_record_overlayを渡した場合_pathとsha256とdefinition情報を記録すること():
     # Arrange
     overlay = patch_ownership_extra_risk_overlay_path()

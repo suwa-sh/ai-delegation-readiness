@@ -147,7 +147,7 @@ def test_fold_latest_同一instantで決定が食い違う場合_InputErrorに�
     )
 
     # Act & Assert
-    with pytest.raises(sd.InputError, match="two different outcomes"):
+    with pytest.raises(sd.InputError, match="two conflicting events"):
         sd.fold_latest([accepted, discarded])
 
 
@@ -164,6 +164,77 @@ def test_fold_latest_同一instantで内容が同じ場合_1件に畳まれ例�
     # Assert
     assert len(folded) == 1
     assert folded[0]["decision"] == "accepted"
+
+
+def test_fold_latest_同一instantでgateのregionのみ異なる場合_InputErrorになること():
+    """_event_key includes gate.block_sha256, so two 'accepted' events that
+    agree on decision/discard_reason/decided_on but disagree on the gate
+    region (e.g. GREEN vs RED) must still be treated as a conflict, not
+    silently collapsed to whichever one sorts last."""
+    # Arrange
+    green = _record("p1", "accepted", "2026-07-01T00:00:00Z", decided_on="2026-07-01", gate=GATE_GREEN)
+    red = _record("p1", "accepted", "2026-07-01T00:00:00Z", decided_on="2026-07-01", gate=GATE_RED)
+
+    # Act & Assert
+    with pytest.raises(sd.InputError, match="two conflicting events"):
+        sd.fold_latest([green, red])
+
+
+# --- patch_identity / red_accepted_identities ---------------------------------
+
+def test_patch_identity_の場合_teamとpatch_idのtupleを返すこと():
+    # Arrange
+    record = _accepted("p1", "01")
+
+    # Act
+    identity = sd.patch_identity(record)
+
+    # Assert
+    assert identity == ("team-a", "p1")
+
+
+def test_red_accepted_identities_red_acceptedがある場合_patch_idを返すこと():
+    # Arrange
+    events = [
+        _record("p1", "accepted", "2026-07-01T00:00:00Z", decided_on="2026-07-01", gate=GATE_RED),
+        _accepted("p2", "02"),
+    ]
+
+    # Act
+    identities = sd.red_accepted_identities(events)
+
+    # Assert
+    assert identities == ["p1"]
+
+
+def test_red_accepted_identities_同一patchのred_acceptedが複数eventにある場合_重複排除されること():
+    # Arrange
+    events = [
+        _record("p1", "accepted", "2026-07-01T00:00:00Z", decided_on="2026-07-01", gate=GATE_RED),
+        _record("p1", "pending", "2026-07-10T00:00:00Z"),
+    ]
+
+    # Act
+    identities = sd.red_accepted_identities(events)
+
+    # Assert
+    assert identities == ["p1"]
+
+
+def test_red_accepted_identities_teamが異なる同一patch_idの場合_区別して扱うこと():
+    """patch_id alone is not the identity: team-a's red-accepted p1 must not
+    be shadowed by team-b's unrelated p1."""
+    # Arrange
+    events = [
+        _record("p1", "accepted", "2026-07-01T00:00:00Z", team="team-a", decided_on="2026-07-01", gate=GATE_RED),
+        _record("p1", "pending", "2026-07-01T00:00:00Z", team="team-b"),
+    ]
+
+    # Act
+    identities = sd.red_accepted_identities(events)
+
+    # Assert
+    assert identities == ["p1"]
 
 
 # --- summarize: discard rate excludes pending ----------------------------
@@ -297,6 +368,51 @@ def test_summarize_exit_codeの場合_gate結果とpendingの組み合わせに�
     assert result.exit_code == expected_exit
 
 
+# --- red-accepted audit survives fold -----------------------------------------
+
+def test_summarize_red_acceptedの後にpendingが追記された場合_fold後もred_acceptedが検出されること(tmp_path):
+    """Re-running the gate after acceptance appends a fresh 'pending' event.
+    Folding to that pending event must not erase the fact that the patch was
+    already accepted while RED -- a contradiction that happened does not
+    stop having happened."""
+    # Arrange
+    records = [
+        _record("p1", "accepted", "2026-07-01T00:00:00Z", decided_on="2026-07-01", gate=GATE_RED),
+        _record("p1", "pending", "2026-07-10T00:00:00Z"),
+    ]
+
+    # Act
+    result = sd.summarize(_write_jsonl(tmp_path, records))
+
+    # Assert
+    assert result.red_accepted == ["p1"]
+    assert result.exit_code == 2
+    assert result.pending == 1  # folded state is pending; the audit still sees the past accept
+
+
+def test_summarize_同一patch_idが別teamで使われた場合_teamAのred_acceptedが消えないこと(tmp_path):
+    """patch_id is only unique inside a team. Folding on patch_id alone would
+    let team-b's event for the same id erase team-a's RED-accepted decision."""
+    # Arrange
+    records = [
+        _record("p1", "accepted", "2026-07-01T00:00:00Z", team="team-a", decided_on="2026-07-01", gate=GATE_RED),
+        _record("p1", "pending", "2026-07-01T00:00:00Z", team="team-b"),
+    ]
+
+    # Act
+    overall = sd.summarize(_write_jsonl(tmp_path, records, "all.jsonl"))
+    team_a = sd.summarize(_write_jsonl(tmp_path, records, "team_a.jsonl"), team="team-a")
+    team_b = sd.summarize(_write_jsonl(tmp_path, records, "team_b.jsonl"), team="team-b")
+
+    # Assert
+    assert overall.patch_count == 2  # distinct (team, patch_id) identities
+    assert overall.red_accepted == ["p1"]
+    assert team_a.red_accepted == ["p1"]
+    assert team_a.exit_code == 2
+    assert team_b.red_accepted == []
+    assert team_b.pending == 1
+
+
 # --- team / period filters --------------------------------------------------
 
 def test_summarize_teamで絞り込んだ場合_該当teamのみ集計されること(tmp_path):
@@ -377,6 +493,25 @@ def test_summarize_periodの形式が不正な場合_InputErrorになること(t
         sd.summarize(_write_jsonl(tmp_path, records), period=period)
 
 
+@pytest.mark.parametrize(
+    "period",
+    [
+        pytest.param("２０２６-07", id="全角数字の場合_InputErrorになること"),
+        pytest.param("2026-07\n", id="末尾に改行がある場合_InputErrorになること"),
+    ],
+)
+def test_summarize_periodが全角数字or末尾改行の場合_InputErrorになること(tmp_path, period):
+    """`\\d` also matches full-width digits, and `match(...$)` lets a trailing
+    newline through; both used to make a mistyped --period silently match
+    zero records (exit 0) instead of failing loudly."""
+    # Arrange
+    records = [_accepted("p1", "01")]
+
+    # Act & Assert
+    with pytest.raises(sd.InputError, match="--period must be"):
+        sd.summarize(_write_jsonl(tmp_path, records), period=period)
+
+
 # --- gate block tamper detection ---------------------------------------------
 
 def test_summarize_gate_blockのregionを改ざんした場合_InputErrorになること(tmp_path):
@@ -430,6 +565,47 @@ def test_summarize_空directoryの場合_InputErrorになること(tmp_path):
     # Act & Assert
     with pytest.raises(sd.InputError, match=r"no \*\.jsonl or \*\.json records"):
         sd.summarize(tmp_path)
+
+
+def test_summarize_directory入力に隠しfileがある場合_無視されて可視fileだけ集計されること(tmp_path):
+    """A single dotfile (editor swap file, sync tool residue) used to fail
+    JSON parsing and turn the whole monthly report into exit 3."""
+    # Arrange
+    (tmp_path / "2026-07.jsonl").write_text(
+        json.dumps(_accepted("p1", "01"), ensure_ascii=False) + "\n", encoding="utf-8",
+    )
+    (tmp_path / ".hidden.json").write_text("not valid json{{{", encoding="utf-8")
+
+    # Act
+    result = sd.summarize(tmp_path)
+
+    # Assert
+    assert result.patch_count == 1
+
+
+# --- recorded_at parsing -------------------------------------------------------
+
+def test_summarize_recorded_atが小文字tとzの場合_正常に解析されること(tmp_path):
+    """RFC 3339 permits lowercase 't'/'z', and the schema's format checker
+    accepts it too; the parser must not be stricter than the schema."""
+    # Arrange
+    records = [_record("p1", "accepted", "2026-07-01t09:00:00z", decided_on="2026-07-01")]
+
+    # Act
+    result = sd.summarize(_write_jsonl(tmp_path, records))
+
+    # Assert
+    assert result.patch_count == 1
+    assert result.accepted == 1
+
+
+def test__recorded_at_解析不能な文字列の場合_tracebackでなくInputErrorになること():
+    # Arrange
+    record = {"patch_id": "p1", "recorded_at": "not-a-timestamp"}
+
+    # Act & Assert
+    with pytest.raises(sd.InputError, match="unparsable recorded_at"):
+        sd._recorded_at(record)
 
 
 # --- discard_reason validation ----------------------------------------------

@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import unicodedata
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -546,6 +547,17 @@ def _sha256_file(path: str | Path) -> str:
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
+def _nfc(value):
+    """Normalize strings so an editor's NFC/NFD choice cannot break the digest."""
+    if isinstance(value, str):
+        return unicodedata.normalize("NFC", value)
+    if isinstance(value, list):
+        return [_nfc(v) for v in value]
+    if isinstance(value, dict):
+        return {_nfc(k): _nfc(v) for k, v in value.items()}
+    return value
+
+
 def gate_block_digest(gate: dict) -> str:
     """Digest of the gate block itself, excluding the digest field.
 
@@ -553,8 +565,12 @@ def gate_block_digest(gate: dict) -> str:
     recomputed later without re-running the gate. This one can: the summary
     recomputes it and refuses a record whose gate block was edited, so the
     RED-accepted check cannot be silenced by retyping ``region``.
+
+    This is not tamper resistance — recomputing the digest alongside the edit
+    defeats it. It catches accidental and casual edits, which is the realistic
+    failure when a human opens the file to record a decision.
     """
-    payload = {k: v for k, v in gate.items() if k != "block_sha256"}
+    payload = _nfc({k: v for k, v in gate.items() if k != "block_sha256"})
     return _sha256_text(
         json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
     )

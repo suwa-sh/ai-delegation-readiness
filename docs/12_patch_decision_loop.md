@@ -167,7 +167,7 @@ Band: 健全 [0.15, 0.5)
 | 破棄率 | discarded / (accepted + discarded) | 決定済みの件数だけ。pending は含まない。決定済みが 0 件のときは `N/A` |
 | 決定済み率 | (accepted + discarded) / 全パッチ | 記録されている全パッチ。未決件数を常に別行で表示する |
 | 破棄理由の内訳 | 理由別件数 / discarded 合計 | discarded の件数のみ。合計 100% になる |
-| gate 突き合わせ | RED accepted / YELLOW accepted の件数 | ゲート判定と人間の採否が矛盾していないかの点検。RED accepted は `[NG]`、YELLOW accepted は設計どおりの経路として `[..]` |
+| gate 突き合わせ | RED accepted / YELLOW accepted の件数 | ゲート判定と人間の採否が矛盾していないかの点検。RED accepted は `[NG]`、YELLOW accepted は設計どおりの経路として `[..]`。**RED accepted だけは fold 後の最新イベントではなく、同じ period/team スコープの全イベントから検出する**(fold 後の他の行は最新イベント基準) |
 
 **なぜ破棄率と決定済み率を分けるか**: 破棄率だけを見ると、未決が溜まっているチームほど
 「少数の決定済み分から算出した率」が実態より極端に振れます。決定済み率と未決件数を必ず併記することで、
@@ -195,16 +195,21 @@ Band: 健全 [0.15, 0.5)
 
 要点だけ挙げます。
 
-- **記録は不変イベント**です。同じ `patch_id` に複数回書いてよく、`summarize-patch-decisions` は
+- **記録は不変イベント**です。同じ識別子に複数回書いてよく、`summarize-patch-decisions` は
   `recorded_at` が最も新しいイベントだけを採用します(fold)。事例の `expense-locale-fallback` は
   pending → accepted の 2 イベントを持ちますが、集計は 1 件として数えます。**pending 行を決定内容で
   上書きしません**。上書きすると「いつ pending だったか」「決定がいつ起きたか」が消えます
+- **fold の識別子は `patch_id` 単体ではなく `(team, patch_id)` です**。`patch_id` はチーム内での
+  一意性だけを契約しています。別チームが同じ `patch_id` を使っても、fold で互いのイベントを
+  上書きしません
 - **入力は 1 ファイルでもディレクトリでもよく、`*.jsonl`(1 行 1 レコード)と `*.json`
   (1 ファイル 1 レコード)の両方を読みます**。ディレクトリを渡すと、両方の拡張子のファイルを
-  まとめて読みます
+  まとめて読みます。**`.` で始まる隠しファイル(エディタの一時ファイルや同期ツールの残骸)は
+  読み飛ばします**
 - **`gate` ブロックはゲート機械側の転記**です。`region` / `risk_ids` / `missing_controls` /
   `gate_json_sha256` / `definition_name` / `definition_version` / `block_sha256` を保持します。
-  `block_sha256` は `block_sha256` 自身を除いた gate ブロックの digest で、
+  `block_sha256` は `block_sha256` 自身を除いた gate ブロックの digest(文字列は NFC 正規化してから
+  ハッシュするので、エディタの NFC/NFD の違いだけで拒否されることはありません)で、
   `summarize-patch-decisions` が読み込み時に**再計算して照合**します。手で `region` を書き換えて
   RED を green にすると、digest が合わずに **exit 3 で読み込み自体が拒否されます**。
   ただし、これは編集検知であって改ざん耐性ではありません。**`block_sha256` も一緒に
@@ -216,6 +221,11 @@ Band: 健全 [0.15, 0.5)
 - **`decided_on` と `discard_reason` は条件付き必須**です。`decision: pending` のときは
   `decided_on` を持ってはいけません(まだ決めていないので日付がない)。`decision: discarded`
   のときだけ `discard_reason` が必須です
+- **`recorded_at` は RFC 3339 の大文字小文字どちらの `T` / `Z` も受け付けます**。解析できない
+  値は traceback ではなく exit 3 の入力エラーになります
+- **同一時刻の 2 イベントは、`decision` / `decided_on` / `discard_reason` / `gate.block_sha256`
+  の全部が一致しないと exit 3 です**。手順どおり `recorded_at` を都度の現在時刻にしていれば
+  通常は起きませんが、自動化で同時刻書き込みが起きうる場合は注意します
 
 ### 月次の運用手順(準備 → 決定 → 振り返り)
 
@@ -236,28 +246,33 @@ Band: 健全 [0.15, 0.5)
    - `decided_on` を決定日(`YYYY-MM-DD`)に
    - `discarded` のときだけ `discard_reason` を(`definitions/patch-decision.yaml` の leaf id)
    - 任意で `note` を
-   - **`recorded_at` を決定が起きた時刻に更新する**。fold は `recorded_at` が最も新しいイベントを
-     採用するため、これを更新しないと pending 行の時刻の方が新しいままになり、決定が反映されません
+   - **`recorded_at` を、コマンドを実行する「そのときの現在時刻」に更新する**。固定時刻(たとえば
+     常に `09:00:00Z`)を入れてはいけません。fold は `recorded_at` が最も新しいイベントを
+     採用するため、pending 行の記録時刻より前・同時刻になると決定側が採用されず、
+     `Decided rate` が上がらないまま `Undecided` に残ります
 
    **`gate` ブロックは触りません**(`block_sha256` を再計算しない限り、`region` などを書き換えると
    `summarize-patch-decisions` が digest 不一致で exit 3 にします)。
 
    受け入れる場合、追記された pending 行を取り出し、変更点だけ差し替えて 1 行追記します。
+   `recorded_at` には `date -u` で得た**実行時点の現在時刻**を渡します。
 
    ```bash
-   tail -n 1 decisions/2026-08.jsonl | jq -c --arg date "$(date +%F)" \
+   tail -n 1 decisions/2026-08.jsonl | jq -c \
+     --arg date "$(date -u +%F)" --arg now "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
      '.decision = "accepted" | .decided_on = $date | .note = "Reviewed and accepted." \
-      | .recorded_at = ($date + "T09:00:00Z")' \
+      | .recorded_at = $now' \
      >> decisions/2026-08.jsonl
    ```
 
    破棄する場合:
 
    ```bash
-   tail -n 1 decisions/2026-08.jsonl | jq -c --arg date "$(date +%F)" \
+   tail -n 1 decisions/2026-08.jsonl | jq -c \
+     --arg date "$(date -u +%F)" --arg now "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
      '.decision = "discarded" | .decided_on = $date \
       | .discard_reason = "probe_oversized" | .note = "Requirement was larger than assumed." \
-      | .recorded_at = ($date + "T09:00:00Z")' \
+      | .recorded_at = $now' \
      >> decisions/2026-08.jsonl
    ```
 
@@ -265,6 +280,14 @@ Band: 健全 [0.15, 0.5)
    ファイルに追記される運用では `jq 'select(.patch_id == "my-patch")' | tail -n 1` のように
    `patch_id` で絞り込んでから最後の行を取り出します。後日、同じパッチの採否を訂正したい
    ときも同じ手順(既存行を書き換えず、新しいイベント行を追記)を使います。
+
+   実際に実行して確認した例(pending の数秒後に accepted を追記):
+
+   ```text
+   Discard rate (gated patches): 0.0%  = 0 discarded / 1 decided
+   Decided rate: 100.0%  = 1 decided / 1 patches
+   Undecided: 0 patch(es)
+   ```
 
 3. 月次で集計し、決定済み率・未決件数・破棄率・理由内訳・gate 突き合わせを確認します。
 
@@ -281,7 +304,23 @@ Band: 健全 [0.15, 0.5)
    月をまたいで決定したパッチを追いたいときは、決定が起きた月のレポートを見ます。
 
 4. `Gate cross-check` に `[NG] RED accepted` があれば、その `patch_id` を個別に確認します。
-   ゲートが RED と判定した変更を受け入れた記録なので、放置しません。
+   ゲートが RED と判定した変更を受け入れた記録なので、放置しません。**`RED accepted` は
+   fold 後の最新イベントではなく、同じ period / team スコープの全イベントから検出します**。
+   採用後に同じパッチを再度ゲートにかけて pending が追記されると、`Decided rate` の分子は
+   その最新 pending に引きずられて `Undecided` になりますが、過去に RED を accepted した
+   事実は消えません。つまり `Undecided: 1` と `RED accepted: 1` が同じレポートに同時に
+   出ることがあり、これは矛盾ではなく仕様です(「起きた矛盾は起きなかったことにならない」)。
+
+   実際に「RED を accepted → 同じパッチを再ゲートして pending 追記」を実行して確認した例:
+
+   ```text
+   Decided rate: 0.0%  = 0 decided / 1 patches
+   Undecided: 1 patch(es)
+   ...
+   Gate cross-check:
+     [NG] RED accepted: 1 (hollow-green)
+          RED means 'do not accept'. Accepting it contradicts the gate.
+   ```
 
 5. 未決が多い(決定済み率が低い)月は、破棄率の解釈を保留し、まず決定を進めます。
 
@@ -336,17 +375,19 @@ flowchart TB
 ```mermaid
 graph LR
     Gate["ゲート実行<br/>check-patch-ownership"] -->|"1 パッチ = 1 pending 記録"| Record["decision record"]
-    Record -->|"patch_id で束ねる"| Patch["patch"]
+    Record -->|"(team, patch_id) で束ねる"| Patch["patch"]
     Record -->|"fold: 最新 recorded_at"| Latest["有効な最新イベント"]
+    Record -->|"RED accepted 監査は fold しない"| Audit["gate 突き合わせ(全イベント)"]
     Latest -->|"decision = discarded"| Reason["discard_reason"]
     Latest -->|"team, period"| Summary["summarize-patch-decisions"]
+    Audit --> Summary
     Summary -->|"applies_to = discard_rate"| Band["band(overlay only)"]
 ```
 
 | エンティティ | 説明 |
 |---|---|
-| decision record | 1 イベント。不変。`schema_version` / `patch_id` / `team` / `recorded_at` / `decision` / `gate` が必須 |
-| gate(埋め込み） | ゲート実行結果の転記。`region` / `risk_ids` / `missing_controls` / `gate_json_sha256` / `definition_name` / `definition_version` / `overlays` / `block_sha256`(自身を除くブロックの digest。読み込み時に再検証) |
+| decision record | 1 イベント。不変。`schema_version` / `patch_id` / `team` / `recorded_at` / `decision` / `gate` が必須。**識別子は `patch_id` 単体ではなく `(team, patch_id)`**(`patch_id` はチーム内一意) |
+| gate(埋め込み） | ゲート実行結果の転記。`region` / `risk_ids` / `missing_controls` / `gate_json_sha256` / `definition_name` / `definition_version` / `overlays` / `block_sha256`(自身を除くブロックの digest。NFC 正規化後に読み込み時再検証) |
 | discard_reason | `decision: discarded` のときだけ必須。base 5 分類 + overlay で追加可 |
 | band | 破棄率のしきい値ラベル。base は空。overlay だけが定義する |
 

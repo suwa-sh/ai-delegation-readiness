@@ -38,7 +38,9 @@ _BANDS_GROUP = "bands"
 _DECIDED = ("accepted", "discarded")
 _BAND_REQUIRED = ("applies_to", "low", "high", "label", "label_ja")
 _BAND_METRICS = ("discard_rate",)
-_PERIOD_PATTERN = re.compile(r"^\d{4}-(0[1-9]|1[0-2])$")
+# `re.ASCII` なしの `\d` は全角数字にも当たり、`match(...$)` は末尾改行を通す。
+# どちらも typo を「0 件・exit 0」に化けさせるので、ASCII 限定 + fullmatch にする。
+_PERIOD_PATTERN = re.compile(r"\d{4}-(0[1-9]|1[0-2])", re.ASCII)
 _RECORD_SUFFIXES = (".jsonl", ".json")
 
 
@@ -143,8 +145,12 @@ def _iter_file_sources(path: Path) -> Iterator[tuple[str, str]]:
 
 def _iter_record_sources(path: Path) -> Iterator[tuple[str, str]]:
     if path.is_dir():
+        # 隠しファイルは編集中の一時ファイルや同期ツールの残骸であることが多い。
+        # 1 つ拾うだけで月次集計全体が exit 3 になるので除外する。
         files = sorted(
-            p for p in path.iterdir() if p.is_file() and p.suffix in _RECORD_SUFFIXES
+            p
+            for p in path.iterdir()
+            if p.is_file() and p.suffix in _RECORD_SUFFIXES and not p.name.startswith(".")
         )
         if not files:
             raise InputError(
@@ -287,38 +293,79 @@ def _recorded_at(record: dict) -> datetime:
     fold to the wrong event and could hide a RED-accepted decision.
     """
     raw = record["recorded_at"]
-    parsed = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    # RFC 3339 は小文字の 't' / 'z' も認め、schema の format checker も通す。
+    # 解析できない形は traceback でなく契約どおりの入力エラーにする。
+    normalized = raw.replace("t", "T", 1) if raw[:11].count("t") else raw
+    if normalized.endswith(("z", "Z")):
+        normalized = normalized[:-1] + "+00:00"
+    try:
+        parsed = datetime.fromisoformat(normalized)
+    except ValueError as e:
+        raise InputError(
+            f"patch '{record['patch_id']}': unparsable recorded_at '{raw}': {e}"
+        ) from e
     if parsed.tzinfo is None:
         parsed = parsed.replace(tzinfo=timezone.utc)
     return parsed.astimezone(timezone.utc)
 
 
-def _decision_key(record: dict) -> tuple:
-    return (record["decision"], record.get("discard_reason"), record.get("decided_on"))
+def patch_identity(record: dict) -> tuple[str, str]:
+    """A patch id is only unique inside a team.
+
+    Folding on patch_id alone lets one team's events erase another's when an
+    id is reused, which would drop a RED-accepted decision from every report.
+    """
+    return (record["team"], record["patch_id"])
+
+
+def _event_key(record: dict) -> tuple:
+    """Everything a same-instant duplicate must agree on to count as the same event."""
+    return (
+        record["decision"],
+        record.get("discard_reason"),
+        record.get("decided_on"),
+        record["gate"]["block_sha256"],
+    )
 
 
 def fold_latest(records: list[dict]) -> list[dict]:
-    """Keep the latest event per patch_id.
+    """Keep the latest event per (team, patch_id).
 
     Appending 'pending' and later 'accepted' for the same patch is the normal
     workflow; without this fold the patch would be counted twice. Two events
-    with the same instant but different outcomes are an input error: picking
+    at the same instant that disagree on anything are an input error: picking
     one by file order would silently decide whether a contradiction is
     reported.
     """
-    latest: dict[str, tuple[datetime, dict]] = {}
+    latest: dict[tuple[str, str], tuple[datetime, dict]] = {}
     for record in records:
-        key = record["patch_id"]
+        key = patch_identity(record)
         stamp = _recorded_at(record)
         current = latest.get(key)
         if current is None or stamp > current[0]:
             latest[key] = (stamp, record)
-        elif stamp == current[0] and _decision_key(record) != _decision_key(current[1]):
+        elif stamp == current[0] and _event_key(record) != _event_key(current[1]):
             raise InputError(
-                f"patch '{key}' has two different outcomes at the same recorded_at "
+                f"patch '{record['patch_id']}' (team '{record['team']}') has two "
+                f"conflicting events at the same recorded_at "
                 f"({record['recorded_at']}); give the later event a later timestamp"
             )
     return [record for _, record in latest.values()]
+
+
+def red_accepted_identities(events: list[dict]) -> list[str]:
+    """Patches accepted while the gate said RED, over every event in scope.
+
+    Deliberately not computed from the folded set: re-running the gate later
+    appends a fresh 'pending' event, and folding would erase the fact that a
+    RED patch had already been accepted. A contradiction that happened does
+    not stop having happened.
+    """
+    seen: dict[tuple[str, str], str] = {}
+    for record in events:
+        if record["decision"] == "accepted" and record["gate"]["region"] == "red":
+            seen.setdefault(patch_identity(record), record["patch_id"])
+    return sorted(seen.values())
 
 
 def _reject_undeclared_reasons(records: list[dict], declared: set[str]) -> None:
@@ -339,25 +386,24 @@ class _Tally:
     yellow_accepted: list[str]
 
 
-def _tally(folded: list[dict]) -> _Tally:
+def _tally(folded: list[dict], events: list[dict]) -> _Tally:
     counts = {"accepted": 0, "discarded": 0, "pending": 0}
     reason_counts: dict[str, int] = {}
-    accepted_by_region: dict[str, list[str]] = {"red": [], "yellow": []}
+    yellow_accepted: list[str] = []
     for record in folded:
         decision = record["decision"]
         counts[decision] += 1
         if decision == "discarded":
             reason = record["discard_reason"]
             reason_counts[reason] = reason_counts.get(reason, 0) + 1
-        elif decision == "accepted":
-            bucket = accepted_by_region.get(record["gate"]["region"])
-            if bucket is not None:
-                bucket.append(record["patch_id"])
+        elif decision == "accepted" and record["gate"]["region"] == "yellow":
+            yellow_accepted.append(record["patch_id"])
     return _Tally(
         counts=counts,
         reason_counts=reason_counts,
-        red_accepted=sorted(accepted_by_region["red"]),
-        yellow_accepted=sorted(accepted_by_region["yellow"]),
+        # 矛盾の監査だけは fold 前の全イベントを見る
+        red_accepted=red_accepted_identities(events),
+        yellow_accepted=sorted(yellow_accepted),
     )
 
 
@@ -379,7 +425,7 @@ def summarize(
     schema_path: str | Path | None = None,
 ) -> DecisionSummary:
     overlay_paths = list(overlay_paths or [])
-    if period is not None and not _PERIOD_PATTERN.match(period):
+    if period is not None and not _PERIOD_PATTERN.fullmatch(period):
         # 未検証だと typo が「0 件・exit 0」に化け、RED 採用を含む月が
         # 素通りしたことに気づけない。
         raise InputError(f"--period must be YYYY-MM (month 01-12); got '{period}'")
@@ -389,10 +435,12 @@ def summarize(
     records = _load_records(Path(path), Path(schema_path or DEFAULT_SCHEMA))
     _reject_undeclared_reasons(records, declared_reason_ids(defn))
 
-    # fold してから絞り込む。逆順にすると、翌月に決着したパッチが前月の
+    # 件数は fold してから絞り込む。逆順にすると、翌月に決着したパッチが前月の
     # レポートで未決のまま残り、latest-wins の契約と食い違う。
     folded = _filter_records(fold_latest(records), period, team)
-    tally = _tally(folded)
+    # 矛盾の監査だけは fold 前のイベントを同じスコープで見る。fold 後だけを見ると、
+    # 採用後に gate を再実行して pending が追記された時に RED 採用が消える。
+    tally = _tally(folded, _filter_records(records, period, team))
 
     teams = sorted({r["team"] for r in folded})
     periods = sorted({_period_of(r) for r in folded})
