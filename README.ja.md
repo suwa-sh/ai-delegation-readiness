@@ -28,6 +28,7 @@
 | 6 | AI 生成パッチを将来も所有できるか | `aidr check-patch-ownership` |
 | 拡張 | 自社ルールをどう足すか(任意) | `aidr check-overlay` + `--overlay` |
 | 拡張 | 受入後の採否をどう振り返るか(任意) | `aidr summarize-patch-decisions` |
+| 拡張 | 委任を受ける組織に、事故を止める体制があるか(任意) | `aidr assess-risk-architecture` |
 
 主要サンプルは、架空の中堅製造業 **ミドリ精機株式会社** の物語でつながっています。
 診断で一度 **BLOCK(委任不可)** になり、改善して **PASS** してから先へ進む —
@@ -57,6 +58,7 @@ AI エージェントや CI からも直接使えます。
 | **実装エンジニア**で高リスク承認業務向け AI エージェントを設計中 | [schemas/audit-log.schema.json](schemas/audit-log.schema.json) + [docs/06](docs/06_audit_log_schema.md) — スキーマをロガーに組み込む |
 | **maintainer / Engineering Manager**で AI 生成コードを受け入れる | [docs/11](docs/11_patch_ownership_gate.md) — 所有コスト・テスト完全性・高リスク境界でゲートする |
 | **運用担当**で既存 AI 基盤のログを点検したい | [docs/07](docs/07_audit_log_gap_check.md) — 5 ステップ手法を自社 SQL スキーマに当てる |
+| **EM / PMO**で、エージェントを運用する組織側の事故対応体制を点検したい | [docs/13](docs/13_risk_architecture.md) — 失敗シナリオごとに検知・抑制・エスカレーションを採点する |
 | **コンサル / 提案者** | `docs/` 全部 + overlay 拡張モデル — clone してプライベートに overlay し、顧客固有の採点を提示する |
 
 ## Quick start(2 分で動かす)
@@ -87,6 +89,10 @@ docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.13.0 \
 docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.13.0 \
   summarize-patch-decisions examples/patch-decisions/sample-midori-2026-07.jsonl
 
+# 拡張(任意): 委任を受ける組織側の体制を採点する
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.13.0 \
+  assess-risk-architecture examples/business/sample-risk-architecture.csv
+
 # 拡張(任意)と定義の確認
 docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.13.0 \
   check-overlay examples/overlays/sample-company/extra-rules.yaml
@@ -105,8 +111,9 @@ docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.13.0 list-definitions
 | validate-audit-log | valid | invalid(スキーマ違反) | — | 入力エラー(JSON 構文不正・ファイルなし) |
 | check-overlay | マージ規則を満たす | 違反あり(却下) | — | YAML 構文・重複 key・ファイル入力エラー |
 | summarize-patch-decisions | 全決定済み・RED 採用なし | 未決あり | RED を accepted した記録が 1 件以上(2 が 1 に優先) | 入力エラー・overlay 違反 |
+| assess-risk-architecture | 全シナリオ High + owner 充足(pure-SE 帯の対象外も 0) | Medium あり・Low なし | Low あり、または surface owner 不在 | 入力エラー・矛盾回答・overlay 違反 |
 
-レポートは `--format csv` で **CSV でも受け取れます**(上表の 6 コマンド。
+レポートは `--format csv` で **CSV でも受け取れます**(上表の 7 コマンド。
 先頭列 `record_type` で行の種類を判別でき、スプレッドシートでそのまま集計できます)。
 
 ## 学習パス(どの順で読むか)
@@ -123,6 +130,7 @@ docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.13.0 list-definitions
 | 8 | [07 ログ基盤の点検](docs/07_audit_log_gap_check.md) | ステップ 5 応用: 既存基盤への当てはめ |
 | 9 | [11 パッチ所有コスト](docs/11_patch_ownership_gate.md) | ステップ 6: AI 生成差分の受入ゲート |
 | 応用 | [08 高責任ドメイン overlay](docs/08_high_stakes_domain_overlay.md) / [09 内製化 overlay](docs/09_insourcing_judgment_overlay.md) / [10 権限設計 overlay](docs/10_agent_authorization_overlay.md) | 知財/法務/薬事、内製化の判断責任、能力軸と同意軸 |
+| 応用 | [13 組織リスクアーキテクチャ](docs/13_risk_architecture.md) | 拡張: 委任を受ける組織側の検知・抑制・エスカレーション体制 |
 
 > **言語について**: `docs/` は日本語(著者の作業言語)で書いています。英語 README が
 > 入口、本ファイル(日本語)が正本テキストです。定義ファイルの質問文は英語(`text`)と
@@ -154,6 +162,7 @@ aidr init --target four-layer    --format csv > my-business.csv      # ステッ
 aidr init --target matrix        --format csv > my-judgments.csv     # ステップ 3 用
 aidr init --target task-contract --format csv > my-contract.csv      # ステップ 4 用
 aidr init --target patch-ownership --format csv > my-patch.csv       # ステップ 6 用
+aidr init --target risk-architecture --format csv > my-risk-arch.csv # 拡張(組織体制)用
 
 # 自社 overlay の追加質問も含めて生成
 aidr init --target four-layer --format csv --overlay our-rules.yaml > my-business.csv
@@ -246,6 +255,37 @@ aidr summarize-patch-decisions decisions/ --period 2026-08 --team midori-seiki-p
 
 → [docs/12](docs/12_patch_decision_loop.md)
 
+### 拡張(任意) — 委任を受ける組織側の体制を採点する
+
+委任の可否(ステップ 2〜4)は業務単位の診断です。こちらは**委任を受けて運用する
+組織の側**に、失敗シナリオを「検知できる・止められる・責任者に届く」体制があるかを
+採点します(元論文: [arXiv:2607.01421](https://arxiv.org/abs/2607.01421))。
+
+```bash
+aidr assess-risk-architecture examples/business/sample-risk-architecture.csv
+# organization: ミドリ精機 経理エージェント運用チーム
+# profile: D1=2 D2=2 D3=1 D4=2 D5=1 D6=2 D7=2  total=12  band=ai_native
+# [LOW   ] scenario_f_drift (サイレントな境界契約ドリフト): tau=1 (d=0 c=1 e=0) ...
+# owners: contract_owner=yes agent_workflow_owner=yes boundary_channel_owner=NO
+# conclusion: BLOCK   (exit code 2)
+```
+
+サンプルは、経理エージェントを多段自律実行に広げたミドリ精機が「境界の失敗への
+備えが最も薄い」状態にあることを、8 つの代表シナリオと 3 つの surface owner
+(contract / agent-workflow / boundary channel)の在任チェックで可視化します。
+
+**楽観バイアスを抑える 3 つの注記**(結果を売り込みに使う前に):
+
+- 「owner を置けば未カバー失敗は消える」という論文の定量結果は、著者による
+  **分析上の反事実(derived counterfactual)であり実測ではない** — 自組織の
+  インシデント実績で検証する仮説として扱う
+- boundary channel owner の**共同指名(joint ownership)は RACI アンチパターン**に
+  なりやすい — 平時の Accountable と障害時の意思決定者を 1 名に絞る
+- カバレッジが低い組織へ**一律の追加ガバナンスを課すと失敗する** — 統制強度は
+  自律性レベル(D2)に比例させる
+
+→ [docs/13](docs/13_risk_architecture.md)
+
 ### 拡張(任意) — 自社ルールを overlay で足す
 
 各社固有の質問や厳格化した閾値は overlay で追加し、適用前に検証します。
@@ -314,12 +354,13 @@ ai-delegation-readiness/
 │   ├── delegation-matrix.yaml   #   2 軸 + 領域マップ + extension_points
 │   ├── task-contract.yaml       #   実行ルーブリック 4 要素 + ゲート policy + extension_points
 │   ├── patch-ownership.yaml     #   AI 生成差分の所有コスト + hard gate + extension_points
-│   └── patch-decision.yaml      #   決定記録の語彙(decision/discard_reason/reading/bands) + extension_points
+│   ├── patch-decision.yaml      #   決定記録の語彙(decision/discard_reason/reading/bands) + extension_points
+│   └── risk-architecture.yaml   #   組織リスクアーキテクチャ(7次元プロファイル + シナリオ + owners) + extension_points
 ├── schemas/
 │   ├── audit-log.schema.json    # JSON Schema with $defs: minimum (A) / extended (B)
 │   └── patch-decision.schema.json # 決定記録 1 件の JSON Schema
 ├── src/adr/                     # Python 診断ツール(コンテナイメージで配布)
-├── bin/aidr                     # CLI エントリポイント(単一コマンド、10 サブコマンド)
+├── bin/aidr                     # CLI エントリポイント(単一コマンド、11 サブコマンド)
 ├── examples/                    # ミドリ精機(架空)の物語でつながるサンプル一式
 │   ├── README.md                #   物語の正本(会社プロファイル + サンプル一覧 + 応用例)
 │   ├── task-groups/             #   ステップ 1: screen-transition の入力
@@ -330,12 +371,12 @@ ai-delegation-readiness/
 │   ├── patches/                 #   ステップ 6: check-patch-ownership の入力(green / yellow / red)
 │   ├── patch-decisions/         #   拡張: summarize-patch-decisions の入力(物語 + 機能デモ)
 │   ├── overlays/                #   拡張: ミドリ精機の自社ルール + ドメイン overlay(応用例)
-│   └── skills/                  #   AI 取り込み口: Claude Code skill サンプル 5 種
+│   └── skills/                  #   AI 取り込み口: Claude Code skill サンプル 6 種
 └── docs/                        # 解説(読み順は「学習パス」参照)
     ├── 00_overview.md           #   全体像(最初に読む)
     ├── 01〜06, 11               #   本線 6 ステップの詳細
     ├── 07〜10                   #   応用(ログ基盤点検 / 高責任ドメイン / 内製化 / 権限設計)
-    └── 12                       #   拡張(パッチ受入の運用ループ)
+    └── 12〜13                   #   拡張(パッチ受入の運用ループ / 組織リスクアーキテクチャ)
 ```
 
 ## How to extend(フレームワークの意図)
@@ -353,7 +394,7 @@ overlay で可能なのは、次の 2 つだけです。
 
 - **AI エージェント**: `definitions/*.yaml` や `schemas/audit-log.schema.json` を
   system prompt や tool context にロードします。
-  [`examples/skills/`](examples/skills/) に Claude Code skill のラッパー 5 種を用意しています
+  [`examples/skills/`](examples/skills/) に Claude Code skill のラッパー 6 種を用意しています
 - **CI パイプライン**: 出力ログ 1 件ごとに
   `docker run --rm -v "$PWD:/data" -w /data ghcr.io/suwa-sh/ai-delegation-readiness:v0.13.0 validate-audit-log <log>`
   を呼び、exit code でゲートします

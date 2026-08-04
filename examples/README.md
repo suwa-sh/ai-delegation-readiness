@@ -58,7 +58,7 @@
   (採用面接の合否・差別表現の検出)が入っています。経費以外の判定にも同じ物差しが
   使えることを示す比較例です。
 - AI エージェントからサンプルと同じ流れを使う例は [`skills/`](skills/) にあります
-  (Claude Code skill のラッパー 5 種)。
+  (Claude Code skill のラッパー 6 種)。
 
 ## 運用ループ(拡張・任意)
 
@@ -70,6 +70,17 @@
 |---|---|
 | `aidr check-patch-ownership --emit-decision-record` | [`patches/sample-cheap-green.csv`](patches/sample-cheap-green.csv) → 決定記録を追記 |
 | `aidr summarize-patch-decisions` | [`patch-decisions/sample-midori-2026-07.jsonl`](patch-decisions/sample-midori-2026-07.jsonl)(ミドリ精機・7 月分) |
+
+## 組織リスクアーキテクチャ(拡張・任意)
+
+経理エージェントを多段自律実行に広げたミドリ精機が、「委任を受けて運用する組織の側」に
+失敗を検知・抑制・エスカレーションする体制があるかを採点する拡張です(`docs/13`)。
+サンプルは AI-native 帯 + 境界シナリオが Low + boundary channel owner 不在で
+**BLOCK** になる回答例です。
+
+| コマンド | サンプル |
+|---|---|
+| `aidr assess-risk-architecture` | [`business/sample-risk-architecture.csv`](business/sample-risk-architecture.csv)(組織側の体制採点 → BLOCK) |
 
 ## スプレッドシートで記入する
 

@@ -8,6 +8,7 @@ Subcommands:
     check-task-contract    execution rubric per delegated task (intent/boundary/evidence/scorer)
     check-patch-ownership  post-generation acceptance gate for an AI-generated patch
     summarize-patch-decisions  discard rate / decided rate over recorded patch decisions
+    assess-risk-architecture   org-side adequacy check (detect/contain/escalate per failure scenario)
     validate-audit-log     JSON Schema validation (minimum or extended)
     check-overlay          overlay merge-rule validation
     list-definitions       inspect loaded base + overlay structure
@@ -22,6 +23,7 @@ from importlib.metadata import PackageNotFoundError, version as _pkg_version
 import overlay_scoring
 
 from . import (
+    assess_risk_architecture as _risk,
     check_overlay as _check_overlay,
     check_patch_ownership as _patch,
     check_readiness as _check_readiness,
@@ -54,7 +56,7 @@ def _shared_overlay_args(
     formats: tuple[str, ...] = ("text", "json"),
 ) -> None:
     # formats はコマンドごとに指定する: レポートの CSV 対応は採点系 + validate +
-    # 採否集計の 6 コマンドのみ(list-definitions 等の階層構造出力に csv を漏らさない)。
+    # 採否集計 + 組織体制の 7 コマンドのみ(list-definitions 等の階層構造出力に csv を漏らさない)。
     parser.add_argument(
         "--overlay",
         action="append",
@@ -194,6 +196,16 @@ def _cmd_summarize_patch_decisions(args: argparse.Namespace) -> int:
     return result.exit_code
 
 
+def _cmd_assess_risk_architecture(args: argparse.Namespace) -> int:
+    try:
+        result = _risk.assess(args.business, overlay_paths=args.overlay)
+    except (_check_readiness.OverlayError, _risk.InputError, _io.InputFormatError) as e:
+        sys.stderr.write(f"[ERROR] {e}\n")
+        return 3
+    _emit(result, args, _risk)
+    return _risk.exit_code_for(result)
+
+
 def _cmd_validate_audit_log(args: argparse.Namespace) -> int:
     import json as _json
 
@@ -240,11 +252,15 @@ def _cmd_list_definitions(args: argparse.Namespace) -> int:
             summaries.append(_list.summarize_transition(overlay_paths=args.overlay))
         if args.target in {"patch-ownership", "all"}:
             summaries.append(_list.summarize_patch_ownership(overlay_paths=args.overlay))
+        if args.target in {"risk-architecture", "all"}:
+            summaries.append(_list.summarize_risk_architecture(overlay_paths=args.overlay))
         if args.target in {"patch-decision", "all"}:
             summaries.append(_list.summarize_patch_decision(overlay_paths=args.overlay))
     except (
         _check_readiness.OverlayError,
         _patch.InputError,
+        _risk.InputError,
+        _io.InputFormatError,
         _yaml.YAMLError,
     ) as e:
         sys.stderr.write(f"[ERROR] {e}\n")
@@ -364,6 +380,17 @@ def build_parser() -> argparse.ArgumentParser:
     _shared_overlay_args(p_dec, formats=_REPORT_FORMATS)
     p_dec.set_defaults(func=_cmd_summarize_patch_decisions)
 
+    p_risk = sub.add_parser(
+        "assess-risk-architecture",
+        help=(
+            "Assess whether the org can detect / contain / escalate agentic "
+            "failure scenarios (receiving-side adequacy check)"
+        ),
+    )
+    p_risk.add_argument("business", help="Path to the answers file (CSV or YAML)")
+    _shared_overlay_args(p_risk, formats=_REPORT_FORMATS)
+    p_risk.set_defaults(func=_cmd_assess_risk_architecture)
+
     p_val = sub.add_parser(
         "validate-audit-log",
         help="Validate an audit log JSON against the schema",
@@ -407,6 +434,7 @@ def build_parser() -> argparse.ArgumentParser:
             "transition",
             "patch-ownership",
             "patch-decision",
+            "risk-architecture",
             "all",
         ],
         default="all",

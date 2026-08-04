@@ -159,3 +159,11 @@ def patch_ownership_validation_fixtures_dir() -> Path:
 
 def patch_ownership_extra_risk_overlay_path() -> Path:
     return EXAMPLES_DIR / "overlays" / "patch-ownership" / "extra-risk.yaml"
+
+
+def risk_architecture_path() -> Path:
+    return DEFINITIONS_DIR / "risk-architecture.yaml"
+
+
+def sample_risk_architecture_path() -> Path:
+    return EXAMPLES_DIR / "business" / "sample-risk-architecture.csv"

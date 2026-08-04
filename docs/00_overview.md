@@ -42,6 +42,7 @@ flowchart LR
     ov -.-> s3
     ov -.-> s4
     ov -.-> s6
+    ra["拡張: 組織リスクアーキテクチャ<br/>assess-risk-architecture"] -.-> s2
 ```
 
 | 要素名 | 説明 |
@@ -53,6 +54,7 @@ flowchart LR
 | 5 監査ログ検証 | 運用開始後、AI が書いた記録がスキーマを満たすか検証する |
 | 6 パッチ所有コスト | AI が生成した差分を、人間が将来も保守・説明できる条件で受け入れる |
 | 拡張 overlay | 自社固有の質問・厳しい閾値を、正本を書き換えずに追加する |
+| 拡張 組織リスクアーキテクチャ | 委任を受けて運用する組織側に、失敗を検知・抑制・エスカレーションする体制があるかを採点する |
 
 ### ステップ 1: どこから手を付けるか(スクリーニング)
 
@@ -189,6 +191,19 @@ bin/aidr summarize-patch-decisions examples/patch-decisions/sample-midori-2026-0
 
 → 詳細は [docs/12](12_patch_decision_loop.md)
 
+### 拡張(任意): 委任を受ける組織側の体制を採点する
+
+本線 6 ステップは「何をどう委任するか」の診断でした。運用が始まると、
+事故を「検知できる・止められる・責任者に届く」体制が組織の側に要ります。
+ミドリ精機が経理エージェントを多段自律実行に広げた設定で、8 つの代表失敗シナリオと
+3 つの surface owner の在任を採点するのがこの拡張です。
+
+```bash
+bin/aidr assess-risk-architecture examples/business/sample-risk-architecture.csv
+```
+
+→ 詳細は [docs/13](13_risk_architecture.md)
+
 ## 学習パス(どの順で読むか)
 
 | 順 | doc | 何が分かるか |
@@ -204,6 +219,7 @@ bin/aidr summarize-patch-decisions examples/patch-decisions/sample-midori-2026-0
 | 9 | [11 パッチ所有コスト](11_patch_ownership_gate.md) | AI 生成差分の受入ゲート |
 | 応用 | [08 高責任ドメイン overlay](08_high_stakes_domain_overlay.md) / [09 内製化 overlay](09_insourcing_judgment_overlay.md) / [10 権限設計 overlay](10_agent_authorization_overlay.md) | 知財/法務/薬事、内製化の判断責任、能力軸と同意軸 |
 | 拡張 | [12 パッチ受入の運用ループ](12_patch_decision_loop.md) | ステップ 6 の先: 決定記録と月次の破棄率振り返り |
+| 拡張 | [13 組織リスクアーキテクチャ](13_risk_architecture.md) | 委任を受ける組織側の検知・抑制・エスカレーション体制の採点 |
 
 ## References
 

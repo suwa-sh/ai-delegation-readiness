@@ -1,0 +1,560 @@
+version: 1
+name: risk-architecture
+separator: "."
+description: |
+  Organizational risk-architecture adequacy check for teams that OPERATE
+  agentic AI delegation (the receiving side of delegation). For each
+  representative failure scenario, three capabilities are scored on the
+  paper's ordinal scale {0,1,2} — Detection (can the failure be noticed),
+  Containment (can an accountable role stop the consequences), Escalation
+  (does ownership resolve to an accountable role) — via two MONOTONE yes/no
+  questions per capability (weak-or-better, then strong). tau = d + c + s
+  in {0..6}; band: Low (tau <= 2) / Medium (3-4) / High (5-6).
+
+  Positioning: a REPRESENTATIVE-SCENARIO quick check derived from the
+  framework-adequacy methodology of "Risk Architecture for AI-Native
+  Engineering Teams" (arXiv:2607.01421) — NOT a reproduction of the paper's
+  full (profile x scenario) scoring. Conclusions apply only to the scored
+  scenarios, never to a whole failure cluster.
+
+  Two caveats the paper itself states (do not oversell the result):
+  - The claim that assigning the 3 surface owners removes Low-band cells is
+    the author's DERIVED COUNTERFACTUAL, not an observed measurement.
+    Treat owner assignment as a hypothesis to verify against your own
+    incident record (confidence: claim_needs_verification).
+  - The surface-owner gate in this definition (missing owner caps the
+    mapped scenarios' effective band to Low) is a PRODUCT-SPECIFIC
+    fail-safe of this tool, not the paper's mechanism (the paper reflects
+    ownership through the escalation score).
+
+# 拡張ポイント: 各社のオーバーレイで可能な操作。
+# - 新しい失敗シナリオを group 一式 (header + 単調2問 x 3能力 = 6問) で追加できる
+#   (id は scenario_* / 形状は契約 validator が検査し、崩れた追加は拒否される)。
+# - band 閾値 (medium_min / high_min) は厳しい方向 (higher) のみ変更できる。
+# - profile / owners への質問追加は開けない: 7次元 x 単調2問と owner 3枠は
+#   採点尺度そのものであり、質問を足すと {0,1,2} の意味が壊れるため。
+extension_points:
+  - {group: "scenario_*", allow: add}
+  - {group: "scenario_*", level: group, field: medium_min, allow: strengthen, direction: higher}
+  - {group: "scenario_*", level: group, field: high_min, allow: strengthen, direction: higher}
+
+items:
+  # =========================================================================
+  # profile: 7次元プロファイル (前段診断)
+  #
+  # 各次元を単調2問で 0/1/2 に採点する (0=pure-SE / 1=hybrid / 2=AI-native)。
+  # 7値ベクトルが結果の正本で、合計による帯 (hybrid_min / ai_native_min) は
+  # 補助表示 (閾値は論文非記載のため design_proposal)。
+  # 帯が pure-SE のときシナリオ採点は参考表示になり conclusion は
+  # NOT_APPLICABLE (シナリオは AI-native の失敗様式を想定した基準のため、
+  # 無関係な組織を誤って BLOCK しない)。
+  # =========================================================================
+  - id: "profile"
+    name: seven_dimension_profile
+    name_ja: 7次元プロファイル
+    description: |
+      Classify the team across the paper's seven dimensions (D1-D7). Each
+      dimension scores 0 (pure-SE) / 1 (hybrid) / 2 (AI-native) via two
+      monotone questions. The 7-value vector is the primary output; the
+      aggregate band over the total (0-14) is a supporting view whose
+      thresholds are this repo's design proposal (the paper defines the
+      three canonical profiles but no numeric aggregation).
+    hybrid_min: 5       # total >= 5  => hybrid band (design_proposal)
+    ai_native_min: 10   # total >= 10 => AI-native band (design_proposal)
+    case_evidence:
+      - text: The paper defines D1-D7 with pure-SE / hybrid / AI-native descriptions per dimension (Table II) but no numeric aggregation rule
+        confidence: observed_fact
+        source: https://arxiv.org/abs/2607.01421
+      - text: Aggregate band thresholds (hybrid_min 5 / ai_native_min 10 over a 0-14 total) are this repo's simplification for a self-check questionnaire
+        confidence: design_proposal
+        source: https://arxiv.org/abs/2607.01421
+  - id: "profile.D1_HYBRID"
+    dimension: d1
+    strength: weak
+    text: Does any meaningful part of your production output come from model generation (probabilistic output), beyond deterministic code paths?
+    text_ja: "本番の成果物の一部でも、決定論的なコードでなくモデル生成 (確率的出力) から作られているか"
+  - id: "profile.D1_NATIVE"
+    dimension: d1
+    strength: strong
+    text: Is the PRIMARY output model-generated, so reproducing a result would require pinning model weights?
+    text_ja: "主要な成果物そのものがモデル生成で、結果の再現にはモデル重みの固定が必要か"
+  - id: "profile.D2_HYBRID"
+    dimension: d2
+    strength: weak
+    text: Does AI recommend or draft actions, with humans approving the irreversible ones?
+    text_ja: "AI が処理案を出し、不可逆な操作は人間が承認する形で動いているか"
+  - id: "profile.D2_NATIVE"
+    dimension: d2
+    strength: strong
+    text: Do agents execute multi-step sequences without per-action human approval?
+    text_ja: "エージェントが 1 アクションごとの人間承認なしに、多段の処理を実行するか"
+  - id: "profile.D3_HYBRID"
+    dimension: d3
+    strength: weak
+    text: Does verification include behavioral tests beyond line/branch coverage?
+    text_ja: "検証にカバレッジ基準を超えた振る舞いテストが含まれるか"
+  - id: "profile.D3_NATIVE"
+    dimension: d3
+    strength: strong
+    text: Does verification require adversarial probing or contract-based checks against probabilistic output?
+    text_ja: "確率的出力に対する敵対的プロービングや契約ベース検証が必要になっているか"
+  - id: "profile.D4_HYBRID"
+    dimension: d4
+    strength: weak
+    text: Is incident responsibility split across teams (model / prompt / tool / approval) rather than owned by one feature team?
+    text_ja: "インシデント責任が単一チームでなく、モデル・プロンプト・ツール・承認に分かれて複数チームにまたがるか"
+  - id: "profile.D4_NATIVE"
+    dimension: d4
+    strength: strong
+    text: Is incident responsibility ambiguous or undefined for some failure modes (no team clearly owns them)?
+    text_ja: "一部の失敗様式について、責任チームが曖昧または未定義のままか"
+  - id: "profile.D5_HYBRID"
+    dimension: d5
+    strength: weak
+    text: Do escalation triggers include drift detection beyond fixed error-rate thresholds?
+    text_ja: "エスカレーション契機に、固定のエラー率閾値を超えたドリフト検知が含まれるか"
+  - id: "profile.D5_NATIVE"
+    dimension: d5
+    strength: strong
+    text: Does deciding to escalate require understanding the MEANING of the agent's actions (semantic judgment), not just metrics?
+    text_ja: "エスカレーション判断に、指標だけでなくエージェントの行為の意味理解 (semantic な判断) が必要か"
+  - id: "profile.D6_HYBRID"
+    dimension: d6
+    strength: weak
+    text: Can data be exposed through the model (training/prompt paths) beyond your static, boundary-defined data surface?
+    text_ja: "静的で境界が明確なデータ面に加えて、モデル経由 (学習・プロンプト経路) のデータ露出がありうるか"
+  - id: "profile.D6_NATIVE"
+    dimension: d6
+    strength: strong
+    text: Do agents decide AT RUNTIME which tools/data they touch, making the data surface dynamic?
+    text_ja: "エージェントが実行時にどのツール・データへ触るかを決めるため、データ面が動的に変わるか"
+  - id: "profile.D7_HYBRID"
+    dimension: d7
+    strength: weak
+    text: Can behavior change through model updates outside your own deploy events?
+    text_ja: "自分たちのデプロイイベントの外で、モデル更新によって挙動が変わりうるか"
+  - id: "profile.D7_NATIVE"
+    dimension: d7
+    strength: strong
+    text: Can the risk surface mutate continuously and silently between deploys (provider updates, prompt or tool-contract drift, state accumulation)?
+    text_ja: "デプロイ間でもリスク面が連続的・サイレントに変異しうるか (プロバイダ更新・プロンプトやツール契約のドリフト・状態の蓄積)"
+
+  # =========================================================================
+  # scenario_*: 代表失敗シナリオ x 8 (クラスタ A-E 各1本 + F 3本)
+  #
+  # 各能力の単調2問: 弱い能力以上 (D1/C1/S1) -> 強い能力 (D2/C2/S2)。
+  # yes/no の組で 0/1/2 (no,no=0 / yes,no=1 / yes,yes=2)。「弱=no なのに
+  # 強=yes」は矛盾として入力エラー (採点しない)。
+  # gated_by: owner 不在でこのシナリオの effective band を Low に落とす
+  # owners leaf (本ツール独自の安全側ゲート)。
+  # =========================================================================
+  - id: "scenario_a"
+    name: adversarial_injection
+    name_ja: 敵対的インジェクション
+    cluster: A
+    description: |
+      Security cluster representative: an adversarial input (prompt
+      injection / poisoned content) steers the agent into privilege
+      escalation or unauthorized tool access.
+    medium_min: 3
+    high_min: 5
+    case_evidence:
+      - text: Cluster A (Security) includes adversarial injection, privilege escalation, unauthorized tool access
+        confidence: observed_fact
+        source: https://arxiv.org/abs/2607.01421
+  - id: "scenario_a.D1"
+    capability: detection
+    strength: weak
+    text: Could you notice an injection-driven action at all, even indirectly or after the fact (log review, anomaly reports)?
+    text_ja: "インジェクション起因の挙動に、事後や間接的な手段 (ログ点検・異常報告) も含めて気づけるか"
+  - id: "scenario_a.D2"
+    capability: detection
+    strength: strong
+    text: Does a DIRECT trigger fire on injection-driven behavior (runtime guardrails, tool-call policy checks)?
+    text_ja: "インジェクション起因の挙動に直接発火するトリガ (ランタイムガードレール・ツール呼び出しのポリシー検査) があるか"
+  - id: "scenario_a.C1"
+    capability: containment
+    strength: weak
+    text: Could someone stop the consequences at least partially or manually (revoke credentials, pause the workload)?
+    text_ja: "部分的・手動でも帰結を止められるか (資格情報の失効・ワークロードの一時停止など)"
+  - id: "scenario_a.C2"
+    capability: containment
+    strength: strong
+    text: Does an accountable role hold DIRECT authority to stop it (kill switch, automatic tool blocking)?
+    text_ja: "説明責任を持つ役割が直接止める権限 (キルスイッチ・ツール呼び出しの自動遮断) を持つか"
+  - id: "scenario_a.S1"
+    capability: escalation
+    strength: weak
+    text: Would ownership resolve at least through cross-team triage (an incident process finds someone accountable)?
+    text_ja: "少なくともチーム横断のトリアージを通せば、対応の所有者が決まるか"
+  - id: "scenario_a.S2"
+    capability: escalation
+    strength: strong
+    text: Does the incident route DIRECTLY to a uniquely named accountable owner via a defined path?
+    text_ja: "定義済みの経路で、一意に名前の決まった責任者へ直接届くか"
+
+  - id: "scenario_b"
+    name: pii_exposure
+    name_ja: 外部 API への PII 露出
+    cluster: B
+    description: |
+      Privacy cluster representative: the agent sends personal data to an
+      external API at runtime, losing lineage over where PII went.
+    medium_min: 3
+    high_min: 5
+    case_evidence:
+      - text: Cluster B (Privacy) includes PII exposure to external APIs, lineage loss, reconstruction leaks
+        confidence: observed_fact
+        source: https://arxiv.org/abs/2607.01421
+  - id: "scenario_b.D1"
+    capability: detection
+    strength: weak
+    text: Could you notice PII leaving your boundary at all, even after the fact (egress log audits)?
+    text_ja: "PII が境界外へ出たことに、事後 (送信ログの監査など) でも気づけるか"
+  - id: "scenario_b.D2"
+    capability: detection
+    strength: strong
+    text: Does a DIRECT trigger fire when the agent sends PII outside (DLP / egress policy checks on tool calls)?
+    text_ja: "エージェントが PII を外部へ送る瞬間に直接発火するトリガ (DLP・ツール呼び出しの送信ポリシー検査) があるか"
+  - id: "scenario_b.C1"
+    capability: containment
+    strength: weak
+    text: Could someone stop further exposure at least partially or manually (disable the integration, rotate keys)?
+    text_ja: "部分的・手動でも追加露出を止められるか (連携の停止・キーのローテーションなど)"
+  - id: "scenario_b.C2"
+    capability: containment
+    strength: strong
+    text: Does an accountable role hold DIRECT authority to block the data path (automatic egress blocking)?
+    text_ja: "説明責任を持つ役割がデータ経路を直接遮断する権限 (自動の送信遮断) を持つか"
+  - id: "scenario_b.S1"
+    capability: escalation
+    strength: weak
+    text: Would ownership resolve at least through cross-team triage (privacy/incident process)?
+    text_ja: "少なくともプライバシー・インシデントのチーム横断トリアージで、対応の所有者が決まるか"
+  - id: "scenario_b.S2"
+    capability: escalation
+    strength: strong
+    text: Does the incident route DIRECTLY to a uniquely named accountable owner via a defined path?
+    text_ja: "定義済みの経路で、一意に名前の決まった責任者へ直接届くか"
+
+  - id: "scenario_c"
+    name: out_of_scope_irreversible_action
+    name_ja: スコープ外の不可逆アクション
+    cluster: C
+    gated_by: "owners.O2"
+    description: |
+      Autonomy cluster representative: within a multi-step run the agent
+      performs an irreversible action outside its declared scope (deletes
+      records, sends external communications).
+    medium_min: 3
+    high_min: 5
+    case_evidence:
+      - text: Cluster C (Autonomy) includes out-of-scope irreversible actions, causal-chain consequences, in-run privilege escalation
+        confidence: observed_fact
+        source: https://arxiv.org/abs/2607.01421
+      - text: The paper's containment surface for causal action chains is the agent/workflow owner with semantic action trace and a per-run kill switch
+        confidence: observed_fact
+        source: https://arxiv.org/abs/2607.01421
+  - id: "scenario_c.D1"
+    capability: detection
+    strength: weak
+    text: Could you notice an out-of-scope action at all, even after the run (trace review, downstream complaints)?
+    text_ja: "スコープ外アクションに、run の後からでも気づけるか (トレース確認・下流からの指摘)"
+  - id: "scenario_c.D2"
+    capability: detection
+    strength: strong
+    text: Does a DIRECT trigger fire on out-of-scope effects during the run (semantic action trace compared against declared scope)?
+    text_ja: "run の最中にスコープ外の効果へ直接発火するトリガ (宣言済みスコープと突き合わせた semantic trace) があるか"
+  - id: "scenario_c.C1"
+    capability: containment
+    strength: weak
+    text: Could someone stop the run at least partially or manually once noticed?
+    text_ja: "気づいた時点で、部分的・手動でも run を止められるか"
+  - id: "scenario_c.C2"
+    capability: containment
+    strength: strong
+    text: Does an accountable role hold a DIRECT per-run kill switch / workflow quarantine authority?
+    text_ja: "説明責任を持つ役割が run 単位のキルスイッチやワークフロー隔離の直接権限を持つか"
+  - id: "scenario_c.S1"
+    capability: escalation
+    strength: weak
+    text: Would ownership resolve at least through cross-team triage?
+    text_ja: "少なくともチーム横断のトリアージで、対応の所有者が決まるか"
+  - id: "scenario_c.S2"
+    capability: escalation
+    strength: strong
+    text: Does the incident route DIRECTLY to a uniquely named agent/workflow owner?
+    text_ja: "一意に名前の決まった agent/workflow owner へ直接届くか"
+
+  - id: "scenario_d"
+    name: silent_model_update
+    name_ja: サイレントモデル更新
+    cluster: D
+    gated_by: "owners.O1"
+    description: |
+      Change-induced cluster representative: the provider updates the model
+      between your deploys; behavior changes with no change event in your
+      own pipeline.
+    medium_min: 3
+    high_min: 5
+    case_evidence:
+      - text: Cluster D (Change-Induced) includes silent model updates, tool-contract drift, prompt-change propagation
+        confidence: observed_fact
+        source: https://arxiv.org/abs/2607.01421
+  - id: "scenario_d.D1"
+    capability: detection
+    strength: weak
+    text: Could you notice a behavior shift from a provider update at all, even indirectly (quality complaints, output diffs in samples)?
+    text_ja: "プロバイダ更新による挙動変化に、間接的 (品質への苦情・サンプル出力の差分) でも気づけるか"
+  - id: "scenario_d.D2"
+    capability: detection
+    strength: strong
+    text: Does a DIRECT change detector fire (model-version fingerprinting, continuous output-drift monitoring)?
+    text_ja: "直接発火する change detector (モデルバージョンのフィンガープリント・継続的な出力ドリフト監視) があるか"
+  - id: "scenario_d.C1"
+    capability: containment
+    strength: weak
+    text: Could someone limit the impact at least partially or manually (switch models, disable the feature)?
+    text_ja: "部分的・手動でも影響を抑えられるか (モデル切替・機能の停止など)"
+  - id: "scenario_d.C2"
+    capability: containment
+    strength: strong
+    text: Does an accountable role hold DIRECT authority to pin or roll back the model/tool version?
+    text_ja: "説明責任を持つ役割がモデルやツールのバージョンを固定・ロールバックする直接権限を持つか"
+  - id: "scenario_d.S1"
+    capability: escalation
+    strength: weak
+    text: Would ownership resolve at least through cross-team triage?
+    text_ja: "少なくともチーム横断のトリアージで、対応の所有者が決まるか"
+  - id: "scenario_d.S2"
+    capability: escalation
+    strength: strong
+    text: Does the change route DIRECTLY to a uniquely named owner of the change surface?
+    text_ja: "変更面の責任者として一意に名前の決まった owner へ直接届くか"
+
+  - id: "scenario_e"
+    name: ownerless_incident
+    name_ja: オーナーなきインシデント
+    cluster: E
+    description: |
+      Ownership/Accountability cluster representative: an incident spans
+      model, prompt, tools and approvals; every candidate team can argue it
+      belongs to someone else and triage stalls.
+    medium_min: 3
+    high_min: 5
+    case_evidence:
+      - text: Cluster E (Ownership/Accountability) includes ownerless incidents, triage failure, authority gaps
+        confidence: observed_fact
+        source: https://arxiv.org/abs/2607.01421
+  - id: "scenario_e.D1"
+    capability: detection
+    strength: weak
+    text: Could you notice that an incident is stalling for lack of an owner, at least in retrospectives?
+    text_ja: "インシデントが所有者不在で停滞していることに、少なくともふりかえりの場では気づけるか"
+  - id: "scenario_e.D2"
+    capability: detection
+    strength: strong
+    text: Does a DIRECT signal exist for unowned incidents (SLA on triage assignment, automatic flagging of ownerless tickets)?
+    text_ja: "所有者未割当のインシデントに直接発火するシグナル (トリアージ割当の SLA・未所有チケットの自動フラグ) があるか"
+  - id: "scenario_e.C1"
+    capability: containment
+    strength: weak
+    text: Could someone force progress at least manually (an incident commander steps in ad hoc)?
+    text_ja: "手動 (インシデントコマンダーの臨時投入など) でも停滞を打開できるか"
+  - id: "scenario_e.C2"
+    capability: containment
+    strength: strong
+    text: Does a defined role hold DIRECT authority to assign a single accountable owner on the spot?
+    text_ja: "その場で単一の責任者を割り当てる直接権限を持つ役割が定義されているか"
+  - id: "scenario_e.S1"
+    capability: escalation
+    strength: weak
+    text: Would ownership eventually resolve through cross-team triage?
+    text_ja: "最終的にはチーム横断のトリアージで所有者が決まるか"
+  - id: "scenario_e.S2"
+    capability: escalation
+    strength: strong
+    text: Do ALL agentic surfaces (contract layer / action chain / boundary) have a pre-named unique owner, so no incident starts ownerless?
+    text_ja: "契約層・因果連鎖・組織境界のすべての surface に事前に一意の owner が決まっており、所有者不在で始まるインシデントが無いか"
+
+  - id: "scenario_f_drift"
+    name: silent_boundary_contract_drift
+    name_ja: サイレントな境界契約ドリフト
+    cluster: F
+    gated_by: "owners.O1"
+    description: |
+      Dependency-boundary representative (F3): your probabilistic output
+      stays inside its declared bounds while its distribution shifts;
+      deterministic consumers downstream break with no violated contract.
+    medium_min: 3
+    high_min: 5
+    case_evidence:
+      - text: "The paper's own scoring of F3 for an AI-native team is d=0 (producer predicates watch declared bounds the drift never crosses), c=1 (manual, after-the-fact rollback), s=0 (neither side's ownership covers the boundary): tau=1, Low band"
+        confidence: observed_fact
+        source: https://arxiv.org/abs/2607.01421
+  - id: "scenario_f_drift.D1"
+    capability: detection
+    strength: weak
+    text: Could you notice a distribution shift at the boundary at all, even via consumer complaints after the fact?
+    text_ja: "境界での出力分布の変化に、下流からの事後の指摘でも気づけるか"
+  - id: "scenario_f_drift.D2"
+    capability: detection
+    strength: strong
+    text: Does a DIRECT monitor watch output variance/shape AT THE BOUNDARY (beyond each side's own declared bounds)?
+    text_ja: "境界そのもので出力の分散・形状を直接監視する仕組み (各チーム自身の宣言済み境界の監視を超えたもの) があるか"
+  - id: "scenario_f_drift.C1"
+    capability: containment
+    strength: weak
+    text: Could the producer roll back the model at least manually once the cause is identified?
+    text_ja: "原因が特定できれば、producer 側が手動でもモデルをロールバックできるか"
+  - id: "scenario_f_drift.C2"
+    capability: containment
+    strength: strong
+    text: Does an accountable role hold DIRECT authority to gate/pin the boundary contract when drift is detected?
+    text_ja: "ドリフト検知時に境界契約を直接ゲート・固定する権限を持つ役割がいるか"
+  - id: "scenario_f_drift.S1"
+    capability: escalation
+    strength: weak
+    text: Would boundary ownership resolve at least through cross-team triage between producer and consumer?
+    text_ja: "producer と consumer のチーム横断トリアージを通せば、境界の所有者が決まるか"
+  - id: "scenario_f_drift.S2"
+    capability: escalation
+    strength: strong
+    text: Does a pre-named boundary owner exist whom BOTH sides recognize as accountable for this drift?
+    text_ja: "このドリフトの責任者として両チームが認める、事前に名前の決まった境界の owner がいるか"
+
+  - id: "scenario_f_rollback"
+    name: rollback_asymmetry
+    name_ja: ロールバックの非対称性
+    cluster: F
+    gated_by: "owners.O3"
+    description: |
+      Dependency-boundary representative (F4): the producer rolls back a
+      faulty model, but consumers already acted on its output (records
+      updated, communications sent); producer-side rollback restores only
+      producer state and nobody owns cross-boundary reconciliation.
+    medium_min: 3
+    high_min: 5
+    case_evidence:
+      - text: The paper defines rollback asymmetry as producer rollback restoring producer state only, with reconciliation of consumer state unowned
+        confidence: observed_fact
+        source: https://arxiv.org/abs/2607.01421
+  - id: "scenario_f_rollback.D1"
+    capability: detection
+    strength: weak
+    text: Could you identify at all which consumers acted on the faulty output, even by manual investigation?
+    text_ja: "不良バージョンの出力を使って行動した consumer を、手作業の調査でも特定できるか"
+  - id: "scenario_f_rollback.D2"
+    capability: detection
+    strength: strong
+    text: Does a producer rollback DIRECTLY trigger enumeration of affected consumers and their taken actions?
+    text_ja: "producer のロールバックを契機に、影響を受けた consumer とその確定済み行為が直接列挙されるか"
+  - id: "scenario_f_rollback.C1"
+    capability: containment
+    strength: weak
+    text: Could consumer-side actions be reconciled at least manually (retractions, corrections) once identified?
+    text_ja: "特定できれば、consumer 側の確定済み行為を手動でも是正 (取り消し・訂正) できるか"
+  - id: "scenario_f_rollback.C2"
+    capability: containment
+    strength: strong
+    text: Does an accountable role hold DIRECT cross-boundary reconciliation authority (incident not closed until consumer state is reconciled)?
+    text_ja: "境界をまたぐ是正の直接権限を持つ役割がいて、consumer 側の是正完了までインシデントを閉じない運用か"
+  - id: "scenario_f_rollback.S1"
+    capability: escalation
+    strength: weak
+    text: Would reconciliation ownership resolve at least through cross-team triage?
+    text_ja: "少なくともチーム横断のトリアージで、是正の所有者が決まるか"
+  - id: "scenario_f_rollback.S2"
+    capability: escalation
+    strength: strong
+    text: Does a pre-named owner exist who tracks reconciliation across the boundary to completion?
+    text_ja: "境界をまたぐ是正を完了まで追跡する、事前に名前の決まった owner がいるか"
+
+  - id: "scenario_f_ownership"
+    name: boundary_ownership_gap
+    name_ja: 境界オーナーシップの欠落
+    cluster: F
+    gated_by: "owners.O3"
+    description: |
+      Dependency-boundary representative (F5): the producer-consumer
+      boundary itself has no owner; producer-side monitoring shows green,
+      consumer-side failures look like someone else's inputs, and the gap
+      persists across incidents.
+    medium_min: 3
+    high_min: 5
+    case_evidence:
+      - text: The paper identifies the boundary ownership gap as a Cluster F failure that single-system analysis cannot capture
+        confidence: observed_fact
+        source: https://arxiv.org/abs/2607.01421
+  - id: "scenario_f_ownership.D1"
+    capability: detection
+    strength: weak
+    text: Could you notice at all that boundary failures keep landing between teams (e.g. from repeated postmortem patterns)?
+    text_ja: "境界の失敗がチームの狭間に落ち続けていることに、ポストモーテムの繰り返しパターンからでも気づけるか"
+  - id: "scenario_f_ownership.D2"
+    capability: detection
+    strength: strong
+    text: Is the boundary itself monitored as a first-class surface with its own health signals?
+    text_ja: "境界そのものが一級の surface として、専用のヘルスシグナル付きで監視されているか"
+  - id: "scenario_f_ownership.C1"
+    capability: containment
+    strength: weak
+    text: Could someone coordinate a fix across both teams at least ad hoc when a boundary failure occurs?
+    text_ja: "境界の失敗が起きたとき、臨時でも両チームをまたいだ対処を調整できるか"
+  - id: "scenario_f_ownership.C2"
+    capability: containment
+    strength: strong
+    text: Does an accountable role hold DIRECT authority over the boundary channel (can halt or reconcile the crossing)?
+    text_ja: "境界チャネルへの直接権限 (流通の停止・整合の実施) を持つ役割がいるか"
+  - id: "scenario_f_ownership.S1"
+    capability: escalation
+    strength: weak
+    text: Would boundary incidents resolve to an owner at least through cross-team triage?
+    text_ja: "境界のインシデントが、少なくともチーム横断のトリアージで所有者に行き着くか"
+  - id: "scenario_f_ownership.S2"
+    capability: escalation
+    strength: strong
+    text: Is a boundary channel owner pre-named for this producer-consumer pair with a defined escalation path?
+    text_ja: "この producer-consumer の組に対して境界チャネルの owner が事前に決まっており、定義済みのエスカレーション経路があるか"
+
+  # =========================================================================
+  # owners: 3 surface owner の在任ゲート
+  #
+  # 不在 (no) の owner は、gated_by でそれを指すシナリオの effective band を
+  # Low に落とす (本ツール独自の安全側ゲート。論文の機構は escalation 反映)。
+  # =========================================================================
+  - id: "owners"
+    name: surface_owners
+    name_ja: 3 surface owner
+    description: |
+      The paper's core prescription: assign accountable owners to three NEW
+      surfaces (tool-contract layer / causal action chain / cross-team
+      dependency boundary). Each question asks whether a UNIQUELY NAMED
+      person or role currently holds that surface. In this tool a missing
+      owner caps the mapped scenarios' effective band to Low (fail-safe
+      gate; product-specific, see definition description).
+    case_evidence:
+      - text: The paper's Reference Risk Architecture assigns contract owner (tool/registry), agent/workflow owner (causal action chain), and a jointly named boundary channel owner (producer + consumer)
+        confidence: observed_fact
+        source: https://arxiv.org/abs/2607.01421
+      - text: "Joint accountability is a known RACI anti-pattern (diffusion of responsibility); when adopting the boundary owner, split peacetime accountability and unify decision authority per incident"
+        confidence: claim_needs_verification
+        source: https://www.meegle.com/en_us/topics/raci-matrix/raci-matrix-pitfalls
+      - text: "The paper's claim that assigning the 3 surface owners removes every Low-band cell is the author's DERIVED COUNTERFACTUAL, not an observed measurement — treat owner assignment as a hypothesis and verify it against your own incident record for 1-2 quarters"
+        confidence: claim_needs_verification
+        source: https://arxiv.org/abs/2607.01421
+      - text: "Applying uniform extra governance to every agent leads to failure; scale control intensity with the autonomy level (D2) instead"
+        confidence: claim_needs_verification
+        source: https://www.gartner.com/en/newsroom/press-releases/2026-05-26-gartner-says-applying-uniform-governance-across-ai-agents-will-lead-to-enterprise-ai-agent-failure
+  - id: "owners.O1"
+    owner_key: contract_owner
+    text: Is a contract owner uniquely named per tool/registry, with authority over runtime contract violations (disable or pin tool versions)?
+    text_ja: "ツール・レジストリ単位で contract owner が一意に決まっており、ランタイム契約違反への権限 (ツールの無効化・バージョン固定) を持つか"
+  - id: "owners.O2"
+    owner_key: agent_workflow_owner
+    text: Is an agent/workflow owner uniquely named for the causal action chain, with semantic-trace visibility and per-run kill-switch authority?
+    text_ja: "因果連鎖 (causal action chain) の agent/workflow owner が一意に決まっており、semantic trace の可視性と run 単位のキルスイッチ権限を持つか"
+  - id: "owners.O3"
+    owner_key: boundary_channel_owner
+    text: Is a boundary channel owner named for each producer-consumer dependency boundary, with cross-boundary reconciliation authority?
+    text_ja: "producer-consumer の依存境界ごとに boundary channel owner が決まっており、境界をまたぐ是正 (reconciliation) の権限を持つか"

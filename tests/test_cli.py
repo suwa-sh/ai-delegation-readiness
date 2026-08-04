@@ -103,7 +103,7 @@ def test_aidr_helpオプションを渡した場合_exit0になること():
 
 @pytest.mark.parametrize(
     "subcommand",
-    ["screen-transition", "check-readiness", "score-delegation", "check-task-contract", "check-patch-ownership", "summarize-patch-decisions", "validate-audit-log", "check-overlay", "list-definitions"],
+    ["screen-transition", "check-readiness", "score-delegation", "check-task-contract", "check-patch-ownership", "summarize-patch-decisions", "assess-risk-architecture", "validate-audit-log", "check-overlay", "list-definitions"],
     ids=[
         "screen_transitionの場合_exit0でusageを含むこと",
         "check_readinessの場合_exit0でusageを含むこと",
@@ -111,6 +111,7 @@ def test_aidr_helpオプションを渡した場合_exit0になること():
         "check_task_contractの場合_exit0でusageを含むこと",
         "check_patch_ownershipの場合_exit0でusageを含むこと",
         "summarize_patch_decisionsの場合_exit0でusageを含むこと",
+        "assess_risk_architectureの場合_exit0でusageを含むこと",
         "validate_audit_logの場合_exit0でusageを含むこと",
         "check_overlayの場合_exit0でusageを含むこと",
         "list_definitionsの場合_exit0でusageを含むこと",
@@ -206,6 +207,31 @@ def test_aidr_check_readiness_再診断後のサンプルを渡した場合_over
     # Assert
     assert r2.returncode == 0
     assert "Conclusion: PASS" in r2.stdout
+
+
+def test_aidr_assess_risk_architecture_同梱サンプルを渡した場合_exit2でBLOCKと境界警告が出ること():
+    # Arrange
+    from conftest import sample_risk_architecture_path
+
+    # Act
+    r = _run("assess-risk-architecture", str(sample_risk_architecture_path()))
+    # Assert
+    assert r.returncode == 2
+    assert "conclusion: BLOCK" in r.stdout
+    assert "band=ai_native" in r.stdout
+    assert "boundary_channel_owner=NO" in r.stdout
+    assert "scenario_f_drift" in r.stdout
+
+
+def test_aidr_assess_risk_architecture_回答が欠けた入力を渡した場合_exit3になること(tmp_path):
+    # Arrange
+    p = tmp_path / "org.yaml"
+    p.write_text("organization: partial\nanswers: {profile.D1_HYBRID: yes}\n")
+    # Act
+    r = _run("assess-risk-architecture", str(p))
+    # Assert
+    assert r.returncode == 3
+    assert "missing answers" in r.stderr
 
 
 def test_aidr_score_delegation_judgmentsキーがない入力を渡した場合_exit3になること(tmp_path):

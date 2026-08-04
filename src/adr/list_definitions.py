@@ -107,6 +107,28 @@ def summarize_transition(
     )
 
 
+def summarize_risk_architecture(
+    overlay_paths: list[str | Path] | None = None,
+    definition_path: str | Path | None = None,
+) -> DefinitionSummary:
+    # profile / scenario_* / owners are all question groups scored by the
+    # assess module's own monotone-pair logic; there is no lookup group.
+    # Contract validation (exactly-two questions per capability etc.) is
+    # enforced here too, so a broken overlay cannot slip through the listing.
+    from .assess_risk_architecture import validate_overlay_files
+
+    validate_overlay_files(overlay_paths or [])
+    summary = _summarize(
+        name="risk-architecture",
+        default_filename="risk-architecture.yaml",
+        overlay_paths=overlay_paths,
+        definition_path=definition_path,
+        is_axes=True,
+        risk_contract=True,
+    )
+    return summary
+
+
 def summarize_patch_ownership(
     overlay_paths: list[str | Path] | None = None,
     definition_path: str | Path | None = None,
@@ -143,6 +165,7 @@ def _summarize(
     is_axes: bool,
     patch_contract: bool = False,
     decision_contract: bool = False,
+    risk_contract: bool = False,
 ) -> DefinitionSummary:
     overlay_paths = overlay_paths or []
     base_path = Path(definition_path) if definition_path else DEFAULT_DEFINITIONS_DIR / default_filename
@@ -159,6 +182,15 @@ def _summarize(
         load_bands(merged)
     else:
         merged = _merge_overlays(base, overlay_paths)
+    if risk_contract:
+        # 形状の崩れた定義を一覧表示で素通りさせない(assess と同じ契約)
+        from .assess_risk_architecture import InputError, validate_contract
+
+        problems = validate_contract(merged)
+        if problems:
+            raise InputError(
+                "definition violates the risk-architecture contract: " + "; ".join(problems)
+            )
 
     summary = DefinitionSummary(
         name=name,
@@ -168,7 +200,13 @@ def _summarize(
 
     base_groups = overlay_mod.group_items(base)
     merged_groups = overlay_mod.group_items(merged)
-    threshold_keys = ("threshold",) if is_axes else ("pass", "revise")
+    if risk_contract:
+        # risk-architecture groups carry band thresholds instead of a single
+        # per-axis threshold (profile: hybrid_min/ai_native_min, scenarios:
+        # medium_min/high_min); show whichever the header defines.
+        threshold_keys = ("medium_min", "high_min", "hybrid_min", "ai_native_min")
+    else:
+        threshold_keys = ("threshold",) if is_axes else ("pass", "revise")
 
     if is_axes:
         _fill_axes(summary, merged_groups, base_groups, threshold_keys)

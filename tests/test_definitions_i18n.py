@@ -20,6 +20,7 @@ from conftest import (
     matrix_path,
     patch_decision_path,
     patch_ownership_path,
+    risk_architecture_path,
     task_contract_path,
     transition_path,
 )
@@ -30,6 +31,7 @@ DEFINITIONS = {
     "task-contract": task_contract_path,
     "patch-ownership": patch_ownership_path,
     "transition-screening": transition_path,
+    "risk-architecture": risk_architecture_path,
 }
 
 

@@ -20,6 +20,7 @@ from conftest import (
     insourcing_overlay_path,
     matrix_path,
     patch_decision_path,
+    risk_architecture_path,
     sample_overlay_path,
     task_contract_path,
     transition_path,
@@ -671,3 +672,83 @@ def test_apply_overlay_patch_decision定義のreadingに読み方をaddした場
     r = ov.apply_overlay(patch_decision(), overlay)
     # Assert
     assert {v.kind for v in r.violations} == {"unsupported_op"}
+
+
+# --- risk-architecture: new scenario groups are add-able; profile/owners are not
+# The {0,1,2} scale depends on the monotone two-question shape, so questions
+# cannot be added to existing groups (the per-definition contract validator in
+# assess_risk_architecture rejects shape breaks the generic engine lets through;
+# see tests/test_assess_risk_architecture.py). Here we pin the ENGINE-level
+# rules: which groups accept add / strengthen at all.
+
+
+def risk_architecture() -> dict:
+    return ov.load_yaml(risk_architecture_path())
+
+
+def _scenario_x_items() -> list[dict]:
+    items = [{"id": "scenario_x", "name": "custom", "name_ja": "自社シナリオ",
+              "cluster": "X", "medium_min": 3, "high_min": 5}]
+    for cap, prefix in (("detection", "D"), ("containment", "C"), ("escalation", "S")):
+        for strength, n in (("weak", "1"), ("strong", "2")):
+            items.append({
+                "id": f"scenario_x.{prefix}{n}", "capability": cap, "strength": strength,
+                "text": f"{cap} {strength}", "text_ja": f"{cap} {strength} の質問",
+            })
+    return items
+
+
+def test_apply_overlay_risk_architecture定義に新シナリオgroup一式をaddした場合_mergeに追加されること():
+    # Arrange
+    overlay = {"extends": "risk-architecture", "add": _scenario_x_items()}
+    # Act
+    r = ov.apply_overlay(risk_architecture(), overlay)
+    # Assert
+    assert r.ok, r.violations
+    assert "scenario_x" in _ids(r.merged)
+    assert "scenario_x.S2" in _ids(r.merged)
+
+
+def test_apply_overlay_risk_architecture定義のprofileに質問をaddした場合_拒否されること():
+    # Arrange
+    # profile is the 7-dimension scale itself; adding a question breaks it.
+    overlay = {"extends": "risk-architecture",
+               "add": [{"id": "profile.D8_EXTRA", "dimension": "d8", "strength": "weak",
+                        "text": "extra", "text_ja": "追加次元"}]}
+    # Act
+    r = ov.apply_overlay(risk_architecture(), overlay)
+    # Assert
+    assert not r.ok
+
+
+def test_apply_overlay_risk_architecture定義のownersに質問をaddした場合_拒否されること():
+    # Arrange
+    overlay = {"extends": "risk-architecture",
+               "add": [{"id": "owners.O4", "owner_key": "extra_owner",
+                        "text": "extra owner", "text_ja": "追加オーナー"}]}
+    # Act
+    r = ov.apply_overlay(risk_architecture(), overlay)
+    # Assert
+    assert not r.ok
+
+
+def test_apply_overlay_risk_architecture定義でhigh_minを強化した場合_mergeに反映されること():
+    # Arrange
+    overlay = {"extends": "risk-architecture",
+               "strengthen": {"scenario_a": {"high_min": 6}}}
+    # Act
+    r = ov.apply_overlay(risk_architecture(), overlay)
+    # Assert
+    assert r.ok, r.violations
+    header = next(i for i in r.merged["items"] if i["id"] == "scenario_a")
+    assert header["high_min"] == 6
+
+
+def test_apply_overlay_risk_architecture定義でmedium_minを弱めた場合_拒否されること():
+    # Arrange
+    overlay = {"extends": "risk-architecture",
+               "strengthen": {"scenario_a": {"medium_min": 2}}}
+    # Act
+    r = ov.apply_overlay(risk_architecture(), overlay)
+    # Assert
+    assert {v.kind for v in r.violations} == {"weakening_rejected"}

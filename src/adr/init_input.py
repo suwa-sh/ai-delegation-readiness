@@ -31,6 +31,7 @@ TARGETS = {
     "transition": ("transition-screening.yaml", {"types", "examples"}),
     "task-contract": ("task-contract.yaml", {"gates", "examples"}),
     "patch-ownership": ("patch-ownership.yaml", {"gates", "examples"}),
+    "risk-architecture": ("risk-architecture.yaml", set()),
 }
 
 
@@ -137,6 +138,16 @@ _YAML_TEMPLATE: dict[str, tuple[list[str], str]] = {
         "",
         "answers:",
     ], "  "),
+    "risk-architecture": ([
+        "# aidr assess-risk-architecture の入力テンプレート(aidr init --target risk-architecture で生成)",
+        "# 各問いに yes / no を書き込んでください。このコマンドは全問回答が必須です",
+        "# (未回答のまま実行すると、欠落 id を列挙したエラーになります)。",
+        "# 各能力は「弱い能力以上」→「強い能力」の順の 2 問です。強=yes で弱=no は矛盾として拒否されます。",
+        "",
+        "organization: <組織・チーム名を書く>",
+        "",
+        "answers:",
+    ], "  "),
 }
 
 
@@ -163,6 +174,7 @@ _SINGLE_META = {
     "four-layer": ("target", "対象業務名", "<対象業務名を書く>"),
     "task-contract": ("task", "委任するタスク名", "<委任するタスク名を書く>"),
     "patch-ownership": ("patch", "パッチ名またはコミット", "<パッチ名またはコミットを書く>"),
+    "risk-architecture": ("organization", "組織・チーム名", "<組織・チーム名を書く>"),
 }
 _WIDE_PLACEHOLDER = {
     "transition": "<タスク群の名前を書く>",

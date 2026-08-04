@@ -49,6 +49,15 @@ def _definition_contract_violations(
             )
             for message in validate_overlay_contract(base, merged)
         ]
+    if name == "risk-architecture":
+        from .assess_risk_architecture import validate_contract
+
+        return [
+            overlay_mod.MergeViolation(
+                path="add", kind="invalid_risk_architecture_overlay", message=message
+            )
+            for message in validate_contract(merged)
+        ]
     if name == "patch-decision":
         from .summarize_patch_decisions import InputError as DecisionInputError, load_bands
 

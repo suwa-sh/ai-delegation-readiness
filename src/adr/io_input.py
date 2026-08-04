@@ -52,6 +52,7 @@ _SINGLE_KINDS = {
     "four-layer": ("target", "target"),
     "task-contract": ("task", "task"),
     "patch-ownership": ("patch", "patch"),
+    "risk-architecture": ("organization", "organization"),
 }
 _WIDE_KINDS = {
     "transition": "task_groups",

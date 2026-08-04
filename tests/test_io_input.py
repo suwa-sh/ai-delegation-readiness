@@ -283,6 +283,8 @@ _KIND_BY_DIR = {
     "task-groups": "transition",
     "judgments": "matrix",
 }
+# examples/business/sample-risk-architecture.csv は kind "risk-architecture" で
+# snapshot 対象外 (CSV 読込は tests/test_assess_risk_architecture.py が担う)。
 
 
 def test_load_input_CSV化前後のサンプル10本を読み込んだ場合_変換前スナップショットと一致すること():

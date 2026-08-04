@@ -16,6 +16,7 @@ from conftest import (
     insourcing_overlay_path,
     matrix_path,
     patch_ownership_path,
+    risk_architecture_path,
     sample_overlay_path,
     task_contract_path,
     transition_path,
@@ -27,6 +28,7 @@ _DEF_PATHS = {
     "transition": transition_path,
     "task-contract": task_contract_path,
     "patch-ownership": patch_ownership_path,
+    "risk-architecture": risk_architecture_path,
 }
 
 
@@ -141,6 +143,7 @@ def _all_text_ja() -> dict[str, str]:
         transition_path(),
         task_contract_path(),
         patch_ownership_path(),
+        risk_architecture_path(),
         *sorted((EXAMPLES_DIR / "overlays").rglob("*.yaml")),
     ]
     out: dict[str, str] = {}
@@ -215,7 +218,7 @@ def test_all_text_ja_csv質問列と比較した場合_ドリフトがないこ�
     import io as _io
 
     text_ja = _all_text_ja()
-    reserved = {"target", "task", "patch", "description"}
+    reserved = {"target", "task", "patch", "organization", "description"}
     checked = 0
     problems: list[str] = []
     csv_files = sorted(EXAMPLES_DIR.rglob("*.csv"))
