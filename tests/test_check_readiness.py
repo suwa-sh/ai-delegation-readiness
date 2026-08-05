@@ -461,3 +461,166 @@ def test_check_同梱authzサンプルの場合_consent軸でBLOCKすること()
     assert consent.no_ids == ["L_consent.S1", "L_consent.S3"]
     assert result.conclusion == "BLOCK"
     assert result.blocked_from is None
+
+
+# ---------------------------------------------------------- unattended overlay
+# Threshold boundaries for the account-resident-execution overlay, pinned
+# independently of the bundled sample CSVs: surface axis is 4 questions with
+# revise 0.75 (one gap REVISE, two gaps BLOCK), supervision axis is 3
+# questions with revise 0.66 (one gap REVISE, two gaps BLOCK).
+
+
+def _unattended_overlay_path():
+    from conftest import unattended_overlay_four_layer_path
+    return unattended_overlay_four_layer_path()
+
+
+def _merged_all_yes_unattended_answers() -> dict:
+    base = yaml.safe_load(four_layer_path().read_text())
+    merged = ov.apply_overlays(base, [_unattended_overlay_path()]).merged
+    sep = ov.separator_of(merged)
+    return {item["id"]: "yes" for item in merged["items"] if ov.is_leaf(item["id"], sep)}
+
+
+def _unattended_axis(result, axis_id):
+    return next(a for a in result.parallel_axes if a.id == axis_id)
+
+
+def _check_unattended(tmp_path, answers: dict, target: str):
+    biz_path = tmp_path / "biz.yaml"
+    biz_path.write_text(yaml.safe_dump({"target": target, "answers": answers}))
+    return cr.check(biz_path, overlay_paths=[_unattended_overlay_path()])
+
+
+def test_check_unattendedで全項目yesの場合_PASSすること(tmp_path):
+    # Arrange
+    answers = _merged_all_yes_unattended_answers()
+    # Act
+    result = _check_unattended(tmp_path, answers, "unattended-all-yes")
+    # Assert
+    for axis_id in ("L_unattended_surface", "L_unattended_supervision"):
+        axis = _unattended_axis(result, axis_id)
+        assert axis.verdict == "pass" and axis.score == 1.0
+    assert result.conclusion == "PASS"
+    assert result.blocked_from is None
+
+
+@pytest.mark.parametrize(
+    ("axis_id", "no_ids", "verdict", "conclusion"),
+    [
+        # one gap = 3/4 = 0.75 hits the surface revise threshold exactly
+        ("L_unattended_surface", ("U2",), "revise", "REVISE"),
+        # two gaps = 2/4 = 0.5 fall below the surface revise threshold
+        ("L_unattended_surface", ("U2", "U3"), "block", "BLOCK"),
+        # one gap = 2/3 = 0.66... hits the supervision revise threshold
+        ("L_unattended_supervision", ("S2",), "revise", "REVISE"),
+        # two gaps = 1/3 fall below the supervision revise threshold
+        ("L_unattended_supervision", ("S2", "S3"), "block", "BLOCK"),
+    ],
+    ids=[
+        "実行面軸で1問noの場合_REVISEすること",
+        "実行面軸で2問noの場合_BLOCKすること",
+        "監督面軸で1問noの場合_REVISEすること",
+        "監督面軸で2問noの場合_BLOCKすること",
+    ],
+)
+def test_check_unattended軸の欠落数の場合_閾値どおりの判定になること(
+        tmp_path, axis_id, no_ids, verdict, conclusion):
+    # Arrange
+    answers = _merged_all_yes_unattended_answers()
+    for qid in no_ids:
+        answers[f"{axis_id}.{qid}"] = "no"
+    # Act
+    result = _check_unattended(tmp_path, answers, f"{axis_id}-{len(no_ids)}-no")
+    # Assert
+    assert _unattended_axis(result, axis_id).verdict == verdict
+    assert result.conclusion == conclusion
+    # a parallel axis drives the conclusion but never becomes a gate
+    assert all(layer.verdict == "pass" for layer in result.layers)
+    assert result.blocked_from is None
+
+
+def test_check_両軸に1問ずつnoの場合_軸ごと契約によりREVISEに留まること(tmp_path):
+    """Cross-axis gaps do not accumulate into a BLOCK.
+
+    The "two gaps = BLOCK" contract is per axis. One gap on each axis
+    (two gaps in total) leaves both axes REVISE and the conclusion REVISE —
+    an accepted limit documented in docs/14 (merging the counts would
+    destroy the which-side-is-thin reading the two-axis split exists for).
+    """
+    # Arrange
+    answers = _merged_all_yes_unattended_answers()
+    answers["L_unattended_surface.U2"] = "no"
+    answers["L_unattended_supervision.S2"] = "no"
+    # Act
+    result = _check_unattended(tmp_path, answers, "cross-axis-one-one")
+    # Assert
+    assert _unattended_axis(result, "L_unattended_surface").verdict == "revise"
+    assert _unattended_axis(result, "L_unattended_supervision").verdict == "revise"
+    assert result.conclusion == "REVISE"
+    assert result.blocked_from is None
+
+
+def test_check_実行面軸yesかつ監督面軸全noの場合_相殺されずBLOCKすること(tmp_path):
+    """A full surface axis must not mask an empty supervision axis.
+
+    Averaged into a single 7-question axis these answers would score 4/7 and
+    the three missing supervision controls would compensate against the
+    surface answers. Scored as two axes, surface passes and supervision
+    blocks — the distinction this overlay's split exists to preserve.
+    """
+    # Arrange
+    answers = _merged_all_yes_unattended_answers()
+    for qid in ("L_unattended_supervision.S1", "L_unattended_supervision.S2",
+                "L_unattended_supervision.S3"):
+        answers[qid] = "no"
+    # Act
+    result = _check_unattended(tmp_path, answers, "unattended-split")
+    # Assert
+    assert _unattended_axis(result, "L_unattended_surface").verdict == "pass"
+    assert _unattended_axis(result, "L_unattended_supervision").verdict == "block"
+    assert result.conclusion == "BLOCK"
+    assert all(layer.verdict == "pass" for layer in result.layers)
+    assert result.blocked_from is None
+
+
+def test_check_unattendedで未回答の場合_unknownが0点として分母に残ること(tmp_path):
+    # Arrange: leave U2 unanswered — unknown must count against the axis
+    answers = _merged_all_yes_unattended_answers()
+    del answers["L_unattended_surface.U2"]
+    # Act
+    result = _check_unattended(tmp_path, answers, "unattended-unknown")
+    # Assert
+    axis = _unattended_axis(result, "L_unattended_surface")
+    assert axis.verdict == "revise"
+    assert "L_unattended_surface.U2" in axis.unknown_ids
+    assert result.conclusion == "REVISE"
+
+
+def test_check_同梱unattendedサンプル3種の場合_基盤差が判定に表面化すること():
+    """Freeze the shipped comparison samples' verdicts.
+
+    Same fictional organization, same task, three execution platforms. The
+    difference shown is how far each platform's guarantees can be confirmed
+    (public evidence or own measurement), surfaced by the two axes.
+    """
+    # Arrange
+    from conftest import (
+        sample_unattended_chatgpt_tasks_path,
+        sample_unattended_cowork_path,
+        sample_unattended_selfhosted_path,
+    )
+    expectations = [
+        (sample_unattended_cowork_path(), "revise", "revise", "REVISE"),
+        (sample_unattended_chatgpt_tasks_path(), "block", "block", "BLOCK"),
+        (sample_unattended_selfhosted_path(), "pass", "block", "BLOCK"),
+    ]
+    for path, surface, supervision, conclusion in expectations:
+        # Act
+        result = cr.check(path, overlay_paths=[_unattended_overlay_path()])
+        # Assert
+        assert all(layer.verdict == "pass" for layer in result.layers), path.name
+        assert _unattended_axis(result, "L_unattended_surface").verdict == surface, path.name
+        assert _unattended_axis(result, "L_unattended_supervision").verdict == supervision, path.name
+        assert result.conclusion == conclusion, path.name
+        assert result.blocked_from is None, path.name

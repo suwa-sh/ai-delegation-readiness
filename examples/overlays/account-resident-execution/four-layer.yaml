@@ -1,0 +1,167 @@
+# overlay(応用例): アカウント常駐・無人実行面の 2 軸(four-layer-delegation-readiness を拡張)。
+#
+# Claude Cowork の web / mobile 拡張(2026-07-07)の技術調査から抽出しています
+# (https://suwa-sh.github.io/zenn-contents/articles/anthropic-cowork-remote-execution_20260709/)。
+# 委任型エージェントが「端末上の道具」から「アカウント常駐の作業者」へ移ると、
+# scheduled task は監督端末が 1 台もオンラインでなくても実行され、セッションと
+# ファイルはクラウドに常駐し、承認は非同期にスマホへ届きます。既存の委任判断が
+# 暗黙に置いていた「誰かが見ている間だけ動く」前提が崩れるため、無人実行面の
+# 統制を独立した採点次元として追加します。
+#
+# この overlay がやること:
+#   並列軸を 2 本追加します — "L_unattended_surface"(実行面軸: エージェントが
+#   無人で「動く・見える・止まる」の統制)と "L_unattended_supervision"(監督面軸:
+#   人間の承認とデータ所在の統制)。どちらも role: parallel で、L1〜L4 を
+#   ゲートしません。BLOCK 判定のときだけ全体結論を BLOCK に引き下げます。
+#
+# 1 本の軸にまとめない理由:
+#   採点は軸内の加重平均なので、1 軸に混ぜると独立であるべき統制が相殺されます。
+#   例: 常駐データの棚卸し(S1)と承認 fail-closed の実証(S3)が両方 no でも、
+#   7 問 1 軸なら 5/7 = 0.71 で REVISE に丸まります。完全な kill switch は
+#   承認の fail-closed を代替せず、逆も然り — 「実行面は満点だが監督面が全滅」を
+#   別 verdict として表面化させるために軸を分けています(agent-authorization
+#   overlay の 2 軸分割と同じ判断です)。
+#
+# id が "L_unattended_*" である理由:
+#   base の extension_points が add を許すのは `L*` / `efficacy` / `organization`
+#   に合致する group だけです。`L*` セレクタは L で始まる任意の名前を受け、
+#   gating か parallel かは name でなく `role` フィールドだけで決まります。
+#   高責任ドメイン overlay の `L5` とは名前が衝突しないため、既存 3 overlay
+#   (high-stakes / insourcing / agent-authorization)と同時適用できます。
+#
+# 設問設計の判定基準(自己申告で yes にならないこと):
+#   「〜を検討したか」「〜の方針があるか」型の設問は、方針文書を書いただけで
+#   yes になり、無人実行の統制としては機能しません。全 7 問を「棚卸し・実測・
+#   試験・記録が存在するか」の観測可能な形にしています。特に S1 は基準の有無
+#   でなく「直近の棚卸しを完了し例外を記録したか」、U3 / S3 は「実際に試験で
+#   確認したか」を問います。
+#
+# 適用の契約(重要):
+#   この overlay を --overlay で指定すると、2 軸は常に採点されます。未回答は
+#   unknown(0 点)として分母に残るため、無人実行面を持たない委任に適用すると
+#   BLOCK が出ます。これは仕様です — 本 overlay は「無人実行しうる実行面を持つ
+#   委任を採点するときに、利用者が明示的に適用する」追加質問セットです。
+#
+# 適用範囲の限定(重要):
+#   この 2 軸は統制の存在を問う語彙であり、攻撃を防ぐ機構ではありません。
+#   プロンプトインジェクションや connector の脆弱性そのものは対象外で、
+#   別レイヤの対策が必要です。また委任マトリクス(Green/Yellow/Red の判定単位
+#   写像)の再分類は行いません — 本 overlay が変えるのは業務全体の readiness
+#   判定だけです。
+#
+# 自分のフレームへの再利用: このファイルをコピーし、2 軸(実行面 4 問 / 監督面
+# 3 問)の構造を保ったまま質問を書き換え、case_evidence を自分の出典に差し替えます。
+# `aidr check-overlay <your-file>` で検証してください。
+#
+# マージ規則(`aidr check-overlay` が機械的に検証します):
+#   add          : 項目の追加のみ(既存項目は read-only)
+#   strengthen   : 数値閾値を厳しい方向に変えることのみ
+# それ以外(削除・置換・緩和)は検証エラーになります。
+
+version: 1
+extends: four-layer-delegation-readiness
+
+add:
+  # --- L_unattended_surface: the agent runs, is seen, and can be stopped ------
+  # pass: 1.0 (4/4), revise: 0.75 (3/4) => one gap is REVISE, two or more is
+  # BLOCK. The axis is parallel, so it never gates L1-L4; but a BLOCK verdict
+  # does drive the overall conclusion to BLOCK, the same as `organization`.
+  - id: "L_unattended_surface"
+    name: unattended_surface_axis
+    name_ja: 無人実行面軸
+    role: parallel
+    pass: 1.0
+    revise: 0.75
+    purpose: |
+      Whether the adopting organization controls the execution surface that
+      keeps running when no supervising device is online: which tasks are
+      allowed to run unattended, whether deviations are actually detected,
+      whether a running task can actually be stopped, and whether the
+      delegation decision accounts for per-surface capability asymmetry.
+      Scoring this separately surfaces "the agent runs while nobody is
+      watching, and nobody would notice or could stop it" as its own finding.
+    case_evidence:
+      - text: Claude Cowork's launch post states scheduled tasks run even when no device is online, so an execution surface now exists that operates with zero supervising terminals
+        confidence: observed_fact
+        source: https://claude.com/blog/cowork-web-mobile/
+      - text: The official surface matrix limits local files, browser use, and computer use to a running desktop app, so the same delegation reaches different capabilities depending on which surface executes it
+        confidence: observed_fact
+        source: https://support.claude.com/en/articles/15520349-use-claude-cowork-on-web-desktop-and-mobile
+      - text: Retry behavior and failure-notification timing for failed scheduled runs are not published, so detecting a silently failed or deviating unattended run is left to the adopter
+        confidence: gap_in_source
+        source: https://support.claude.com/en/articles/13854387-schedule-recurring-tasks-in-claude-cowork
+      - text: The framing that account-resident execution breaks the delegation premise "the agent works only while someone is watching" is the source analysis's generalization, not an official statement
+        confidence: claim_needs_verification
+        source: https://suwa-sh.github.io/zenn-contents/articles/anthropic-cowork-remote-execution_20260709/
+  # U1 asks for the inventory plus a recorded approval per task. A blanket
+  # "we allow scheduled tasks" without a per-task record stays no.
+  - id: "L_unattended_surface.U1"
+    text: Are the tasks that can run with no supervising device online inventoried, with a recorded approval for each one to run unattended?
+    text_ja: "監督端末が 1 台もオンラインでなくても実行されるタスクを棚卸しし、それぞれに無人実行してよいという承認の記録があるか"
+    weight: 1.0
+  # U2 asks for a detection track record, not the existence of a dashboard:
+  # monitoring that has never caught anything within the expected time window
+  # cannot claim yes. Mirrors the Detection capability in risk-architecture.
+  - id: "L_unattended_surface.U2"
+    text: Do you monitor unattended runs (schedule, outcomes, failures), and have you actually detected an unexpected start, failure, or deviation within the time you expect?
+    text_ja: "無人実行の予定・実績・失敗を監視し、予定外の起動・失敗・逸脱を期待した時間内に検知した実績があるか"
+    weight: 1.0
+  # U3 asks for a tested stop, not a documented one. Mirrors the Containment
+  # capability in risk-architecture.
+  - id: "L_unattended_surface.U3"
+    text: Is the means to stop a running unattended task identified together with who is authorized to use it, and have you confirmed by an actual test that it stops?
+    text_ja: "無人実行中のタスクを止める手段と権限者が特定され、実際に止まることを試験で確認しているか"
+    weight: 1.0
+  - id: "L_unattended_surface.U4"
+    text: Have you inventoried what each surface (desktop / web / mobile / server) can do, and is the delegation decision written against that asymmetry?
+    text_ja: "どのサーフェス(desktop / web / mobile / server)から何ができるかを棚卸しし、委任判断がその非対称を前提に書かれているか"
+    weight: 1.0
+
+  # --- L_unattended_supervision: the human approval and data-residency side ----
+  # pass: 1.0 (3/3), revise: 0.66 (2/3) => one gap is REVISE, two or more is
+  # BLOCK. Deliberately symmetric with the surface axis so a report shows
+  # which side is thin instead of one averaged score.
+  - id: "L_unattended_supervision"
+    name: unattended_supervision_axis
+    name_ja: 無人監督面軸
+    role: parallel
+    pass: 1.0
+    revise: 0.66
+    purpose: |
+      Whether the human side of unattended execution still holds: data that
+      must not become account-resident is actually kept out, asynchronous
+      approval reaches a human within a measured time, and "nothing ships
+      without approval" is verified rather than assumed. These controls do
+      not substitute for a kill switch, and a kill switch does not
+      substitute for them — hence a separate axis.
+    case_evidence:
+      - text: The launch post's guarantee "Nothing ships until you've reviewed and approved it" makes approval asynchronous and mobile-delivered, which turns approval reachability and expiry behavior into operational parameters
+        confidence: observed_fact
+        source: https://claude.com/blog/cowork-web-mobile/
+      - text: Sessions and files are account-resident and sync across devices, so work data moves to cloud residency by default rather than by an explicit placement decision
+        confidence: observed_fact
+        source: https://claude.com/blog/cowork-web-mobile/
+      - text: Organization audit logs on Enterprise are exportable for the past 180 days, but the documented event list (accounts, projects, conversations, files) does not mention scheduled-run lifecycle events, so whether unattended runs leave an audit trail cannot be confirmed from the source
+        confidence: gap_in_source
+        source: https://support.claude.com/en/articles/9970975-access-audit-logs
+      - text: The delivery SLA of approval requests and the behavior when a request expires unanswered are not published, so fail-closed must be verified by the adopter rather than assumed from the product claim
+        confidence: gap_in_source
+        source: https://support.claude.com/en/articles/13854387-schedule-recurring-tasks-in-claude-cowork
+  # S1 asks for a completed latest inventory with recorded exceptions, not for
+  # the existence of a classification policy: a policy nobody has checked
+  # against the actual resident data stays no.
+  - id: "L_unattended_supervision.S1"
+    text: Is there a standard for data that must not reside in the cloud, and did the latest inventory confirm no prohibited data resides there, with exceptions recorded?
+    text_ja: "クラウドに常駐させてはならないデータの基準があり、直近の棚卸しで禁止データが常駐していないことを確認して例外を記録したか"
+    weight: 1.0
+  # S2 stays on reachability: measured delivery/response times and an
+  # escalation path for expired requests. Verifying fail-closed itself is S3's
+  # job, so the two do not double-count the same control.
+  - id: "L_unattended_supervision.S2"
+    text: Do you have measured figures for how fast approval requests reach and are answered by the approver, and is an escalation path defined for requests that expire unanswered?
+    text_ja: "承認要求が承認者に届き応答されるまでの実測値を持ち、応答されないまま期限切れになったときのエスカレーション経路を定義しているか"
+    weight: 1.0
+  - id: "L_unattended_supervision.S3"
+    text: Have you confirmed by an actual test (e.g. a trial send) that nothing leaves for the outside without approval?
+    text_ja: "承認が無い限り外部へ何も出ないことを、試験(試験送信など)で実際に確認したか"
+    weight: 1.0

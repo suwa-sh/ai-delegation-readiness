@@ -24,6 +24,7 @@ from conftest import (
     sample_overlay_path,
     task_contract_path,
     transition_path,
+    unattended_overlay_four_layer_path,
 )
 
 
@@ -400,6 +401,45 @@ def test_apply_overlays_authz_overlayとhigh_stakes_overlayを同時に適用し
     assert r.ok, r.violations
     ids = _ids(r.merged)
     assert {"L5", "L_capability", "L_consent"} <= set(ids)
+
+
+def test_apply_overlay_unattended_overlayを四層定義に適用した場合_実行面軸と監督面軸が独立したparallel軸として追加されること():
+    # Act
+    r = ov.apply_overlay(four_layer(), ov.load_yaml(unattended_overlay_four_layer_path()))
+    # Assert
+    assert r.ok, r.violations
+    ids = _ids(r.merged)
+    # two independent parallel axes: a perfect kill switch must not average
+    # away a missing approval fail-closed, and vice versa.
+    for axis_id, leaf_prefix, count, revise in (
+        ("L_unattended_surface", "U", 4, 0.75),
+        ("L_unattended_supervision", "S", 3, 0.66),
+    ):
+        assert axis_id in ids
+        for n in range(1, count + 1):
+            assert f"{axis_id}.{leaf_prefix}{n}" in ids
+        axis = next(i for i in r.merged["items"] if i["id"] == axis_id)
+        assert axis["role"] == "parallel"
+        assert axis["pass"] == 1.0 and axis["revise"] == revise
+
+
+def test_apply_overlays_unattended_overlayと既存3overlayを同時に適用した場合_idが衝突せず全軸が追加されること():
+    """All four bundled four-layer overlays must be applicable together.
+
+    They add sibling groups under the same ``L*`` extension point, so an id
+    clash would make the unattended axes mutually exclusive with an existing
+    domain overlay.
+    """
+    # Act
+    r = ov.apply_overlays(four_layer(), [hs_overlay_four_layer_path(),
+                                         insourcing_overlay_path(),
+                                         authz_overlay_four_layer_path(),
+                                         unattended_overlay_four_layer_path()])
+    # Assert
+    assert r.ok, r.violations
+    ids = _ids(r.merged)
+    assert {"L5", "L_insourcing", "L_capability", "L_consent",
+            "L_unattended_surface", "L_unattended_supervision"} <= set(ids)
 
 
 def test_apply_overlay_high_stakes_overlayをmatrix定義に適用した場合_軸の閾値と新規exampleが反映されること():

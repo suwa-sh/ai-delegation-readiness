@@ -95,6 +95,22 @@ def sample_authz_contract_path() -> Path:
     return EXAMPLES_DIR / "task-contracts" / "sample-agent-authz-contract.csv"
 
 
+def unattended_overlay_four_layer_path() -> Path:
+    return EXAMPLES_DIR / "overlays" / "account-resident-execution" / "four-layer.yaml"
+
+
+def sample_unattended_cowork_path() -> Path:
+    return EXAMPLES_DIR / "business" / "sample-unattended-cowork.csv"
+
+
+def sample_unattended_chatgpt_tasks_path() -> Path:
+    return EXAMPLES_DIR / "business" / "sample-unattended-chatgpt-tasks.csv"
+
+
+def sample_unattended_selfhosted_path() -> Path:
+    return EXAMPLES_DIR / "business" / "sample-unattended-selfhosted.csv"
+
+
 def transition_path() -> Path:
     return DEFINITIONS_DIR / "transition-screening.yaml"
 

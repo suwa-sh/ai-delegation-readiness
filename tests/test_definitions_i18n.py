@@ -15,6 +15,7 @@ import pytest
 
 import overlay_scoring as ov
 from conftest import (
+    EXAMPLES_DIR,
     four_layer_path,
     hs_overlay_four_layer_path,
     matrix_path,
@@ -88,6 +89,40 @@ def test__text_ja_leaves_patch_decision定義の場合_text_jaが非空である
     assert leaves, "patch-decision: no decision/discard_reason/reading leaves found"
     missing = [l["id"] for l in leaves if not str(l.get("text_ja", "")).strip()]
     assert missing == [], f"patch-decision: leaves without text_ja: {missing}"
+
+
+def _overlay_question_leaves(path) -> list[dict]:
+    """Question leaves added by an overlay file (its ``add:`` list)."""
+    doc = ov.load_yaml(path)
+    return [
+        item
+        for item in (doc.get("add") or [])
+        if "text" in item and item.get("kind", "question") == "question"
+    ]
+
+
+def test_question_leaves_同梱overlay全部の場合_text_jaが非空であること():
+    """Recursive completeness over examples/overlays/**.
+
+    The DEFINITIONS table above only covers base definitions; a question
+    added by a bundled overlay without ``text_ja`` would otherwise ship
+    silently and break the CSV templates generated with that overlay.
+    """
+    # Arrange
+    overlay_files = sorted((EXAMPLES_DIR / "overlays").rglob("*.yaml"))
+
+    # Act
+    leaves_by_file = {p: _overlay_question_leaves(p) for p in overlay_files}
+
+    # Assert
+    assert any(leaves_by_file.values()), "no overlay question leaves found (parsing broke?)"
+    missing = [
+        f"{path.relative_to(EXAMPLES_DIR)}:{leaf['id']}"
+        for path, leaves in leaves_by_file.items()
+        for leaf in leaves
+        if not str(leaf.get("text_ja", "")).strip()
+    ]
+    assert missing == [], f"overlay question leaves without text_ja: {missing}"
 
 
 def test_apply_overlays_hs_overlayを適用した場合_text_jaが保持されること():

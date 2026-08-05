@@ -107,6 +107,7 @@
 | 高責任ドメイン(知財/法務/薬事) | 成立条件 4 つのハードゲート層 L5 + 慎重側の閾値強化 | [`business/sample-ip-agent-readiness.csv`](business/sample-ip-agent-readiness.csv) / [`judgments/sample-ip-judgments.csv`](judgments/sample-ip-judgments.csv) / [`overlays/high-stakes-domain/`](overlays/high-stakes-domain/) |
 | 内製化の判断責任 | 「どの判断責任を社内に残すか」を並列軸で採点 | [`business/sample-insourcing-readiness.csv`](business/sample-insourcing-readiness.csv) / [`overlays/insourcing-judgment/`](overlays/insourcing-judgment/) |
 | エージェント権限設計 | 能力軸と同意軸を独立した並列軸 2 本で採点 + 境界要素の閾値強化 | [`business/sample-agent-authz-readiness.csv`](business/sample-agent-authz-readiness.csv) / [`task-contracts/sample-agent-authz-contract.csv`](task-contracts/sample-agent-authz-contract.csv) / [`overlays/agent-authorization/`](overlays/agent-authorization/) |
+| アカウント常駐・無人実行 | 実行面軸と監督面軸を独立した並列軸 2 本で採点。同一組織条件で 3 つの実行基盤(Cowork / ChatGPT tasks / 自前 Kestra)を見比べる | [`business/sample-unattended-cowork.csv`](business/sample-unattended-cowork.csv) / [`business/sample-unattended-chatgpt-tasks.csv`](business/sample-unattended-chatgpt-tasks.csv) / [`business/sample-unattended-selfhosted.csv`](business/sample-unattended-selfhosted.csv) / [`overlays/account-resident-execution/`](overlays/account-resident-execution/) |
 | パッチ受入の決定記録(機能デモ) | 既存の回顧検証 fixture(実コミット 5 件)から生成した `summarize-patch-decisions` の入力例。**運用実績の証拠ではありません**(全件マージ済みコミットから選ばれているため破棄率 0% は選択条件からほぼ自明で、5 件中 2 件は別リポジトリ pkm のコミットです) | [`patch-decisions/demo-from-fixtures.jsonl`](patch-decisions/demo-from-fixtures.jsonl) |
 
 ## definitions/ 内の examples について
