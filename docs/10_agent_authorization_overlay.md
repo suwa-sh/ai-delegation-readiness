@@ -22,7 +22,7 @@
 - **elicitation** = エージェントが処理の途中で利用者に確認を求める仕組み
 - **DMA**(Digital Markets Act)= EU のデジタル市場法。大手プラットフォームに相互運用性を義務付けます
 - **TCF**(Transparency and Consent Framework)= 広告業界の同意管理の標準枠組み
-- 題材は架空の顧客対応部門で、ミドリ精機の物語とは独立した応用例です
+- 題材はミドリ精機の顧客サポート部門です。本線 6 ステップ(経理業務の物語)とは別部門の応用例です
 
 ## When to use this
 
@@ -30,7 +30,7 @@
 - 顧客に「ここは同意設計では開かない、方針変更が要る」と根拠つきで説明したい
 - 既存の権限設計が「確認ダイアログを増やす」方向に寄っていないか点検したい
 
-## 事例で見る(架空の顧客対応部門)
+## 事例で見る(ミドリ精機 顧客サポート部門)
 
 ```bash
 bin/aidr check-readiness examples/business/sample-agent-authz-readiness.csv \
@@ -39,11 +39,11 @@ bin/aidr check-readiness examples/business/sample-agent-authz-readiness.csv \
 
 入力: [`examples/business/sample-agent-authz-readiness.csv`](../examples/business/sample-agent-authz-readiness.csv)
 
-問い合わせへの一次回答をエージェントに起案させている部門です。業務そのものは標準化が
+問い合わせへの一次回答をエージェントに起案させている、ミドリ精機の顧客サポート部門です。業務そのものは標準化が
 進んでおり、権限の棚卸しも実施しています。
 
 ```text
-Target: 顧客問い合わせ一次回答エージェント(架空)
+Target: 顧客問い合わせ一次回答エージェント(ミドリ精機 顧客サポート部門)
 
 [OK] L1 業務標準化層: PASS (100%)
 [OK] L2 判断構造化層: PASS (100%)
@@ -82,7 +82,7 @@ bin/aidr check-task-contract examples/task-contracts/sample-agent-authz-contract
 入力: [`examples/task-contracts/sample-agent-authz-contract.csv`](../examples/task-contracts/sample-agent-authz-contract.csv)
 
 ```text
-Task: 問い合わせ 1 件への一次回答ドラフト作成(架空)
+Task: 問い合わせ 1 件への一次回答ドラフト作成(ミドリ精機 顧客サポート部門)
 
 [GREEN ] intent 意図: PRESENT (3/2)
 [YELLOW] boundary 境界: PARTIAL (4/5)

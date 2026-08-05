@@ -122,7 +122,7 @@
       "organization.C5": true,
       "organization.C6": true
     },
-    "target": "AI 開発ワークフローを内製化する中堅企業(例示)"
+    "target": "AI 開発ワークフローの内製化判断(ミドリ精機 DX推進室)"
   },
   "examples/business/sample-ip-agent-readiness.csv": {
     "answers": {
@@ -159,7 +159,7 @@
       "organization.C5": true,
       "organization.C6": false
     },
-    "target": "先行技術調査エージェント(架空の知財部門・FY2026 評価)"
+    "target": "先行技術調査エージェント(ミドリ精機 知財部門・FY2026 評価)"
   },
   "examples/judgments/sample-ip-judgments.csv": {
     "judgments": [

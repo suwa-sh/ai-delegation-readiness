@@ -26,7 +26,7 @@
 - **サーフェス**(surface)= 利用面(desktop / web / mobile / server)。同じ委任でも実行する
   サーフェスによって到達できる能力が異なります
 - **fail-closed** = 確認が取れない場合に「実行しない」側へ倒れる設計。逆は fail-open
-- 題材は架空のミナト商事で、ミドリ精機の物語とは独立した応用例です
+- 題材はミドリ精機の営業部門です。本線 6 ステップ(経理業務の物語)とは別部門の応用例です
 
 ### 端末常駐との対比
 
@@ -48,7 +48,7 @@
 unknown(0 点)として分母に残ります。無人実行面を持たない委任に適用すると BLOCK が出ますが、
 これは仕様です — 無人実行面を採点したいときに**利用者が明示的に適用する**追加質問セットです。
 
-## 事例で見る(架空のミナト商事)
+## 事例で見る(ミドリ精機 営業部門)
 
 ```bash
 bin/aidr check-readiness examples/business/sample-unattended-cowork.csv \
@@ -61,7 +61,7 @@ bin/aidr check-readiness examples/business/sample-unattended-cowork.csv \
 業務そのものは標準化が進んでおり、基本 4 層と組織軸はすべて PASS します。
 
 ```text
-Target: 週次クライアントブリーフィング自動作成の Claude Cowork への委任(架空: ミナト商事)
+Target: 週次クライアントブリーフィング自動作成の Claude Cowork への委任(ミドリ精機 営業部門)
 
 [OK] L1 業務標準化層: PASS (100%)
 [OK] L2 判断構造化層: PASS (100%)
@@ -90,7 +90,7 @@ Conclusion: REVISE
 
 ### 3 つの実行基盤を同じ条件で見比べる
 
-同一の架空組織(ミナト商事)・同一業務・**共通の組織側回答**のまま、委任先の実行基盤だけを
+同一の部門(ミドリ精機 営業部門)・同一業務・**共通の組織側回答**のまま、委任先の実行基盤だけを
 変えた 3 サンプルを同梱しています。差が出るのは基盤側の事実に依存する項目だけです。
 
 | 質問 | [Cowork](../examples/business/sample-unattended-cowork.csv) | [ChatGPT tasks](../examples/business/sample-unattended-chatgpt-tasks.csv) | [自前 Kestra worker](../examples/business/sample-unattended-selfhosted.csv) |

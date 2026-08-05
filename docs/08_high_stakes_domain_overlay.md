@@ -21,7 +21,7 @@ BLOCK)として足し、委任マトリクスの閾値も慎重側(満点でな�
   「見落としが許されない」工程では recall が命です
 - **RAG** = 社内文書などを検索して LLM の回答に注入する構成
 - **EOL** = End of Life。基盤モデルの提供終了
-- 題材は架空の知財部門で、ミドリ精機の物語とは独立した応用例です
+- 題材はミドリ精機の知財部門です。本線 6 ステップ(経理業務の物語)とは別部門の応用例です
 
 ## When to use this
 
@@ -32,7 +32,7 @@ BLOCK)として足し、委任マトリクスの閾値も慎重側(満点でな�
 - オムロン型の内製(基盤は managed、ドメイン特化層を内製)を検討していて、
   着手前に成立条件を点検したい
 
-## 事例で見る(架空の知財部門)
+## 事例で見る(ミドリ精機 知財部門)
 
 ```bash
 # 業務全体の readiness(成立条件ゲート込み)
@@ -48,10 +48,10 @@ bin/aidr score-delegation examples/judgments/sample-ip-judgments.csv \
 [`examples/judgments/sample-ip-judgments.csv`](../examples/judgments/sample-ip-judgments.csv)
 
 readiness サンプルは「業務プロセスは整っている(L1〜L4 全 PASS)が、
-HITL がコンプレイセンシー前提で設計されていない(L5.Q3: no)」架空の知財部門です。
+HITL がコンプレイセンシー前提で設計されていない(L5.Q3: no)」状態のミドリ精機 知財部門です。
 
 ```text
-Target: 先行技術調査エージェント(架空の知財部門・FY2026 評価)
+Target: 先行技術調査エージェント(ミドリ精機 知財部門・FY2026 評価)
 
 [OK] L1 業務標準化層: PASS (100%)
 [OK] L2 判断構造化層: PASS (100%)

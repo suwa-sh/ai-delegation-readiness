@@ -97,17 +97,19 @@
 [`business/sample-expense-approval.yaml`](business/sample-expense-approval.yaml)
 (CSV 版との双子。同値性はテストで固定)の 1 本だけ残しています。
 
-## 応用例(ミドリ精機の物語とは別)
+## 応用例(ミドリ精機の別部門)
 
-実在事例の分析や特定ドメイン向けの拡張は、物語に混ぜず応用例として置いています。
+特定ドメイン向けの拡張(ドメイン overlay)も、読者が 1 社だけを想定すれば済むよう
+**ミドリ精機の別部門**を題材にしています。本線の物語(経理部の時間軸)には含まれない
+独立したエピソードです。実在事例の分析(味の素グループ)だけは実名のまま応用例に置きます。
 
 | 応用例 | 題材 | サンプル |
 |---|---|---|
 | 組織 readiness の実事例 | 味の素グループの分析記事由来。業務は整っているが組織が未成熟なチーム | [`business/ajinomoto-discovery-team.csv`](business/ajinomoto-discovery-team.csv) / [`overlays/organization-readiness-ajinomoto.yaml`](overlays/organization-readiness-ajinomoto.yaml) |
-| 高責任ドメイン(知財/法務/薬事) | 成立条件 4 つのハードゲート層 L5 + 慎重側の閾値強化 | [`business/sample-ip-agent-readiness.csv`](business/sample-ip-agent-readiness.csv) / [`judgments/sample-ip-judgments.csv`](judgments/sample-ip-judgments.csv) / [`overlays/high-stakes-domain/`](overlays/high-stakes-domain/) |
-| 内製化の判断責任 | 「どの判断責任を社内に残すか」を並列軸で採点 | [`business/sample-insourcing-readiness.csv`](business/sample-insourcing-readiness.csv) / [`overlays/insourcing-judgment/`](overlays/insourcing-judgment/) |
-| エージェント権限設計 | 能力軸と同意軸を独立した並列軸 2 本で採点 + 境界要素の閾値強化 | [`business/sample-agent-authz-readiness.csv`](business/sample-agent-authz-readiness.csv) / [`task-contracts/sample-agent-authz-contract.csv`](task-contracts/sample-agent-authz-contract.csv) / [`overlays/agent-authorization/`](overlays/agent-authorization/) |
-| アカウント常駐・無人実行 | 実行面軸と監督面軸を独立した並列軸 2 本で採点。同一組織条件で 3 つの実行基盤(Cowork / ChatGPT tasks / 自前 Kestra)を見比べる | [`business/sample-unattended-cowork.csv`](business/sample-unattended-cowork.csv) / [`business/sample-unattended-chatgpt-tasks.csv`](business/sample-unattended-chatgpt-tasks.csv) / [`business/sample-unattended-selfhosted.csv`](business/sample-unattended-selfhosted.csv) / [`overlays/account-resident-execution/`](overlays/account-resident-execution/) |
+| 高責任ドメイン(知財/法務/薬事) | ミドリ精機 知財部門。成立条件 4 つのハードゲート層 L5 + 慎重側の閾値強化 | [`business/sample-ip-agent-readiness.csv`](business/sample-ip-agent-readiness.csv) / [`judgments/sample-ip-judgments.csv`](judgments/sample-ip-judgments.csv) / [`overlays/high-stakes-domain/`](overlays/high-stakes-domain/) |
+| 内製化の判断責任 | ミドリ精機 DX推進室。「どの判断責任を社内に残すか」を並列軸で採点 | [`business/sample-insourcing-readiness.csv`](business/sample-insourcing-readiness.csv) / [`overlays/insourcing-judgment/`](overlays/insourcing-judgment/) |
+| エージェント権限設計 | ミドリ精機 顧客サポート部門。能力軸と同意軸を独立した並列軸 2 本で採点 + 境界要素の閾値強化 | [`business/sample-agent-authz-readiness.csv`](business/sample-agent-authz-readiness.csv) / [`task-contracts/sample-agent-authz-contract.csv`](task-contracts/sample-agent-authz-contract.csv) / [`overlays/agent-authorization/`](overlays/agent-authorization/) |
+| アカウント常駐・無人実行 | ミドリ精機 営業部門。実行面軸と監督面軸を独立した並列軸 2 本で採点し、同一部門条件で 3 つの実行基盤(Cowork / ChatGPT tasks / 自前 Kestra)を見比べる | [`business/sample-unattended-cowork.csv`](business/sample-unattended-cowork.csv) / [`business/sample-unattended-chatgpt-tasks.csv`](business/sample-unattended-chatgpt-tasks.csv) / [`business/sample-unattended-selfhosted.csv`](business/sample-unattended-selfhosted.csv) / [`overlays/account-resident-execution/`](overlays/account-resident-execution/) |
 | パッチ受入の決定記録(機能デモ) | 既存の回顧検証 fixture(実コミット 5 件)から生成した `summarize-patch-decisions` の入力例。**運用実績の証拠ではありません**(全件マージ済みコミットから選ばれているため破棄率 0% は選択条件からほぼ自明で、5 件中 2 件は別リポジトリ pkm のコミットです) | [`patch-decisions/demo-from-fixtures.jsonl`](patch-decisions/demo-from-fixtures.jsonl) |
 
 ## definitions/ 内の examples について
