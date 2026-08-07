@@ -71,10 +71,6 @@ consume it directly.
 No setup — pull the published image and run it. The bundled samples (the
 Midori Seiki story) work out of the box:
 
-> **release pending**: `v0.16.0` is waiting for its tag, Release, and image.
-> Until they are published, use `v0.15.1` (the trajectory-oversight overlay
-> ships from `v0.16.0`).
-
 ```bash
 docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.16.0 --version
 
