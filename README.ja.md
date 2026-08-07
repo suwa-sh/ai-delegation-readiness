@@ -66,41 +66,44 @@ AI エージェントや CI からも直接使えます。
 セットアップは不要です。公開イメージを取得して実行すると、同梱のサンプル
 (ミドリ精機の物語)がそのまま動きます。
 
+> **release pending**: `v0.16.0` はタグ・Release・イメージの公開待ちです。公開前は
+> `v0.15.1` を使ってください(軌跡単位統制 overlay は `v0.16.0` から入ります)。
+
 ```bash
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.15.1 --version
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.16.0 --version
 
 # 本線 6 ステップを物語の順に
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.15.1 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.16.0 \
   screen-transition examples/task-groups/sample-task-groups.csv
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.15.1 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.16.0 \
   check-readiness examples/business/sample-expense-approval.csv          # 初回診断 → BLOCK
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.15.1 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.16.0 \
   check-readiness examples/business/sample-expense-approval-after.csv    # 改善後 → PASS
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.15.1 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.16.0 \
   score-delegation examples/judgments/sample-judgments.csv
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.15.1 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.16.0 \
   check-task-contract examples/task-contracts/sample-green.csv
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.15.1 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.16.0 \
   validate-audit-log examples/audit-log-sample.json --level extended
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.15.1 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.16.0 \
   check-patch-ownership examples/patches/sample-cheap-green.csv
 
 # 拡張(任意): パッチ受入の後を運用ループにする
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.15.1 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.16.0 \
   summarize-patch-decisions examples/patch-decisions/sample-midori-2026-07.jsonl
 
 # 拡張(任意): 委任を受ける組織側の体制を採点する
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.15.1 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.16.0 \
   assess-risk-architecture examples/business/sample-risk-architecture.csv
 
 # 拡張(任意)と定義の確認
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.15.1 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.16.0 \
   check-overlay examples/overlays/sample-company/extra-rules.yaml
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.15.1 list-definitions
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.16.0 list-definitions
 ```
 
 `--version` はアプリのバージョンと同梱の overlay エンジンのバージョンを表示します。例:
-`aidr 0.15.1 (overlay-scoring-skeleton 0.1.0)`。
+`aidr 0.16.0 (overlay-scoring-skeleton 0.1.0)`。
 
 各コマンドは決定的な終了コードを返すので、CI のゲートに使えます。
 
@@ -129,7 +132,7 @@ docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.15.1 list-definitions
 | 7 | [06 監査ログスキーマ](docs/06_audit_log_schema.md) | ステップ 5: 記録の設計 |
 | 8 | [07 ログ基盤の点検](docs/07_audit_log_gap_check.md) | ステップ 5 応用: 既存基盤への当てはめ |
 | 9 | [11 パッチ所有コスト](docs/11_patch_ownership_gate.md) | ステップ 6: AI 生成差分の受入ゲート |
-| 応用 | [08 高責任ドメイン overlay](docs/08_high_stakes_domain_overlay.md) / [09 内製化 overlay](docs/09_insourcing_judgment_overlay.md) / [10 権限設計 overlay](docs/10_agent_authorization_overlay.md) / [14 無人実行面 overlay](docs/14_account_resident_execution_overlay.md) | 知財/法務/薬事、内製化の判断責任、能力軸と同意軸、アカウント常駐の無人実行 |
+| 応用 | [08 高責任ドメイン overlay](docs/08_high_stakes_domain_overlay.md) / [09 内製化 overlay](docs/09_insourcing_judgment_overlay.md) / [10 権限設計 overlay](docs/10_agent_authorization_overlay.md) / [14 無人実行面 overlay](docs/14_account_resident_execution_overlay.md) / [15 軌跡単位統制 overlay](docs/15_trajectory_oversight_overlay.md) | 知財/法務/薬事、内製化の判断責任、能力軸と同意軸、アカウント常駐の無人実行、長時間稼働の軌跡統制 |
 | 応用 | [13 組織リスクアーキテクチャ](docs/13_risk_architecture.md) | 拡張: 委任を受ける組織側の検知・抑制・エスカレーション体制 |
 
 > **言語について**: `docs/` は日本語(著者の作業言語)で書いています。英語 README が
@@ -143,7 +146,7 @@ docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.15.1 list-definitions
 
 ```bash
 aidr() { docker run --rm -v "$PWD:/data" -w /data \
-  ghcr.io/suwa-sh/ai-delegation-readiness:v0.15.1 "$@"; }
+  ghcr.io/suwa-sh/ai-delegation-readiness:v0.16.0 "$@"; }
 ```
 
 入力ファイルは `aidr init` でテンプレートを生成して埋めます(ステップ 0)。
@@ -207,6 +210,11 @@ PASS になってから次へ進みます。ミドリ精機のサンプルは初
 > ([docs/14](docs/14_account_resident_execution_overlay.md))を `--overlay` で必ず適用して
 > ください。**base だけの PASS は無人実行面を評価していません**(overlay 未適用だと
 > 追加の 2 軸は定義にマージされず、未評価のまま PASS が出ます)。
+
+> **適用チェック**: 委任するタスクが数時間以上自律で動く・compaction(文脈要約)を通る・
+> 並行実行しうる、のいずれかに当てはまるなら、軌跡単位統制 overlay
+> ([docs/15](docs/15_trajectory_oversight_overlay.md))も `--overlay` で必ず適用して
+> ください。**base だけの PASS は「停止が本当に副作用を止めるか」を評価していません**。
 
 ### ステップ 3 — 判定単位の委任領域を決める
 
@@ -347,10 +355,16 @@ aidr check-task-contract examples/task-contracts/sample-agent-authz-contract.csv
 aidr check-readiness examples/business/sample-unattended-selfhosted.csv \
   --overlay examples/overlays/account-resident-execution/four-layer.yaml
 # => 実行面軸と監督面軸を別々に採点。kill switch が満点でも承認 fail-closed の欠落は相殺されない
+
+# 長時間稼働の軌跡単位統制: 並列軸 L_trajectory_enforcement(4 問)/ L_trajectory_oversight(3 問)を追加
+aidr check-readiness examples/business/sample-trajectory-framework-gate.csv \
+  --overlay examples/overlays/trajectory-oversight/four-layer.yaml
+# => 強制力軸は非相殺(1 問 no で BLOCK)。「停止試験なし」は他の yes で薄まらない
 ```
 
 → [docs/08](docs/08_high_stakes_domain_overlay.md) / [docs/09](docs/09_insourcing_judgment_overlay.md) /
-[docs/10](docs/10_agent_authorization_overlay.md) / [docs/14](docs/14_account_resident_execution_overlay.md)
+[docs/10](docs/10_agent_authorization_overlay.md) / [docs/14](docs/14_account_resident_execution_overlay.md) /
+[docs/15](docs/15_trajectory_oversight_overlay.md)
 
 権限設計 overlay の 2 軸は**プロンプトインジェクション対策ではありません**。攻撃者が LLM の
 判断を操作した場合、権限も同意も正規のまま、対象の指定だけが攻撃者の制御下に入るためです。
@@ -386,7 +400,7 @@ ai-delegation-readiness/
 └── docs/                        # 解説(読み順は「学習パス」参照)
     ├── 00_overview.md           #   全体像(最初に読む)
     ├── 01〜06, 11               #   本線 6 ステップの詳細
-    ├── 07〜10, 14               #   応用(ログ基盤点検 / 高責任ドメイン / 内製化 / 権限設計 / 無人実行面)
+    ├── 07〜10, 14〜15           #   応用(ログ基盤点検 / 高責任ドメイン / 内製化 / 権限設計 / 無人実行面 / 軌跡単位統制)
     └── 12〜13                   #   拡張(パッチ受入の運用ループ / 組織リスクアーキテクチャ)
 ```
 
@@ -407,7 +421,7 @@ overlay で可能なのは、次の 2 つだけです。
   system prompt や tool context にロードします。
   [`examples/skills/`](examples/skills/) に Claude Code skill のラッパー 6 種を用意しています
 - **CI パイプライン**: 出力ログ 1 件ごとに
-  `docker run --rm -v "$PWD:/data" -w /data ghcr.io/suwa-sh/ai-delegation-readiness:v0.15.1 validate-audit-log <log>`
+  `docker run --rm -v "$PWD:/data" -w /data ghcr.io/suwa-sh/ai-delegation-readiness:v0.16.0 validate-audit-log <log>`
   を呼び、exit code でゲートします
 - **社内 overlay**: 自社固有の overlay をプライベートリポで管理し、`--overlay` で
   適用します。本リポはクリーンな upstream として pull できます

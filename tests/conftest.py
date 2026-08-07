@@ -111,6 +111,18 @@ def sample_unattended_selfhosted_path() -> Path:
     return EXAMPLES_DIR / "business" / "sample-unattended-selfhosted.csv"
 
 
+def trajectory_overlay_four_layer_path() -> Path:
+    return EXAMPLES_DIR / "overlays" / "trajectory-oversight" / "four-layer.yaml"
+
+
+def sample_trajectory_framework_gate_path() -> Path:
+    return EXAMPLES_DIR / "business" / "sample-trajectory-framework-gate.csv"
+
+
+def sample_trajectory_chokepoint_path() -> Path:
+    return EXAMPLES_DIR / "business" / "sample-trajectory-chokepoint.csv"
+
+
 def transition_path() -> Path:
     return DEFINITIONS_DIR / "transition-screening.yaml"
 

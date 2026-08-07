@@ -217,7 +217,7 @@ bin/aidr assess-risk-architecture examples/business/sample-risk-architecture.csv
 | 7 | [06 監査ログスキーマ](06_audit_log_schema.md) | 記録の設計 |
 | 8 | [07 ログ基盤の点検](07_audit_log_gap_check.md) | 既存基盤への当てはめ |
 | 9 | [11 パッチ所有コスト](11_patch_ownership_gate.md) | AI 生成差分の受入ゲート |
-| 応用 | [08 高責任ドメイン overlay](08_high_stakes_domain_overlay.md) / [09 内製化 overlay](09_insourcing_judgment_overlay.md) / [10 権限設計 overlay](10_agent_authorization_overlay.md) / [14 無人実行面 overlay](14_account_resident_execution_overlay.md) | 知財/法務/薬事、内製化の判断責任、能力軸と同意軸、アカウント常駐の無人実行 |
+| 応用 | [08 高責任ドメイン overlay](08_high_stakes_domain_overlay.md) / [09 内製化 overlay](09_insourcing_judgment_overlay.md) / [10 権限設計 overlay](10_agent_authorization_overlay.md) / [14 無人実行面 overlay](14_account_resident_execution_overlay.md) / [15 軌跡単位統制 overlay](15_trajectory_oversight_overlay.md) | 知財/法務/薬事、内製化の判断責任、能力軸と同意軸、アカウント常駐の無人実行、長時間稼働の軌跡統制 |
 | 拡張 | [12 パッチ受入の運用ループ](12_patch_decision_loop.md) | ステップ 6 の先: 決定記録と月次の破棄率振り返り |
 | 拡張 | [13 組織リスクアーキテクチャ](13_risk_architecture.md) | 委任を受ける組織側の検知・抑制・エスカレーション体制の採点 |
 

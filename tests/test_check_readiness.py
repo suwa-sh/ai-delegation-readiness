@@ -624,3 +624,166 @@ def test_check_同梱unattendedサンプル3種の場合_基盤差が判定に�
         assert _unattended_axis(result, "L_unattended_supervision").verdict == supervision, path.name
         assert result.conclusion == conclusion, path.name
         assert result.blocked_from is None, path.name
+
+
+# ---------------------------------------------------------- trajectory overlay
+# Threshold boundaries for the trajectory-oversight overlay, pinned
+# independently of the bundled sample CSVs: the enforcement axis is 4
+# questions with revise == pass == 1.0 (any single gap is BLOCK — the floor
+# under trajectory oversight is non-compensating), the oversight axis is 3
+# questions with revise 0.66 (one gap REVISE, two gaps BLOCK).
+
+
+def _trajectory_overlay_path():
+    from conftest import trajectory_overlay_four_layer_path
+    return trajectory_overlay_four_layer_path()
+
+
+def _merged_all_yes_trajectory_answers() -> dict:
+    base = yaml.safe_load(four_layer_path().read_text())
+    merged = ov.apply_overlays(base, [_trajectory_overlay_path()]).merged
+    sep = ov.separator_of(merged)
+    return {item["id"]: "yes" for item in merged["items"] if ov.is_leaf(item["id"], sep)}
+
+
+def _trajectory_axis(result, axis_id):
+    return next(a for a in result.parallel_axes if a.id == axis_id)
+
+
+def _check_trajectory(tmp_path, answers: dict, target: str, extra_overlays=()):
+    biz_path = tmp_path / "biz.yaml"
+    biz_path.write_text(yaml.safe_dump({"target": target, "answers": answers}))
+    return cr.check(
+        biz_path, overlay_paths=[*extra_overlays, _trajectory_overlay_path()])
+
+
+def test_check_trajectoryで全項目yesの場合_PASSすること(tmp_path):
+    # Arrange
+    answers = _merged_all_yes_trajectory_answers()
+    # Act
+    result = _check_trajectory(tmp_path, answers, "trajectory-all-yes")
+    # Assert
+    for axis_id in ("L_trajectory_enforcement", "L_trajectory_oversight"):
+        axis = _trajectory_axis(result, axis_id)
+        assert axis.verdict == "pass" and axis.score == 1.0
+    assert result.conclusion == "PASS"
+    assert result.blocked_from is None
+
+
+@pytest.mark.parametrize(
+    ("axis_id", "no_ids", "verdict", "conclusion"),
+    [
+        # one gap = 3/4 = 0.75 < revise 1.0: the enforcement floor is
+        # non-compensating, so a single missing control is already BLOCK
+        ("L_trajectory_enforcement", ("E2",), "block", "BLOCK"),
+        ("L_trajectory_enforcement", ("E2", "E3"), "block", "BLOCK"),
+        # one gap = 2/3 = 0.66... hits the oversight revise threshold
+        ("L_trajectory_oversight", ("O3",), "revise", "REVISE"),
+        # two gaps = 1/3 fall below the oversight revise threshold
+        ("L_trajectory_oversight", ("O1", "O3"), "block", "BLOCK"),
+    ],
+    ids=[
+        "強制力軸で1問noの場合_相殺されずBLOCKすること",
+        "強制力軸で2問noの場合_BLOCKすること",
+        "監視軸で1問noの場合_REVISEすること",
+        "監視軸で2問noの場合_BLOCKすること",
+    ],
+)
+def test_check_trajectory軸の欠落数の場合_閾値どおりの判定になること(
+        tmp_path, axis_id, no_ids, verdict, conclusion):
+    """The two axes carry different contracts on purpose.
+
+    The enforcement axis holds the floor (stop really stops, constraints
+    survive compaction): averaging a missing floor control into a REVISE
+    would read as "delegate with caution" where the source evidence says the
+    oversight above it does not enforce anything. The oversight axis stays
+    graded because detection and escalation quality improve incrementally.
+    """
+    # Arrange
+    answers = _merged_all_yes_trajectory_answers()
+    for qid in no_ids:
+        answers[f"{axis_id}.{qid}"] = "no"
+    # Act
+    result = _check_trajectory(tmp_path, answers, f"{axis_id}-{len(no_ids)}-no")
+    # Assert
+    assert _trajectory_axis(result, axis_id).verdict == verdict
+    assert result.conclusion == conclusion
+    # a parallel axis drives the conclusion but never becomes a gate
+    assert all(layer.verdict == "pass" for layer in result.layers)
+    assert result.blocked_from is None
+
+
+def test_check_trajectoryで未回答の場合_unknownが0点として強制力軸をBLOCKにすること(tmp_path):
+    """Applying the overlay to a delegation that never answered it must not
+    pass silently: an unanswered enforcement question counts as unknown (0)
+    and the non-compensating axis turns it into a BLOCK — the documented
+    contract that this overlay is applied explicitly and answered fully."""
+    # Arrange
+    answers = _merged_all_yes_trajectory_answers()
+    del answers["L_trajectory_enforcement.E1"]
+    # Act
+    result = _check_trajectory(tmp_path, answers, "trajectory-unknown")
+    # Assert
+    axis = _trajectory_axis(result, "L_trajectory_enforcement")
+    assert axis.verdict == "block"
+    assert "L_trajectory_enforcement.E1" in axis.unknown_ids
+    assert result.conclusion == "BLOCK"
+
+
+def test_check_kill_switch試験がyesでも兄弟副作用試験がnoの場合_unattended併用でもBLOCKすること(tmp_path):
+    """U3 (a tested kill switch) must not substitute for E2 (sibling leak).
+
+    The account-resident overlay's U3 tests that a running task can be
+    stopped; E2 tests that a denial keeps sibling side effects from
+    executing. The measured frameworks leak sibling effects even where a
+    stop mechanism exists, so a yes on one control must not quietly cover
+    the other when both overlays are applied together.
+    """
+    # Arrange
+    from conftest import unattended_overlay_four_layer_path
+    base = yaml.safe_load(four_layer_path().read_text())
+    merged = ov.apply_overlays(
+        base,
+        [unattended_overlay_four_layer_path(), _trajectory_overlay_path()],
+    ).merged
+    sep = ov.separator_of(merged)
+    answers = {item["id"]: "yes" for item in merged["items"] if ov.is_leaf(item["id"], sep)}
+    answers["L_trajectory_enforcement.E2"] = "no"
+    assert answers["L_unattended_surface.U3"] == "yes"
+    # Act
+    result = _check_trajectory(
+        tmp_path, answers, "u3-yes-e2-no",
+        extra_overlays=[unattended_overlay_four_layer_path()])
+    # Assert
+    assert _trajectory_axis(result, "L_unattended_surface").verdict == "pass"
+    assert _trajectory_axis(result, "L_trajectory_enforcement").verdict == "block"
+    assert result.conclusion == "BLOCK"
+
+
+def test_check_同梱trajectoryサンプル2種の場合_構成差が判定に表面化すること():
+    """Freeze the shipped before/after samples' verdicts.
+
+    Same fictional organization, same nightly long-running task. The
+    framework-gate configuration trusts the framework's own approval gate
+    with no tests and blocks on both axes; the external-admission-point
+    configuration passes the floor and is left with one measurable gap
+    (the approval accept rate is not measured yet).
+    """
+    # Arrange
+    from conftest import (
+        sample_trajectory_chokepoint_path,
+        sample_trajectory_framework_gate_path,
+    )
+    expectations = [
+        (sample_trajectory_framework_gate_path(), "block", "block", "BLOCK"),
+        (sample_trajectory_chokepoint_path(), "pass", "revise", "REVISE"),
+    ]
+    for path, enforcement, oversight, conclusion in expectations:
+        # Act
+        result = cr.check(path, overlay_paths=[_trajectory_overlay_path()])
+        # Assert
+        assert all(layer.verdict == "pass" for layer in result.layers), path.name
+        assert _trajectory_axis(result, "L_trajectory_enforcement").verdict == enforcement, path.name
+        assert _trajectory_axis(result, "L_trajectory_oversight").verdict == oversight, path.name
+        assert result.conclusion == conclusion, path.name
+        assert result.blocked_from is None, path.name
