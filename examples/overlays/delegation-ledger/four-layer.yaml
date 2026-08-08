@@ -113,13 +113,15 @@ add:
       - text: Framing the ledger check as four capabilities (record, retrieve, aggregate, detect) that any ticket system, description template, or external ledger can satisfy is the source analysis's generalization, not an industry standard
         confidence: design_proposal
         source: https://suwa-sh.github.io/zenn-contents/articles/jira-ai-delegation-ledger_20260723/
-  # LA1 asks for two distinguishable entries, not a schema choice: trackers
-  # disagree on where the agent goes (assignee vs a delegate field), and this
-  # question stays neutral to that. What fails it is a record where executor
-  # and accountable human cannot be told apart.
+  # LA1 asks for the capability to reproduce both values as of the
+  # delegation, not for a physical schema: trackers disagree on where the
+  # agent goes (assignee vs a delegate field), and a normalized reference
+  # (a join with a versioned owner registry) counts too. What fails it is a
+  # record where the two cannot be told apart, or a reconstruction from
+  # whoever happens to be assigned today.
   - id: "L_ledger_accountability.LA1"
-    text: Is each delegation recorded with the executing AI agent and the accountable human as two distinct entries in the ledger (a dedicated field or a description-template item both count)? A single mixed entry where executor and accountable human cannot be told apart is no.
-    text_ja: "委任 1 件ごとに、実行した AI エージェントと説明責任を負う人間が、台帳上の別々の項目として記録されているか(専用フィールドでも説明文テンプレートの項目でもよい)。1 つの欄に混在し、実行主体と説明責任者を読み分けられない記録は no"
+    text: Is each delegation recorded so that the executing AI agent and the accountable human as of that delegation can be uniquely reproduced — as two distinct entries, or through references such as a join with a versioned owner registry? A dedicated field, a description-template item, or a normalized reference all count; a single mixed entry, or reconstructing from whoever is currently assigned, is no.
+    text_ja: "委任 1 件ごとに、実行した AI エージェントとその時点で説明責任を負っていた人間を一意に再現できる形で記録しているか(台帳上の別々の項目でも、版管理された責任者台帳との参照関係でもよく、専用フィールド・説明文テンプレートの項目のいずれでもよい)。1 つの欄に混在して読み分けられない記録や、現在の担当者から後付けで推測する構成は no"
     weight: 1.0
   # LA2 asks for a standard *and* a check of real records: a written standard
   # that recent delegations do not actually follow is a template, not a ledger.
@@ -127,18 +129,23 @@ add:
     text: Is the set of items every delegation record must carry (executing agent, accountable human, request, acceptance decision, ...) defined as a standard, and have you confirmed that recent delegations actually carry them in that form? A template, fields, or a schema all count; a standard without a check against real records is no.
     text_ja: "委任の記録に必ず残す項目(実行主体・説明責任者・依頼内容・受入判断など)が標準として定義され、直近の委任が実際にその形で記録されていることを確認したか(テンプレート・フィールド・スキーマなど方式は問わない)。標準を定めただけで実記録を確認していない場合は no"
     weight: 1.0
-  # LA3 asks for an actual retrieval with a completeness check, not a belief
-  # that the query would work: "we could produce it" is untested capability.
+  # LA3 asks for an actual retrieval reconciled against a population
+  # independent of the ledger itself: a delegation that never made it into
+  # the ledger appears in neither side of a ledger-vs-ledger comparison, so
+  # that comparison proves nothing about completeness.
   - id: "L_ledger_accountability.LA3"
-    text: Is there a record of actually producing, from the managed records, the list of delegations a given accountable human owns, and of checking that list for completeness? A field query or a script that parses description templates both count; "we could produce it" is no.
-    text_ja: "説明責任者を起点に、その人が説明責任を負う委任の一覧を、管理している記録から実際に出力し、漏れがないことを照合した記録があるか(フィールド検索でも、説明文テンプレートを解析するスクリプトでもよい)。「出せるはず」は no"
+    text: Is there a record of actually producing, from the managed records, the list of delegations a given accountable human owns, and of reconciling it against a population independent of the ledger itself (agent execution logs, intake records, a contract list) or a control total, with mismatches handled on record? A field query or a template-parsing script counts; "we could produce it", or checking the ledger only against itself, is no.
+    text_ja: "説明責任者を起点に、その人が説明責任を負う委任の一覧を、管理している記録から実際に出力し、台帳自身とは独立の記録(エージェントの実行ログ・依頼の受付記録・契約一覧など)または統制上の総数と突合して、漏れと不一致の処理を記録したか(フィールド検索でも、説明文テンプレートを解析するスクリプトでもよい)。「出せるはず」や、台帳を台帳自身と照合しただけの確認は no"
     weight: 1.0
-  # LA4 asks for active-scrutiny indicators, not time-based ones: the cited
-  # study measured latency growing while scrutiny thinned, so review time
-  # (queue latency) is excluded as a proxy by the question text itself.
+  # LA4 asks for active-scrutiny indicators with a comparison basis: the
+  # cited study detected thinning scrutiny by comparing earlier and later
+  # periods per reviewer, so a single measurement with no baseline cannot
+  # show a change. Sampled re-review measures the miss rate directly and
+  # needs no comparison period. Time-based indicators (queue latency) are
+  # excluded as a proxy by the question text itself.
   - id: "L_ledger_accountability.LA4"
-    text: Do you observe acceptance practice with active-scrutiny indicators (counts of inline findings or change requests, sampled re-review results) over a defined period and volume, so that rubber-stamping — the accept rate staying high while scrutiny thins — becomes visible, and is that observation practice on record? Review queue latency does not count as a scrutiny indicator.
-    text_ja: "承認・受入の実態を、能動的な精査の指標(指摘・修正要求の件数、抜き取り再検査の結果など)で期間・母数つきで観測し、承認率が高止まりしつつ精査が痩せる「名目化」に気づける運用の記録があるか。レビューの待ち時間(滞留時間)は精査の指標として数えない"
+    text: Do you observe acceptance practice with active-scrutiny indicators (counts of inline findings or change requests) over a defined period and volume, against a comparison basis (a repeated prior period or a baseline), so that rubber-stamping — the accept rate staying high while scrutiny thins — becomes visible, and is that observation practice on record? Sampled re-review measures the miss rate directly and counts without a comparison period. Review queue latency does not count as a scrutiny indicator.
+    text_ja: "承認・受入の実態を、能動的な精査の指標(指摘・修正要求の件数など)で期間・母数つきで観測し、比較の基準(前期間との反復比較または基準値)と突き合わせて、承認率が高止まりしつつ精査が痩せる「名目化」に気づける運用の記録があるか(抜き取り再検査は見逃し率を直接測れるため、比較期間なしでも数えてよい)。レビューの待ち時間(滞留時間)は精査の指標として数えない"
     weight: 1.0
 
   # --- L_ledger_cost: can you extract the spend, pair it with outcomes, and
@@ -178,16 +185,20 @@ add:
     weight: 1.0
   # LC2 asks for scope-aligned pairing, not any division: the cited cost
   # platform itself refuses to emit the metric when numerator and denominator
-  # scopes diverge. Strict unit costing is not required — a recorded
-  # allocation method with known limits counts.
+  # scopes diverge. The outcome unit is not fixed to merged deliverables —
+  # a delegation whose purpose is detection or processing pairs its spend
+  # with detections or processed items. Strict unit costing is not required;
+  # a recorded outcome-unit definition and allocation method counts.
   - id: "L_ledger_cost.LC2"
-    text: Do you compute cost per adopted outcome by pairing spend and adopted outcomes (merged or accepted deliverables) from the same period and the same scope? Strict per-item costing is not required, but the allocation method and its limits must be on record; dividing an unrelated total spend by an unrelated count is no.
-    text_ja: "同一期間・同一対象範囲の支出と、採用された成果(マージ・受入済みの成果物の数)を対応付けて、成果あたりコストを算出しているか(厳密な個別原価でなくてよいが、配賦のしかたと限界を記録していること)。範囲の合わない総支出を無関係な件数で割った数字は no"
+    text: Do you compute cost per adopted outcome by pairing spend with outcome units that match the delegation's purpose (merged or accepted deliverables, correctly processed items, confirmed detections) from the same period and the same scope? Strict per-item costing is not required, but the outcome-unit definition, its quality condition, and the allocation method and limits must be on record; dividing an unrelated total spend by an unrelated count is no.
+    text_ja: "同一期間・同一対象範囲の支出と、委任の目的に対応する採用・利用された成果単位(マージ・受入済みの成果物、正常処理された件数、正検知の件数など)を対応付けて、成果あたりコストを算出しているか(厳密な個別原価でなくてよいが、成果単位の定義・品質条件・配賦のしかたと限界を記録していること)。範囲の合わない総支出を無関係な件数で割った数字は no"
     weight: 1.0
-  # LC3 asks for an owner, a cadence, and a recent record — including the
-  # "reviewed and decided no change" case, so the practice is observable
-  # even when terms are stable.
+  # LC3 asks for a service inventory, a channel that actually delivers the
+  # change notices, and a cadence short enough (or an event-driven check)
+  # to act before changes take effect: a yearly review satisfies "a cadence"
+  # yet misses a 90-day advance notice. The "reviewed and decided no change"
+  # case counts, so the practice is observable even when terms are stable.
   - id: "L_ledger_cost.LC3"
-    text: Is there a named owner and a review cadence for changes in the billing terms of the AI services in use (metered-billing activation notices, credit-scheme changes), with a recent review on record — including a record of adjusting delegation volume or limits, or of deciding that no change was needed?
-    text_ja: "利用している AI サービスの課金条件の変化(従量課金への移行予告・credit 制の変更など)を確認する責任者と周期が決まっており、直近の確認記録があるか(条件変化を受けて委任量・上限を見直した記録、または見直し不要と判断した記録まで含める)"
+    text: Do you keep an inventory of the AI services in use, a channel that actually delivers their billing-term changes (official notice subscriptions, release-note checks), and a named owner with a review cadence short enough — or an event-driven check — to act before changes take effect (metered-billing activation notices, credit-scheme changes), with a recent review on record, including a record of adjusting delegation volume or limits or of deciding that no change was needed?
+    text_ja: "利用している AI サービスを一覧で押さえ、課金条件の変化(従量課金への移行予告・credit 制の変更など)が実際に届く経路(公式通知の購読・リリースノート確認など)と、発効前に対応できる周期(またはイベント駆動の確認)を責任者つきで決めて、直近の確認記録があるか(条件変化を受けて委任量・上限を見直した記録、または見直し不要と判断した記録まで含める)"
     weight: 1.0
