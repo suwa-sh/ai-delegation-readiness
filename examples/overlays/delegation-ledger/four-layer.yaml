@@ -1,0 +1,193 @@
+# overlay(応用例): 委任台帳の 2 軸(four-layer-delegation-readiness を拡張)。
+#
+# Jira の AI 委任基盤発表(2026-07-15)を扱った調査記事から抽出しています
+# (https://suwa-sh.github.io/zenn-contents/articles/jira-ai-delegation-ledger_20260723/)。
+# 複数の AI 委任を継続運用する組織では、チケット・worklist などの「台帳」が
+# 委任の記録・統制・コスト計測の器になります。業界では responsibility(実行)と
+# accountability(説明責任)の分離が合意される一方、その台帳への表現は
+# トラッカーごとに正反対に分裂しており、器の設計を器の能力として点検する
+# 語彙がありませんでした。この overlay はそれを独立した採点次元として追加します。
+#
+# この overlay がやること:
+#   並列軸を 2 本追加します — "L_ledger_accountability"(委任責任台帳軸:
+#   実行主体と説明責任者の分離記録・標準化・取り出し・名目化検知)と
+#   "L_ledger_cost"(委任コスト計測統制軸: 支出の抽出集計・成果分母・
+#   課金条件変化への備え)。どちらも role: parallel で、L1〜L4 をゲート
+#   しません。軸の REVISE / BLOCK は全体結論にそのまま反映されます。
+#
+# ITS(チケットシステム)中立であること(この overlay の設計原則):
+#   全 7 問は「どのサービス・方式を選んだか」を問いません。問うのは
+#   「記録・取り出し・集計・検知ができるように管理・環境整備してあるか」
+#   という能力です。専用フィールドでも、チケット説明文のテンプレート +
+#   抽出スクリプトでも、外部の台帳ファイルでも、能力が満たせるなら yes に
+#   なります。特定サービスの推奨・非推奨はここには書きません(サービスごとの
+#   実装パターンの違いは出典記事を参照してください)。
+#
+# 1 本の軸にまとめない理由:
+#   採点は軸内の加重平均なので、1 軸に混ぜると独立であるべき統制が相殺されます。
+#   責任の台帳が完備でも、コストが月次総額しか見えていなければ委任の経済は
+#   説明できません — 「責任は追えるがコストは追えない」を別 verdict として
+#   表面化させるために軸を分けています(account-resident / trajectory overlay の
+#   2 軸分割と同じ判断です)。
+#
+# 両軸とも graded(1 問 no = REVISE、2 問以上 no = BLOCK。各軸内の契約)である理由:
+#   台帳の整備は成熟度の問題であり、1 問の欠落が即座に「上位統制が機能しない床の
+#   欠落」(trajectory 強制力軸の kill-switch 型)を意味しません。欠けた項目は
+#   「埋めてから委任を拡大する」段階的改善項目として REVISE で扱います。
+#   なお「2 問 no = BLOCK」は各軸内の契約です。軸をまたいで 1 問ずつ no の場合、
+#   全体は REVISE に留まります(docs/16 の限界の節を参照)。
+#
+# id が "L_ledger_*" である理由:
+#   base の extension_points が add を許すのは `L*` / `efficacy` / `organization`
+#   に合致する group だけです。`L*` セレクタは L で始まる任意の名前を受け、
+#   gating か parallel かは name でなく `role` フィールドだけで決まります。
+#   既存 overlay(`L5` / `L_insourcing` / `L_capability` / `L_consent` /
+#   `L_unattended_*` / `L_trajectory_*`)とは名前が衝突しないため、同時適用できます。
+#
+# 設問設計の判定基準(自己申告で yes にならないこと):
+#   「〜できるはず」「〜の標準を定めた」だけでは統制として機能しません。
+#   全 7 問を「実記録の確認・実際の出力・実際の集計・確認の記録が存在するか」の
+#   観測可能な形にしています。特に LA3 / LC1 は「実際に 1 回出力・集計して
+#   確認したか」、LA4 / LC3 は「観測・確認の運用記録があるか」を問います。
+#
+# 適用の契約(重要):
+#   この overlay を --overlay で指定すると、2 軸は常に採点されます。未回答は
+#   unknown(0 点)として分母に残るため、未回答のまま適用すると BLOCK が出ます。
+#   これは仕様です — 本 overlay は「個別タスクの契約(check-task-contract)を
+#   超えて、複数の AI 委任をチケット・worklist 等の台帳で継続運用し、責任者別
+#   または費用の集計を行う段階に入った」ときに、利用者が明示的に適用する
+#   追加質問セットです。単発・試行段階の委任には適用しません。
+#
+# 既存診断との住み分け(併用可):
+#   task-contract の evidence 群(E1〜E3)は「1 タスクの契約でどの入出力を
+#   記録するか」を問い、本 overlay は「タスクをまたぐ台帳が記録・取り出し・
+#   集計・検知の能力を持つか」を問います。1 タスクの証跡定義(E1 yes)は
+#   台帳からの責任者別一覧の出力(LA3)を代替しません。同様に patch-decision の
+#   破棄率計測は個別パッチの採否の話で、LC2 の成果あたりコストを代替しません。
+#
+# 自分のフレームへの再利用: このファイルをコピーし、2 軸(責任 4 問 / コスト
+# 3 問)の構造を保ったまま質問を書き換え、case_evidence を自分の出典に差し替え
+# ます。`aidr check-overlay <your-file>` で検証してください。
+#
+# マージ規則(`aidr check-overlay` が機械的に検証します):
+#   add          : 項目の追加のみ(既存項目は read-only)
+#   strengthen   : 数値閾値を厳しい方向に変えることのみ
+# それ以外(削除・置換・緩和)は検証エラーになります。
+
+version: 1
+extends: four-layer-delegation-readiness
+
+add:
+  # --- L_ledger_accountability: who executed, who answers for it, and can you tell
+  # pass: 1.0, revise: 0.75 => one gap is REVISE, two or more is BLOCK.
+  # The axis is parallel, so it never gates L1-L4; its REVISE / BLOCK verdicts
+  # carry into the overall conclusion the same way the other parallel axes do.
+  - id: "L_ledger_accountability"
+    name: ledger_accountability_axis
+    name_ja: 委任責任台帳軸
+    role: parallel
+    pass: 1.0
+    revise: 0.75
+    purpose: |
+      Whether the ledger that records ongoing AI delegations can answer,
+      per delegation, "which AI executed this and which named human is
+      accountable" — recorded as distinct entries, standardized across
+      delegations, actually retrievable by accountable owner, and observed
+      for rubber-stamping. The questions are deliberately neutral to the
+      ticket system: a dedicated field, a description template with an
+      extraction script, or an external ledger file all count, because the
+      capability is what is scored, not the tool choice.
+    case_evidence:
+      - text: An AI-agent RACI reinterpretation holds that agents can carry R / C / I but the Accountable role stays with a named human without exception, and that delegation increases rather than reduces the human's accountability
+        confidence: observed_fact
+        source: https://www.profit.co/blog/project-management/ai-agents-in-your-raci-where-they-fit/
+      - text: Addy Osmani's agentic code review essay states "A human owns the merge" — models cannot be paged on call and cannot carry responsibility, so ownership lands on the human who merges
+        confidence: observed_fact
+        source: https://addyosmani.com/blog/agentic-code-review/
+      - text: A terms-of-service analysis of major AI coding tools finds the contracts consistently shift responsibility for accuracy, safety, and legal compliance to the user side
+        confidence: observed_fact
+        source: https://arxiv.org/abs/2605.04532
+      - text: A review-habituation study (preprint, not yet peer-reviewed) reports approval rates rising from 30.1% to 36.8% while inline comment volume fell 22%, and distinguishes queue latency (which grew 3.5x) from actual scrutiny — so time-based metrics point the wrong way as a scrutiny proxy
+        confidence: observed_fact
+        source: https://arxiv.org/abs/2606.22721
+      - text: Framing the ledger check as four capabilities (record, retrieve, aggregate, detect) that any ticket system, description template, or external ledger can satisfy is the source analysis's generalization, not an industry standard
+        confidence: design_proposal
+        source: https://suwa-sh.github.io/zenn-contents/articles/jira-ai-delegation-ledger_20260723/
+  # LA1 asks for two distinguishable entries, not a schema choice: trackers
+  # disagree on where the agent goes (assignee vs a delegate field), and this
+  # question stays neutral to that. What fails it is a record where executor
+  # and accountable human cannot be told apart.
+  - id: "L_ledger_accountability.LA1"
+    text: Is each delegation recorded with the executing AI agent and the accountable human as two distinct entries in the ledger (a dedicated field or a description-template item both count)? A single mixed entry where executor and accountable human cannot be told apart is no.
+    text_ja: "委任 1 件ごとに、実行した AI エージェントと説明責任を負う人間が、台帳上の別々の項目として記録されているか(専用フィールドでも説明文テンプレートの項目でもよい)。1 つの欄に混在し、実行主体と説明責任者を読み分けられない記録は no"
+    weight: 1.0
+  # LA2 asks for a standard *and* a check of real records: a written standard
+  # that recent delegations do not actually follow is a template, not a ledger.
+  - id: "L_ledger_accountability.LA2"
+    text: Is the set of items every delegation record must carry (executing agent, accountable human, request, acceptance decision, ...) defined as a standard, and have you confirmed that recent delegations actually carry them in that form? A template, fields, or a schema all count; a standard without a check against real records is no.
+    text_ja: "委任の記録に必ず残す項目(実行主体・説明責任者・依頼内容・受入判断など)が標準として定義され、直近の委任が実際にその形で記録されていることを確認したか(テンプレート・フィールド・スキーマなど方式は問わない)。標準を定めただけで実記録を確認していない場合は no"
+    weight: 1.0
+  # LA3 asks for an actual retrieval with a completeness check, not a belief
+  # that the query would work: "we could produce it" is untested capability.
+  - id: "L_ledger_accountability.LA3"
+    text: Is there a record of actually producing, from the managed records, the list of delegations a given accountable human owns, and of checking that list for completeness? A field query or a script that parses description templates both count; "we could produce it" is no.
+    text_ja: "説明責任者を起点に、その人が説明責任を負う委任の一覧を、管理している記録から実際に出力し、漏れがないことを照合した記録があるか(フィールド検索でも、説明文テンプレートを解析するスクリプトでもよい)。「出せるはず」は no"
+    weight: 1.0
+  # LA4 asks for active-scrutiny indicators, not time-based ones: the cited
+  # study measured latency growing while scrutiny thinned, so review time
+  # (queue latency) is excluded as a proxy by the question text itself.
+  - id: "L_ledger_accountability.LA4"
+    text: Do you observe acceptance practice with active-scrutiny indicators (counts of inline findings or change requests, sampled re-review results) over a defined period and volume, so that rubber-stamping — the accept rate staying high while scrutiny thins — becomes visible, and is that observation practice on record? Review queue latency does not count as a scrutiny indicator.
+    text_ja: "承認・受入の実態を、能動的な精査の指標(指摘・修正要求の件数、抜き取り再検査の結果など)で期間・母数つきで観測し、承認率が高止まりしつつ精査が痩せる「名目化」に気づける運用の記録があるか。レビューの待ち時間(滞留時間)は精査の指標として数えない"
+    weight: 1.0
+
+  # --- L_ledger_cost: can you extract the spend, pair it with outcomes, and
+  # see the billing terms coming
+  # pass: 1.0 (3/3), revise: 0.66 (2/3) => one gap is REVISE, two or more is
+  # BLOCK. Cost capability also matures incrementally, so the axis is graded.
+  - id: "L_ledger_cost"
+    name: ledger_cost_axis
+    name_ja: 委任コスト計測統制軸
+    role: parallel
+    pass: 1.0
+    revise: 0.66
+    purpose: |
+      Whether the organization can extract its AI-delegation spend from the
+      records it manages, pair that spend with adopted outcomes from the
+      same period and scope, and see billing-term changes coming with a
+      named owner. A naive total-spend sum answers none of these: the
+      denominator design (cost per adopted outcome) and the scope pairing
+      are what make the number mean anything. As with the accountability
+      axis, the tool is not scored — an export plus a script satisfies the
+      questions as well as a vendor dashboard does.
+    case_evidence:
+      - text: DX's AI cost management defines Est. cost per PR as total estimated cost divided by merged PRs, and documents that the metric cannot be provided when an AI-tool filter breaks the numerator/denominator scope alignment
+        confidence: observed_fact
+        source: https://docs.getdx.com/reports/ai-cost-management/
+      - text: Atlassian's Rovo usage limits document that credit overage billing is not currently charged, and that activating it requires 90 days' advance notice plus explicit opt-in — the metered-billing path is laid, not hypothetical
+        confidence: observed_fact
+        source: https://support.atlassian.com/rovo/docs/rovo-usage-limits/
+      - text: Treating "cost per adopted outcome from scope-aligned records" and "a named owner watching billing-term changes" as ledger capabilities that any tracker-neutral setup can satisfy is the source analysis's generalization
+        confidence: design_proposal
+        source: https://suwa-sh.github.io/zenn-contents/articles/jira-ai-delegation-ledger_20260723/
+  # LC1 asks for one actual aggregation across tools, not a belief that the
+  # invoices could be broken down: a monthly invoice total alone is no.
+  - id: "L_ledger_cost.LC1"
+    text: Have you confirmed, by actually producing one aggregation, that AI delegation spend (API and tool charges) can be extracted from the managed records per delegation or per aggregation unit, across the tools in use? An export plus a script counts; seeing only the monthly invoice total is no.
+    text_ja: "AI 委任にかかった支出(API・ツール課金)を、管理している記録から委任単位または集計単位で、利用中のツール横断で抽出できることを、実際に 1 回集計して確認したか(エクスポート + スクリプトでもよい)。請求書の月次総額しか見ていない場合は no"
+    weight: 1.0
+  # LC2 asks for scope-aligned pairing, not any division: the cited cost
+  # platform itself refuses to emit the metric when numerator and denominator
+  # scopes diverge. Strict unit costing is not required — a recorded
+  # allocation method with known limits counts.
+  - id: "L_ledger_cost.LC2"
+    text: Do you compute cost per adopted outcome by pairing spend and adopted outcomes (merged or accepted deliverables) from the same period and the same scope? Strict per-item costing is not required, but the allocation method and its limits must be on record; dividing an unrelated total spend by an unrelated count is no.
+    text_ja: "同一期間・同一対象範囲の支出と、採用された成果(マージ・受入済みの成果物の数)を対応付けて、成果あたりコストを算出しているか(厳密な個別原価でなくてよいが、配賦のしかたと限界を記録していること)。範囲の合わない総支出を無関係な件数で割った数字は no"
+    weight: 1.0
+  # LC3 asks for an owner, a cadence, and a recent record — including the
+  # "reviewed and decided no change" case, so the practice is observable
+  # even when terms are stable.
+  - id: "L_ledger_cost.LC3"
+    text: Is there a named owner and a review cadence for changes in the billing terms of the AI services in use (metered-billing activation notices, credit-scheme changes), with a recent review on record — including a record of adjusting delegation volume or limits, or of deciding that no change was needed?
+    text_ja: "利用している AI サービスの課金条件の変化(従量課金への移行予告・credit 制の変更など)を確認する責任者と周期が決まっており、直近の確認記録があるか(条件変化を受けて委任量・上限を見直した記録、または見直し不要と判断した記録まで含める)"
+    weight: 1.0

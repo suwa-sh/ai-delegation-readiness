@@ -13,10 +13,12 @@ description: |
 #   check_readiness.py / list_definitions.py はこの role で層と並列軸を振り分ける。
 #   未知の role 値 (typo 等) は静かに降格させず loud にエラーにする (誤分類の防止)。
 #
-# case_evidence.confidence の語彙 (自由文字列だが下記 3 値に揃える):
+# case_evidence.confidence の語彙 (自由文字列だが下記 4 値に揃える):
 # - observed_fact            … 出典で確認できる観測事実。
 # - gap_in_source            … 出典に記載が無い / 定義されていない箇所。
 # - claim_needs_verification … 主張はあるが出典が数値の再確認を留保している (事実断定しない)。
+# - design_proposal          … 出典調査自身の一般化・較正閾値 (観測でなく設計提案)。overlay の
+#                              case_evidence で使用実績が先行したため語彙に追認 (2026-08-08)。
 #
 # 拡張ポイント宣言: 各社のオーバーレイで何ができるかを self-documenting に
 # - add:         既存 group への leaf 追加のみ可。既存 item の上書き・削除は不可。

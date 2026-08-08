@@ -71,41 +71,45 @@ consume it directly.
 No setup — pull the published image and run it. The bundled samples (the
 Midori Seiki story) work out of the box:
 
+> **release pending**: `v0.17.0` is waiting for its tag, Release, and image.
+> Until they are published, use `v0.16.0` (the delegation-ledger overlay
+> ships from `v0.17.0`).
+
 ```bash
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.16.0 --version
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.17.0 --version
 
 # The 6 main-line steps, in story order
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.16.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.17.0 \
   screen-transition examples/task-groups/sample-task-groups.csv
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.16.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.17.0 \
   check-readiness examples/business/sample-expense-approval.csv          # first diagnosis -> BLOCK
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.16.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.17.0 \
   check-readiness examples/business/sample-expense-approval-after.csv    # after fixes -> PASS
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.16.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.17.0 \
   score-delegation examples/judgments/sample-judgments.csv
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.16.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.17.0 \
   check-task-contract examples/task-contracts/sample-green.csv
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.16.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.17.0 \
   validate-audit-log examples/audit-log-sample.json --level extended
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.16.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.17.0 \
   check-patch-ownership examples/patches/sample-cheap-green.csv
 
 # Extension (optional): review accept/discard decisions after the gate
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.16.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.17.0 \
   summarize-patch-decisions examples/patch-decisions/sample-midori-2026-07.jsonl
 
 # Extension (optional): score the receiving organization's risk architecture
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.16.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.17.0 \
   assess-risk-architecture examples/business/sample-risk-architecture.csv
 
 # Extension (optional) and definition inspection
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.16.0 \
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.17.0 \
   check-overlay examples/overlays/sample-company/extra-rules.yaml
-docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.16.0 list-definitions
+docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.17.0 list-definitions
 ```
 
 `--version` prints the app version and the bundled overlay engine version, e.g.
-`aidr 0.16.0 (overlay-scoring-skeleton 0.1.0)`.
+`aidr 0.17.0 (overlay-scoring-skeleton 0.1.0)`.
 
 Every command returns a deterministic exit code so you can gate CI on it:
 
@@ -129,7 +133,7 @@ into the container. A shell function keeps the rest of this guide readable:
 
 ```bash
 aidr() { docker run --rm -v "$PWD:/data" -w /data \
-  ghcr.io/suwa-sh/ai-delegation-readiness:v0.16.0 "$@"; }
+  ghcr.io/suwa-sh/ai-delegation-readiness:v0.17.0 "$@"; }
 ```
 
 Generate your input files with `aidr init` (step 1 below), then run the
@@ -172,6 +176,12 @@ Japanese (`text_ja`) in `definitions/*.yaml`.
    ([docs/15](docs/15_trajectory_oversight_overlay.md)) —
    **a base-only PASS has not evaluated whether a stop actually stops side
    effects**.
+   Once you operate multiple AI delegations through a ticket system or
+   worklist — beyond per-task contracts, with per-owner or cost aggregation —
+   always apply the delegation-ledger overlay
+   ([docs/16](docs/16_delegation_ledger_overlay.md)) —
+   **a base-only PASS has not evaluated whether the ledger can answer who
+   executed, who is accountable, and at what cost**.
 4. **Score the judgments** — `aidr score-delegation my-judgments.csv` places
    each judgment into GREEN (delegate), YELLOW (LLM-assist, a human decides), or
    RED (human-only). See [docs/04](docs/04_delegation_matrix.md).
@@ -212,9 +222,11 @@ Japanese (`text_ja`) in `definitions/*.yaml`.
    responsibility ([docs/09](docs/09_insourcing_judgment_overlay.md)), agent
    authorization design ([docs/10](docs/10_agent_authorization_overlay.md)),
    account-resident / unattended execution
-   ([docs/14](docs/14_account_resident_execution_overlay.md)), and
+   ([docs/14](docs/14_account_resident_execution_overlay.md)),
    long-horizon trajectory oversight
-   ([docs/15](docs/15_trajectory_oversight_overlay.md)):
+   ([docs/15](docs/15_trajectory_oversight_overlay.md)), and
+   the delegation ledger — accountability and cost
+   ([docs/16](docs/16_delegation_ledger_overlay.md)):
 
    ```bash
    aidr check-readiness examples/business/sample-ip-agent-readiness.csv \
@@ -243,6 +255,12 @@ Japanese (`text_ja`) in `definitions/*.yaml`.
      --overlay examples/overlays/trajectory-oversight/four-layer.yaml
    # => the enforcement axis is non-compensating (a single "no" is BLOCK); an
    #    untested stop is not diluted by the other answers
+
+   aidr check-readiness examples/business/sample-ledger-scattered.csv \
+     --overlay examples/overlays/delegation-ledger/four-layer.yaml
+   # => accountability and cost score as two independent axes; the questions
+   #    score ledger capability (record / retrieve / aggregate / detect),
+   #    not the ticket-system choice
    ```
 
    The agent-authorization overlay's two axes are **not** a defense against
@@ -284,7 +302,7 @@ ai-delegation-readiness/
 └── docs/                        # Explanations, Japanese (reading order: the learning path in README.ja.md)
     ├── 00_overview.md           #   The big picture (read first)
     ├── 01-06, 11                #   The 6 main-line steps in detail
-    ├── 07-10, 14-15             #   Applied: log-platform check / high-stakes domains / insourcing / agent authorization / unattended execution / trajectory oversight
+    ├── 07-10, 14-16             #   Applied: log-platform check / high-stakes domains / insourcing / agent authorization / unattended execution / trajectory oversight / delegation ledger
     └── 12-13                    #   Extensions: patch-decision retrospective loop / org risk architecture
 ```
 
@@ -320,7 +338,7 @@ The framework is reused in three ways:
   `schemas/audit-log.schema.json` into the system prompt or tool context.
   See [`examples/skills/`](examples/skills/) for six ready-to-adapt Claude
   Code skill wrappers.
-- **CI pipelines**: run `docker run --rm -v "$PWD:/data" -w /data ghcr.io/suwa-sh/ai-delegation-readiness:v0.16.0 validate-audit-log <log>` on each emitted log; gate
+- **CI pipelines**: run `docker run --rm -v "$PWD:/data" -w /data ghcr.io/suwa-sh/ai-delegation-readiness:v0.17.0 validate-audit-log <log>` on each emitted log; gate
   on exit code.
 - **Internal overlays**: keep your company-specific overlay in a private repo and
   apply with `--overlay`. The framework stays a clean upstream you can pull from.

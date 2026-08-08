@@ -18,6 +18,7 @@ from conftest import (
     hs_overlay_four_layer_path,
     hs_overlay_matrix_path,
     insourcing_overlay_path,
+    ledger_overlay_four_layer_path,
     matrix_path,
     patch_decision_path,
     risk_architecture_path,
@@ -448,8 +449,32 @@ def test_apply_overlay_trajectory_overlayを四層定義に適用した場合_�
         assert axis["pass"] == 1.0 and axis["revise"] == revise
 
 
+def test_apply_overlay_ledger_overlayを四層定義に適用した場合_責任軸とコスト軸が独立したparallel軸として追加されること():
+    """Accountability and cost are independent controls on purpose.
+
+    Averaging them into one axis would let a complete accountability ledger
+    compensate for a cost picture that is only a monthly invoice total, and
+    vice versa — each gap must surface as its own axis verdict.
+    """
+    # Act
+    r = ov.apply_overlay(four_layer(), ov.load_yaml(ledger_overlay_four_layer_path()))
+    # Assert
+    assert r.ok, r.violations
+    ids = _ids(r.merged)
+    for axis_id, leaf_prefix, count, revise in (
+        ("L_ledger_accountability", "LA", 4, 0.75),
+        ("L_ledger_cost", "LC", 3, 0.66),
+    ):
+        assert axis_id in ids
+        for n in range(1, count + 1):
+            assert f"{axis_id}.{leaf_prefix}{n}" in ids
+        axis = next(i for i in r.merged["items"] if i["id"] == axis_id)
+        assert axis["role"] == "parallel"
+        assert axis["pass"] == 1.0 and axis["revise"] == revise
+
+
 def test_apply_overlays_同梱の全four_layer_overlayを同時に適用した場合_idが衝突せず全軸が追加されること():
-    """All five bundled four-layer overlays must be applicable together.
+    """All six bundled four-layer overlays must be applicable together.
 
     They add sibling groups under the same ``L*`` extension point, so an id
     clash would make the newest axes mutually exclusive with an existing
@@ -460,13 +485,15 @@ def test_apply_overlays_同梱の全four_layer_overlayを同時に適用した�
                                          insourcing_overlay_path(),
                                          authz_overlay_four_layer_path(),
                                          unattended_overlay_four_layer_path(),
-                                         trajectory_overlay_four_layer_path()])
+                                         trajectory_overlay_four_layer_path(),
+                                         ledger_overlay_four_layer_path()])
     # Assert
     assert r.ok, r.violations
     ids = _ids(r.merged)
     assert {"L5", "L_insourcing", "L_capability", "L_consent",
             "L_unattended_surface", "L_unattended_supervision",
-            "L_trajectory_enforcement", "L_trajectory_oversight"} <= set(ids)
+            "L_trajectory_enforcement", "L_trajectory_oversight",
+            "L_ledger_accountability", "L_ledger_cost"} <= set(ids)
 
 
 def test_apply_overlay_high_stakes_overlayをmatrix定義に適用した場合_軸の閾値と新規exampleが反映されること():

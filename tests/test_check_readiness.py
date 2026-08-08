@@ -787,3 +787,156 @@ def test_check_同梱trajectoryサンプル2種の場合_構成差が判定に�
         assert _trajectory_axis(result, "L_trajectory_oversight").verdict == oversight, path.name
         assert result.conclusion == conclusion, path.name
         assert result.blocked_from is None, path.name
+
+
+# ---------------------------------------------------------- delegation-ledger overlay
+# Threshold boundaries for the delegation-ledger overlay, pinned
+# independently of the bundled sample CSVs: both axes are graded — the
+# accountability axis is 4 questions with revise 0.75, the cost axis is 3
+# questions with revise 0.66 (one gap REVISE, two gaps BLOCK, per axis).
+
+
+def _ledger_overlay_path():
+    from conftest import ledger_overlay_four_layer_path
+    return ledger_overlay_four_layer_path()
+
+
+def _merged_all_yes_ledger_answers() -> dict:
+    base = yaml.safe_load(four_layer_path().read_text())
+    merged = ov.apply_overlays(base, [_ledger_overlay_path()]).merged
+    sep = ov.separator_of(merged)
+    return {item["id"]: "yes" for item in merged["items"] if ov.is_leaf(item["id"], sep)}
+
+
+def _ledger_axis(result, axis_id):
+    return next(a for a in result.parallel_axes if a.id == axis_id)
+
+
+def _check_ledger(tmp_path, answers: dict, target: str):
+    biz_path = tmp_path / "biz.yaml"
+    biz_path.write_text(yaml.safe_dump({"target": target, "answers": answers}))
+    return cr.check(biz_path, overlay_paths=[_ledger_overlay_path()])
+
+
+def test_check_ledgerで全項目yesの場合_PASSすること(tmp_path):
+    # Arrange
+    answers = _merged_all_yes_ledger_answers()
+    # Act
+    result = _check_ledger(tmp_path, answers, "ledger-all-yes")
+    # Assert
+    for axis_id in ("L_ledger_accountability", "L_ledger_cost"):
+        axis = _ledger_axis(result, axis_id)
+        assert axis.verdict == "pass" and axis.score == 1.0
+    assert result.conclusion == "PASS"
+    assert result.blocked_from is None
+
+
+@pytest.mark.parametrize(
+    ("axis_id", "no_ids", "verdict", "conclusion"),
+    [
+        # one gap = 3/4 = 0.75 hits the accountability revise threshold
+        ("L_ledger_accountability", ("LA4",), "revise", "REVISE"),
+        # two gaps = 2/4 fall below it
+        ("L_ledger_accountability", ("LA1", "LA3"), "block", "BLOCK"),
+        # one gap = 2/3 = 0.66... hits the cost revise threshold
+        ("L_ledger_cost", ("LC2",), "revise", "REVISE"),
+        # two gaps = 1/3 fall below it
+        ("L_ledger_cost", ("LC1", "LC2"), "block", "BLOCK"),
+    ],
+    ids=[
+        "責任軸で1問noの場合_REVISEすること",
+        "責任軸で2問noの場合_BLOCKすること",
+        "コスト軸で1問noの場合_REVISEすること",
+        "コスト軸で2問noの場合_BLOCKすること",
+    ],
+)
+def test_check_ledger軸の欠落数の場合_閾値どおりの判定になること(
+        tmp_path, axis_id, no_ids, verdict, conclusion):
+    """Both ledger axes are graded on purpose.
+
+    A missing ledger capability is a maturity gap to close before expanding
+    delegation, not a non-compensating safety floor like the trajectory
+    enforcement axis — one gap reads REVISE, two gaps read BLOCK, within
+    each axis.
+    """
+    # Arrange
+    answers = _merged_all_yes_ledger_answers()
+    for qid in no_ids:
+        answers[f"{axis_id}.{qid}"] = "no"
+    # Act
+    result = _check_ledger(tmp_path, answers, f"{axis_id}-{len(no_ids)}-no")
+    # Assert
+    assert _ledger_axis(result, axis_id).verdict == verdict
+    assert result.conclusion == conclusion
+    # a parallel axis drives the conclusion but never becomes a gate
+    assert all(layer.verdict == "pass" for layer in result.layers)
+    assert result.blocked_from is None
+
+
+def test_check_ledger両軸で1問ずつnoの場合_各軸REVISEに留まり全体もREVISEであること(tmp_path):
+    """Pin the accepted limit of the per-axis contract.
+
+    "Two gaps is BLOCK" holds within one axis: one accountability gap plus
+    one cost gap leaves both axes at REVISE and the overall conclusion at
+    REVISE, not BLOCK. docs/16 documents this limit; this test keeps the
+    documentation honest.
+    """
+    # Arrange
+    answers = _merged_all_yes_ledger_answers()
+    answers["L_ledger_accountability.LA4"] = "no"
+    answers["L_ledger_cost.LC2"] = "no"
+    # Act
+    result = _check_ledger(tmp_path, answers, "ledger-cross-axis-one-each")
+    # Assert
+    assert _ledger_axis(result, "L_ledger_accountability").verdict == "revise"
+    assert _ledger_axis(result, "L_ledger_cost").verdict == "revise"
+    assert result.conclusion == "REVISE"
+
+
+def test_check_ledgerで未回答の場合_unknownが0点として分母に残ること(tmp_path):
+    """Applying the overlay without answering it must not pass silently:
+    an unanswered question counts as unknown (0) and stays visible in
+    unknown_ids — the documented contract that this overlay is applied
+    explicitly at the ledger-operation stage and answered fully."""
+    # Arrange
+    answers = _merged_all_yes_ledger_answers()
+    del answers["L_ledger_accountability.LA1"]
+    # Act
+    result = _check_ledger(tmp_path, answers, "ledger-unknown")
+    # Assert
+    axis = _ledger_axis(result, "L_ledger_accountability")
+    assert axis.verdict == "revise" and axis.score == 0.75
+    assert "L_ledger_accountability.LA1" in axis.unknown_ids
+    assert result.conclusion == "REVISE"
+
+
+def test_check_同梱ledgerサンプル2種の場合_構成差が判定に表面化すること():
+    """Freeze the shipped configuration-comparison samples' verdicts.
+
+    Same fictional organization, same delegation ledger. The scattered
+    configuration started AI delegation on an unchanged ticket habit (one
+    assignee column, no retrieval record, no scrutiny observation, invoice
+    total divided by an unrelated count) and blocks on the accountability
+    axis; the managed configuration runs a description template plus an
+    extraction script — deliberately not dedicated fields — and is left
+    with one measurable gap (no rubber-stamping observation yet), showing
+    that the questions score capability, not the tool choice.
+    """
+    # Arrange
+    from conftest import (
+        sample_ledger_managed_path,
+        sample_ledger_scattered_path,
+    )
+    expectations = [
+        (sample_ledger_scattered_path(), "block", "revise", "BLOCK"),
+        (sample_ledger_managed_path(), "revise", "pass", "REVISE"),
+    ]
+    for path, accountability, cost, conclusion in expectations:
+        # Act
+        result = cr.check(path, overlay_paths=[_ledger_overlay_path()])
+        # Assert
+        assert all(layer.verdict == "pass" for layer in result.layers), path.name
+        assert _ledger_axis(result, "L_ledger_accountability").verdict == accountability, path.name
+        assert _ledger_axis(result, "L_ledger_cost").verdict == cost, path.name
+        assert result.conclusion == conclusion, path.name
+        assert result.blocked_from is None, path.name

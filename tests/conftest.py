@@ -123,6 +123,18 @@ def sample_trajectory_chokepoint_path() -> Path:
     return EXAMPLES_DIR / "business" / "sample-trajectory-chokepoint.csv"
 
 
+def ledger_overlay_four_layer_path() -> Path:
+    return EXAMPLES_DIR / "overlays" / "delegation-ledger" / "four-layer.yaml"
+
+
+def sample_ledger_scattered_path() -> Path:
+    return EXAMPLES_DIR / "business" / "sample-ledger-scattered.csv"
+
+
+def sample_ledger_managed_path() -> Path:
+    return EXAMPLES_DIR / "business" / "sample-ledger-managed.csv"
+
+
 def transition_path() -> Path:
     return DEFINITIONS_DIR / "transition-screening.yaml"
 
