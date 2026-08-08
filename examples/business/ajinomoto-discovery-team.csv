@@ -20,9 +20,9 @@ efficacy.E1,削減数値の分母・基準値・期間を説明できるか,yes,
 efficacy.E2,期待値(ベンダー試算)と実績(自社実測)を区別しているか,yes,ベンダー試算の期待値と自社実測の実績を区別しているから yes
 efficacy.E3,数値の対象範囲(業務全体か一部か)を明示しているか,yes,数値の対象範囲を業務の一部と明示しているから yes
 efficacy.E4,AI 起因の誤承認・誤差し戻しを効率とは別に集計しているか,yes,AI 起因の誤りを効率とは別に集計しているから yes
-organization.C1,8〜12 ヶ月以内に「やめる」と決められる権限と文化があるか,yes,小規模チームですぐやめられ LaboMe® を約 8.5 ヶ月で撤退した前例もあるから yes
-organization.C2,受け皿となる全社リテラシー層(ビジネス側人材)が 2 桁人数まで育っているか,no,受け皿となるビジネス側リテラシー層が 2 桁人数まで育っていないから no
-organization.C3,AI ツール基盤(Copilot・社内チャット・RAG)が個人レベルで定着しているか,yes,AJI AI Chat が月間アクティブ率約 70% と個人レベルで定着しているから yes
+organization.C1,8〜12 ヶ月以内に「やめる」と決められる権限と文化があるか,yes,探索フェーズの小規模チームで、8〜12 ヶ月以内に撤退を決められる権限と文化があるから yes
+organization.C2,受け皿となる全社リテラシー層(ビジネス側人材)が 2 桁人数まで育っているか,no,チームの外に、成果を引き取るビジネス側リテラシー層がまだ 2 桁人数育っていないから no
+organization.C3,AI ツール基盤(Copilot・社内チャット・RAG)が個人レベルで定着しているか,yes,チームでは社内 AI チャット等が個人レベルの日常業務に定着しているから yes
 organization.C4,知識移転契約で内面化(SECI の I)を KPI にできるか(例: IPA モデル契約),no,ベンダー契約で内面化(SECI の I)を KPI 化できていないから no
 organization.C5,拡大期の漸進分割(Stream-aligned から Complicated-Subsystem / Platform への切り出し)を事前に設計できるか,no,拡大期に Stream-aligned から切り出す漸進分割が未設計だから no
 organization.C6,bus factor 対策(ペアプロ・ADR・Knowledge Transfer Day)を運用しているか,no,ペアプロ・ADR・Knowledge Transfer Day を運用していないから no
