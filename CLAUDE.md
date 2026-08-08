@@ -108,6 +108,9 @@ self-documenting** であると同時に、**マージ規則の実体**でもあ
   = CSV 版との双子。結果同値は `tests/test_io_input.py` が固定): CSV は
   「`aidr init --format csv` で生成した体」で書き、質問列 = text_ja の複製。ドリフトは
   `tests/test_init_input.py` のドリフト検査が検出する。
+  **全回答行のメモ列に、シナリオの具体的な状況描写(想定回答の理由)を書く**。
+  書き方の正本は `examples/README.md` の「メモ列の書き方」節と「システム環境」表
+  (問いの言い換え禁止 / 部分充足の描写 / ペア対応。overlay・サンプル追加時も必須)。
   **CSV は未知の質問 id を拒否する**(typo 防止)ため、overlay の追加質問に回答する例は
   別ファイル(`*-with-overlay.csv`)に分ける。変換の同値性は
   `tests/fixtures/normalized_inputs.json`(変換前 YAML の正規化 dict)が正本
