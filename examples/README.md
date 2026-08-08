@@ -50,6 +50,11 @@
 
 補足:
 
+- **各サンプル CSV のメモ列には「ミドリ精機ではこういう状況だから yes / no」という回答理由を記載しています**。
+  問いだけでは想定回答を読み取れないため、メモが各質問の生きた回答例になります。
+  before/after ペア(経費精算の BLOCK→PASS など)では、before の no メモが「何が欠けているか」、
+  after の対応する yes メモが「改善: 何を整備したか」を書いており、**2 つの CSV のメモを見比べる
+  だけで何がどう変わって判定が動いたかが読めます**(構成比較のサンプル群も同じ流儀です)
 - 自社ルール overlay を適用して再診断する場合は、追加質問への回答込みの
   [`business/sample-expense-approval-after-with-overlay.csv`](business/sample-expense-approval-after-with-overlay.csv)
   を使います(CSV は typo 防止のため、適用していない overlay の質問 id を
