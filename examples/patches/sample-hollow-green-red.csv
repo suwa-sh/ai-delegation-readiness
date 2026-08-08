@@ -1,26 +1,26 @@
 ﻿id,質問,回答,メモ
 patch,パッチ名またはコミット,hollow-green,
-probe.P1,要求を検証できる、まとまりを保った最小の差分か,yes,差分自体は小さくまとまっているから yes
-probe.P2,挙動変更は既存 feature flag の裏にあるか、適用外ならロールバック容易という根拠を記録したか,yes,feature flag の裏でロールバックも容易だから yes
-probe.P3,公開契約を維持しているか、破壊的変更なら高リスクとして明示し人間判断へ回したか,yes,公開契約には触れていないから yes
-probe.P4,テストを追加・更新したか、適用外なら再確認可能な根拠を残したか,yes,テスト自体は追加され CI も緑だから yes
-probe.P5,触った全ファイルと所有リスクを risk manifest に列挙したか,yes,変更ファイルは risk manifest に列挙済みだから yes
-ownership.O1,受入前に将来の所有者を指名したか,yes,将来所有者の指名は済んでいるから yes
-ownership.O2,3年間の保守・検証・障害対応・説明責任コストを見積もったか,yes,所有コストの見積もりも済んでいるから yes
-ownership.O3,責任分界・エスカレーション・ロールバックの所有者が明確か,yes,ロールバックの所有者も明確だから yes
-ownership.O4,高リスク変更を判断する人間レビュー経路を予約したか,no,高リスク分類 N1〜N5 に該当せず経路の予約は不要だから no
-ownership.owner_ref,将来所有者の参照(user:<id> | team:<id> | codeowners:<path>),team:maintainers,将来所有者として保守チームを指名した参照
+probe.P1,要求を検証できる、まとまりを保った最小の差分か,yes,差分は経費チェックの丸め処理 1 関数、+14/-6 行に収まっている
+probe.P2,挙動変更は既存 feature flag の裏にあるか、適用外ならロールバック容易という根拠を記録したか,yes,既存フラグ rounding_fix の裏に置き、OFF で旧挙動へ戻せる
+probe.P3,公開契約を維持しているか、破壊的変更なら高リスクとして明示し人間判断へ回したか,yes,判定 API・出力スキーマとも現行のまま。呼び出し側の改修は不要
+probe.P4,テストを追加・更新したか、適用外なら再確認可能な根拠を残したか,yes,追加テストは 1 件で GitLab CI は緑。件数と実行証跡だけ見れば揃っている
+probe.P5,触った全ファイルと所有リスクを risk manifest に列挙したか,yes,変更 1 ファイルと影響範囲を risk-manifest.json に列挙済み
+ownership.O1,受入前に将来の所有者を指名したか,yes,team:maintainers の指名は cheap-green と同じ手順で完了している
+ownership.O2,3年間の保守・検証・障害対応・説明責任コストを見積もったか,yes,3 年の保守・障害対応コストは約 8 人日と見積もり済み。所有側の準備に不足はない
+ownership.O3,責任分界・エスカレーション・ロールバックの所有者が明確か,yes,ロールバック所有者は maintainers。責任分界は既存の運用文書のまま有効
+ownership.O4,高リスク変更を判断する人間レビュー経路を予約したか,no,丸め処理のみの変更で高リスク 5 分類に該当せず、専用レビュー経路は置いていない
+ownership.owner_ref,将来所有者の参照(user:<id> | team:<id> | codeowners:<path>),team:maintainers,保守チームをチーム名で指名。cheap-green と同じ登録内容
 ownership.review_route_ref,人間レビュー経路の証拠参照(高リスク時は必須),,
-hollow_green.H1,期待挙動を外部契約・修正前の失敗再現・独立作成の受入基準のいずれかに固定したか,no,テストが実装の現状をなぞるだけで外部 anchor が無いから no
-hollow_green.H2,negative control・故障注入・修正前失敗のいずれかで、テストが失敗できると確認したか,yes,テストが失敗できること自体は確認したから yes
-hollow_green.H3,パッチ生成者とは別の主体が受入証拠を独立レビューしたか,no,生成者と別の主体による独立レビューも無いから no
-never_cheap.N1,認可の挙動または承認境界を変更するか,no,承認境界には触れないから no
-never_cheap.N2,データ保持または削除の意味を変更するか,no,データの保持・削除の意味は変えないから no
-never_cheap.N3,課金・計量・価格・会計計上の意味を変更するか,no,課金・会計計上の意味には触れないから no
-never_cheap.N4,プライバシー・規制・コンプライアンスの挙動を変更するか,no,プライバシー・規制の挙動は変えないから no
-never_cheap.N5,公開API・ファイル形式・プロトコル・文書化済み契約を破壊的に変更するか,no,公開 API・ファイル形式は壊していないから no
-evidence.patch_ref,パッチの証拠参照,git:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,受入対象コミットの full SHA 参照
-evidence.test_status,テスト証拠の状態: present | absent | not_applicable,present,見かけの CI は緑でテスト証拠自体はあるから present
-evidence.test_ref,テスト証拠参照(test_status=present のとき必須),ci:github:124#sha256=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb,CI 実行結果を digest 付きで参照
+hollow_green.H1,期待挙動を外部契約・修正前の失敗再現・独立作成の受入基準のいずれかに固定したか,no,GitLab CI は緑だが、追加テストは現実装の出力をそのまま期待値に写した 1 件のみで、経費規程への参照が無い
+hollow_green.H2,negative control・故障注入・修正前失敗のいずれかで、テストが失敗できると確認したか,yes,アサートを壊せば fail することは確認済み。ただし期待値の出所は実装出力のまま
+hollow_green.H3,パッチ生成者とは別の主体が受入証拠を独立レビューしたか,no,独立レビューも無い。生成した coding agent の自己確認だけで受入証拠が閉じている
+never_cheap.N1,認可の挙動または承認境界を変更するか,no,承認フロー・承認金額の線は変えない。丸め処理の内部だけを触る
+never_cheap.N2,データ保持または削除の意味を変更するか,no,経費 DB の保持・削除の仕様に変更なし。書き込みパスにも触れていない
+never_cheap.N3,課金・計量・価格・会計計上の意味を変更するか,no,仕訳・計上の意味は変えない。変わるのはチェック結果の丸め位置だけ
+never_cheap.N4,プライバシー・規制・コンプライアンスの挙動を変更するか,no,個人情報・規制対応の経路に変更なし。入力は金額数値のみ
+never_cheap.N5,公開API・ファイル形式・プロトコル・文書化済み契約を破壊的に変更するか,no,判定 API・ファイル形式は現行のまま。外部への契約変更は含まない
+evidence.patch_ref,パッチの証拠参照,git:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,単一コミットを full SHA 40 桁で参照。差分の同一性は追跡できる
+evidence.test_status,テスト証拠の状態: present | absent | not_applicable,present,CI の成功ログは実在する。present はテスト証拠の有無だけを表す
+evidence.test_ref,テスト証拠参照(test_status=present のとき必須),ci:github:124#sha256=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb,CI run を digest 付きで参照。緑という事実自体は改変なく残る
 evidence.test_na_ref,テスト適用外根拠の参照(test_status=not_applicable のとき必須),,
-evidence.risk_manifest_ref,変更ファイルと所有リスク一覧の証拠参照,file:risk-manifest.json#sha256=cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc,変更ファイル一覧を digest 付きで参照
+evidence.risk_manifest_ref,変更ファイルと所有リスク一覧の証拠参照,file:risk-manifest.json#sha256=cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc,変更 1 ファイルの一覧を digest 付きで固定。列挙自体に不足はない

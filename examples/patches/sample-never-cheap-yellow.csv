@@ -1,26 +1,26 @@
 ﻿id,質問,回答,メモ
 patch,パッチ名またはコミット,authorization-change,
-probe.P1,要求を検証できる、まとまりを保った最小の差分か,yes,承認境界の変更 1 点に絞った最小の差分だから yes
-probe.P2,挙動変更は既存 feature flag の裏にあるか、適用外ならロールバック容易という根拠を記録したか,yes,変更は feature flag の裏で段階公開できるから yes
-probe.P3,公開契約を維持しているか、破壊的変更なら高リスクとして明示し人間判断へ回したか,yes,公開契約は維持したまま承認境界だけを変えるから yes
-probe.P4,テストを追加・更新したか、適用外なら再確認可能な根拠を残したか,yes,承認境界の変更に対するテストを追加したから yes
-probe.P5,触った全ファイルと所有リスクを risk manifest に列挙したか,yes,触った全ファイルを risk manifest に列挙済みだから yes
-ownership.O1,受入前に将来の所有者を指名したか,yes,高リスク境界のためセキュリティチームを指名したから yes
-ownership.O2,3年間の保守・検証・障害対応・説明責任コストを見積もったか,yes,3 年分の保守・障害対応・説明コストを見積もり済みだから yes
-ownership.O3,責任分界・エスカレーション・ロールバックの所有者が明確か,yes,責任分界とロールバックの所有者が決まっているから yes
-ownership.O4,高リスク変更を判断する人間レビュー経路を予約したか,yes,高リスクの採否を決める人間レビュー経路を予約済みだから yes
-ownership.owner_ref,将来所有者の参照(user:<id> | team:<id> | codeowners:<path>),team:security,承認境界を扱うためセキュリティチームを指名
-ownership.review_route_ref,人間レビュー経路の証拠参照(高リスク時は必須),file:review-route.md#sha256=dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd,高リスク用の人間レビュー経路を digest 付きで参照
-hollow_green.H1,期待挙動を外部契約・修正前の失敗再現・独立作成の受入基準のいずれかに固定したか,yes,期待挙動を認可仕様という外部契約に固定したから yes
-hollow_green.H2,negative control・故障注入・修正前失敗のいずれかで、テストが失敗できると確認したか,yes,故障注入でテストが失敗できると確認したから yes
-hollow_green.H3,パッチ生成者とは別の主体が受入証拠を独立レビューしたか,no,独立レビューは無いが H1+H2 で完全性は成立するから no
-never_cheap.N1,認可の挙動または承認境界を変更するか,yes,経費承認の承認境界そのものを変えるから yes。GREEN 禁止
-never_cheap.N2,データ保持または削除の意味を変更するか,no,データの保持・削除の意味は変えないから no
-never_cheap.N3,課金・計量・価格・会計計上の意味を変更するか,no,課金・会計計上の意味には触れないから no
-never_cheap.N4,プライバシー・規制・コンプライアンスの挙動を変更するか,no,プライバシー・規制の挙動は変えないから no
-never_cheap.N5,公開API・ファイル形式・プロトコル・文書化済み契約を破壊的に変更するか,no,公開 API・ファイル形式は壊していないから no
-evidence.patch_ref,パッチの証拠参照,git:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,受入対象コミットの full SHA 参照
-evidence.test_status,テスト証拠の状態: present | absent | not_applicable,present,承認境界のテストに CI 証拠があるから present
-evidence.test_ref,テスト証拠参照(test_status=present のとき必須),ci:github:125#sha256=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb,CI 実行結果を digest 付きで参照
+probe.P1,要求を検証できる、まとまりを保った最小の差分か,yes,自動承認の上限を 5 万円から 10 万円へ変える 1 点のみ。2 ファイル +21/-9 行
+probe.P2,挙動変更は既存 feature flag の裏にあるか、適用外ならロールバック容易という根拠を記録したか,yes,新上限は feature flag approval_limit_v2 で部門単位に段階公開する設計
+probe.P3,公開契約を維持しているか、破壊的変更なら高リスクとして明示し人間判断へ回したか,yes,判定 API と出力スキーマは維持。変わるのは自動承認に入る金額範囲だけ
+probe.P4,テストを追加・更新したか、適用外なら再確認可能な根拠を残したか,yes,新旧上限で承認とエスカレーションが分岐するテスト 4 件を GitLab CI に追加
+probe.P5,触った全ファイルと所有リスクを risk manifest に列挙したか,yes,変更 2 ファイルに加え、承認境界に効く設定ファイルも risk-manifest.json に列挙
+ownership.O1,受入前に将来の所有者を指名したか,yes,承認境界を扱うため team:security を指名。経理部の maintainers でなく統制側が引き取る
+ownership.O2,3年間の保守・検証・障害対応・説明責任コストを見積もったか,yes,J-SOX の監査対応を含む 3 年の保守・説明責任コストを約 20 人日と見積もった
+ownership.O3,責任分界・エスカレーション・ロールバックの所有者が明確か,yes,フラグ OFF での即時ロールバックは security 担当。経理部への連絡経路も文書化済み
+ownership.O4,高リスク変更を判断する人間レビュー経路を予約したか,yes,経理部長と内部統制担当による採否レビューを review-route.md に定義し予約済み
+ownership.owner_ref,将来所有者の参照(user:<id> | team:<id> | codeowners:<path>),team:security,統制に関わる変更のため、保守チームでなくセキュリティチーム名義で登録
+ownership.review_route_ref,人間レビュー経路の証拠参照(高リスク時は必須),file:review-route.md#sha256=dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd,採否レビューの手順書を digest 付きで固定。高リスク時の必須証拠
+hollow_green.H1,期待挙動を外部契約・修正前の失敗再現・独立作成の受入基準のいずれかに固定したか,yes,期待値は改定版の承認権限規程から独立に作成。実装出力を写していない
+hollow_green.H2,negative control・故障注入・修正前失敗のいずれかで、テストが失敗できると確認したか,yes,上限判定に故障を注入し、テスト 4 件が検出して fail することを確認済み
+hollow_green.H3,パッチ生成者とは別の主体が受入証拠を独立レビューしたか,no,受入証拠を独立に見た第三者はまだいない。採否レビューの場で初めて別の目が入る
+never_cheap.N1,認可の挙動または承認境界を変更するか,yes,人間承認なしで通る金額の範囲が 5 万円から 10 万円へ広がる。承認境界そのものの変更
+never_cheap.N2,データ保持または削除の意味を変更するか,no,申請データの保持期間・削除処理はワークフロー SaaS の設定のまま変更なし
+never_cheap.N3,課金・計量・価格・会計計上の意味を変更するか,no,金額の仕訳・計上ロジックには触れない。変わるのはどこから人間承認が要るかの線
+never_cheap.N4,プライバシー・規制・コンプライアンスの挙動を変更するか,no,個人情報・規制対応の処理経路に変更なし。監査ログの出力項目も現行のまま
+never_cheap.N5,公開API・ファイル形式・プロトコル・文書化済み契約を破壊的に変更するか,no,判定 API・CSV 連携の形式は現行版のまま。外部契約の破壊は含まない
+evidence.patch_ref,パッチの証拠参照,git:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,承認境界を変える単一コミットを full SHA 40 桁で固定
+evidence.test_status,テスト証拠の状態: present | absent | not_applicable,present,境界値テスト 4 件の CI 実行ログを保存済み。run 単位で結果を辿れる
+evidence.test_ref,テスト証拠参照(test_status=present のとき必須),ci:github:125#sha256=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb,CI run の結果を sha256 digest 付きで参照し、改変を検出できる形にした
 evidence.test_na_ref,テスト適用外根拠の参照(test_status=not_applicable のとき必須),,
-evidence.risk_manifest_ref,変更ファイルと所有リスク一覧の証拠参照,file:risk-manifest.json#sha256=cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc,変更ファイル一覧を digest 付きで参照
+evidence.risk_manifest_ref,変更ファイルと所有リスク一覧の証拠参照,file:risk-manifest.json#sha256=cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc,設定ファイル込みの変更一覧を digest で固定し、受入後も照合できる
