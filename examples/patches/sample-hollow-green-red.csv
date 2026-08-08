@@ -12,7 +12,7 @@ ownership.O4,高リスク変更を判断する人間レビュー経路を予約�
 ownership.owner_ref,将来所有者の参照(user:<id> | team:<id> | codeowners:<path>),team:maintainers,保守チームをチーム名で指名。cheap-green と同じ登録内容
 ownership.review_route_ref,人間レビュー経路の証拠参照(高リスク時は必須),,
 hollow_green.H1,期待挙動を外部契約・修正前の失敗再現・独立作成の受入基準のいずれかに固定したか,no,GitLab CI は緑だが、追加テストは現実装の出力をそのまま期待値に写した 1 件のみで、経費規程への参照が無い
-hollow_green.H2,negative control・故障注入・修正前失敗のいずれかで、テストが失敗できると確認したか,yes,アサートを壊せば fail することは確認済み。ただし期待値の出所は実装出力のまま
+hollow_green.H2,negative control・故障注入・修正前失敗のいずれかで、テストが失敗できると確認したか,yes,修正前のコミットに当てるとテストが落ちることは確認した。ただし期待値の出所は実装出力のまま
 hollow_green.H3,パッチ生成者とは別の主体が受入証拠を独立レビューしたか,no,独立レビューも無い。生成した coding agent の自己確認だけで受入証拠が閉じている
 never_cheap.N1,認可の挙動または承認境界を変更するか,no,承認フロー・承認金額の線は変えない。丸め処理の内部だけを触る
 never_cheap.N2,データ保持または削除の意味を変更するか,no,経費 DB の保持・削除の仕様に変更なし。書き込みパスにも触れていない
@@ -21,6 +21,6 @@ never_cheap.N4,プライバシー・規制・コンプライアンスの挙動�
 never_cheap.N5,公開API・ファイル形式・プロトコル・文書化済み契約を破壊的に変更するか,no,判定 API・ファイル形式は現行のまま。外部への契約変更は含まない
 evidence.patch_ref,パッチの証拠参照,git:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,単一コミットを full SHA 40 桁で参照。差分の同一性は追跡できる
 evidence.test_status,テスト証拠の状態: present | absent | not_applicable,present,CI の成功ログは実在する。present はテスト証拠の有無だけを表す
-evidence.test_ref,テスト証拠参照(test_status=present のとき必須),ci:github:124#sha256=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb,CI run を digest 付きで参照。緑という事実自体は改変なく残る
+evidence.test_ref,テスト証拠参照(test_status=present のとき必須),ci:gitlab:124#sha256=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb,CI run を digest 付きで参照。緑という事実自体は改変なく残る
 evidence.test_na_ref,テスト適用外根拠の参照(test_status=not_applicable のとき必須),,
 evidence.risk_manifest_ref,変更ファイルと所有リスク一覧の証拠参照,file:risk-manifest.json#sha256=cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc,変更 1 ファイルの一覧を digest 付きで固定。列挙自体に不足はない

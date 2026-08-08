@@ -21,6 +21,6 @@ never_cheap.N4,プライバシー・規制・コンプライアンスの挙動�
 never_cheap.N5,公開API・ファイル形式・プロトコル・文書化済み契約を破壊的に変更するか,no,判定 API・CSV 連携の形式は現行版のまま。外部契約の破壊は含まない
 evidence.patch_ref,パッチの証拠参照,git:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,承認境界を変える単一コミットを full SHA 40 桁で固定
 evidence.test_status,テスト証拠の状態: present | absent | not_applicable,present,境界値テスト 4 件の CI 実行ログを保存済み。run 単位で結果を辿れる
-evidence.test_ref,テスト証拠参照(test_status=present のとき必須),ci:github:125#sha256=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb,CI run の結果を sha256 digest 付きで参照し、改変を検出できる形にした
+evidence.test_ref,テスト証拠参照(test_status=present のとき必須),ci:gitlab:125#sha256=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb,CI run の結果を sha256 digest 付きで参照し、改変を検出できる形にした
 evidence.test_na_ref,テスト適用外根拠の参照(test_status=not_applicable のとき必須),,
 evidence.risk_manifest_ref,変更ファイルと所有リスク一覧の証拠参照,file:risk-manifest.json#sha256=cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc,設定ファイル込みの変更一覧を digest で固定し、受入後も照合できる

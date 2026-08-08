@@ -39,7 +39,7 @@ bin/aidr check-readiness examples/business/ajinomoto-discovery-team.csv
 入力: [`examples/business/ajinomoto-discovery-team.csv`](../examples/business/ajinomoto-discovery-team.csv)
 
 ```text
-Target: 新規事業の探索チーム(小規模フルスタック・探索フェーズ)
+Target: 経理業務の AI 委任(少人数フルスタックの探索チーム・探索フェーズ)
 
 [OK] L1 業務標準化層: PASS (100%)
 [OK] L2 判断構造化層: PASS (100%)

@@ -21,6 +21,6 @@ never_cheap.N4,プライバシー・規制・コンプライアンスの挙動�
 never_cheap.N5,公開API・ファイル形式・プロトコル・文書化済み契約を破壊的に変更するか,no,判定 API の入出力形式は現行 v1 のまま。ファイル形式・プロトコルの変更なし
 evidence.patch_ref,パッチの証拠参照,git:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,対象は MR 1 件分の単一コミット。full SHA 40 桁で固定し追跡できる
 evidence.test_status,テスト証拠の状態: present | absent | not_applicable,present,追加テスト 3 件のパイプライン成功ログを保存済み。run 単位で結果を辿れる
-evidence.test_ref,テスト証拠参照(test_status=present のとき必須),ci:github:123#sha256=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb,CI run の成果物を sha256 digest 付きで参照。後からの改変を検出できる
+evidence.test_ref,テスト証拠参照(test_status=present のとき必須),ci:gitlab:123#sha256=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb,CI run の成果物を sha256 digest 付きで参照。後からの改変を検出できる
 evidence.test_na_ref,テスト適用外根拠の参照(test_status=not_applicable のとき必須),,
 evidence.risk_manifest_ref,変更ファイルと所有リスク一覧の証拠参照,file:risk-manifest.json#sha256=cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc,変更 2 ファイルの一覧を risk-manifest.json に出力し digest で固定

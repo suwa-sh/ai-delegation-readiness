@@ -28,7 +28,7 @@
       "organization.C5": false,
       "organization.C6": false
     },
-    "target": "新規事業の探索チーム(小規模フルスタック・探索フェーズ)"
+    "target": "経理業務の AI 委任(少人数フルスタックの探索チーム・探索フェーズ)"
   },
   "examples/business/sample-expense-approval-after.csv": {
     "answers": {
