@@ -71,10 +71,6 @@ consume it directly.
 No setup — pull the published image and run it. The bundled samples (the
 Midori Seiki story) work out of the box:
 
-> **release pending**: `v0.17.2` is waiting for its tag, Release, and image.
-> Until they are published, use `v0.17.1` (the concrete situational rationales
-> in the sample CSV memos ship from `v0.17.2`).
-
 ```bash
 docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.17.2 --version
 
