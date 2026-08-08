@@ -66,10 +66,6 @@ AI エージェントや CI からも直接使えます。
 セットアップは不要です。公開イメージを取得して実行すると、同梱のサンプル
 (ミドリ精機の物語)がそのまま動きます。
 
-> **release pending**: `v0.17.1` はタグ・Release・イメージの公開待ちです。
-> 公開されるまでは `v0.17.0` を使ってください(サンプル CSV の回答理由メモは
-> `v0.17.1` から同梱されます)。
-
 ```bash
 docker run --rm ghcr.io/suwa-sh/ai-delegation-readiness:v0.17.1 --version
 
